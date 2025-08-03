@@ -325,7 +325,7 @@
                         onClick={() => setCurrentView('chatbot')}
                         className={`flex items-center space-x-2 p-2 rounded-lg transition-all duration-200 ${currentView === 'chatbot' ? 'bg-blue-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:bg-gray-200'}`}
                         >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="" /></svg>
+                        
                         <span className="font-medium">💬 AI Chatbot</span>
                         </button>
                     </div>
@@ -452,7 +452,7 @@
                   <div className="flex-1 flex flex-col lg:flex-row gap-8">
                     <div className="lg:w-2/3 flex flex-col bg-white rounded-xl shadow-lg p-6">
                       <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-2xl font-bold">AI Code Analyzer</h2>
+                        <h2 className="text-2xl font-bold">AI Code Analyzer</h2><br>
                           <p class="text-slate-500 mb-4">วางโค้ดภาษาซีของคุณที่นี่เพื่อให้ AI ช่วยวิเคราะห์หาข้อผิดพลาดและให้คำแนะนำในการปรับปรุงคุณภาพโค้ด</p>
                         <button onClick={analyzeCode} disabled={loading} className="bg-green-500 text-white font-bold py-2 px-6 rounded-lg flex items-center space-x-2 shadow-md hover:bg-green-600 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed">
                           {loading ? (
@@ -563,6 +563,7 @@
 
 </body>
 </html>
+
 
 
 
