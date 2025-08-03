@@ -455,12 +455,8 @@
                     <p class="text-slate-500 mb-4">วางโค้ดภาษาซีของคุณที่นี่เพื่อให้ AI ช่วยวิเคราะห์หาข้อผิดพลาดและให้คำแนะนำในการปรับปรุงคุณภาพโค้ด</p>
                       </div>
                       <div className="flex-1 relative">
+                    <div class="grid md:grid-cols-2 gap-6">
                         <textarea value={code} onChange={(e) => setCode(e.target.value)} className="w-full h-full bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="// เขียนโค้ดภาษาซีของคุณที่นี่..."/>
-
-                      </div>
-
-                        <div className="lg:w-2/3 flex flex-col bg-white rounded-xl shadow-lg p-6">
-                      <div class="bg-white p-6 rounded-2xl shadow-lg">
                           <button onClick={analyzeCode} disabled={loading} className="bg-green-500 text-white font-bold py-2 px-6 rounded-lg flex items-center space-x-2 shadow-md hover:bg-green-600 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed">
                           {loading ? (
                             <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -470,6 +466,7 @@
                           <span>{loading ? 'กำลังวิเคราะห์...' : 'วิเคราะห์โค้ด'}</span>
                         </button>
                       </div>
+
 
                         
                     </div>
@@ -569,6 +566,7 @@
 
 </body>
 </html>
+
 
 
 
