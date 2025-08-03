@@ -457,6 +457,13 @@
                       <div className="flex-1 relative">
 
                         <textarea value={code} onChange={(e) => setCode(e.target.value)} className="w-full h-full bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="// เขียนโค้ดภาษาซีของคุณที่นี่..."/>
+
+                      </div>
+
+
+                        
+                    </div>
+                    <div className="lg:w-1/3 flex flex-col bg-white rounded-xl shadow-lg p-6">
                           <button onClick={analyzeCode} disabled={loading} className="bg-green-500 text-white font-bold py-2 px-6 rounded-lg flex items-center space-x-2 shadow-md hover:bg-green-600 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed">
                           {loading ? (
                             <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -465,12 +472,6 @@
                           )}
                           <span>{loading ? 'กำลังวิเคราะห์...' : 'วิเคราะห์โค้ด'}</span>
                         </button>
-                      </div>
-
-
-                        
-                    </div>
-                    <div className="lg:w-1/3 flex flex-col bg-white rounded-xl shadow-lg p-6">
                       <h2 className="text-2xl font-bold mb-4">AI Analysis</h2>
                       <div className="flex-1 flex flex-col justify-center">
                           {loading && (
@@ -566,6 +567,7 @@
 
 </body>
 </html>
+
 
 
 
