@@ -42,7 +42,7 @@
         // Main application component
         const App = () => {
           // State management for different parts of the application
-          const [currentView, setCurrentView] = useState('problems'); // Controls which view is visible: 'problems', 'editor', or 'chatbot'
+          const [currentView, setCurrentView] = useState('editor'); // Controls which view is visible: 'problems', 'editor', or 'chatbot'
           const [code, setCode] = useState(`#include <stdio.h>\n\nint main() {\n    // Write your C code here\n    printf("Hello, World!");\n    return 0;\n}`);
           const [problemsList, setProblemsList] = useState([]);
           const [analysis, setAnalysis] = useState(null);
@@ -562,6 +562,7 @@
 
 </body>
 </html>
+
 
 
 
