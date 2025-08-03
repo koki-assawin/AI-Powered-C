@@ -300,19 +300,20 @@
                     </div>
                     <div className="flex border-t justify-center p-2 space-x-4 md:space-x-6 lg:space-x-8">
                         <button
-                        onClick={() => setCurrentView('problems')}
-                        className={`flex items-center space-x-2 p-2 rounded-lg transition-all duration-200 ${currentView === 'problems' ? 'bg-blue-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:bg-gray-200'}`}
-                        >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 3a7 7 0 100 14 7 7 0 000-14zM2 10a8 8 0 1116 0 8 8 0 01-16 0zm9 5a1 1 0 11-2 0 1 1 0 012 0zM10 4a1 1 0 011 1v2a1 1 0 11-2 0V5a1 1 0 011-1z" /></svg>
-                        <span className="font-medium">สร้างโจทย์</span>
-                        </button>
-                        <button
                         onClick={() => setCurrentView('editor')}
                         className={`flex items-center space-x-2 p-2 rounded-lg transition-all duration-200 ${currentView === 'editor' ? 'bg-blue-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:bg-gray-200'}`}
                         >
                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm1 2v1h10V5H5zm0 2v1h10V7H5zm0 2v1h10V9H5zm0 2v1h10v-1H5z" clipRule="evenodd" /></svg>
                         <span className="font-medium">Code Editor</span>
                         </button>
+                        <button
+                        onClick={() => setCurrentView('problems')}
+                        className={`flex items-center space-x-2 p-2 rounded-lg transition-all duration-200 ${currentView === 'problems' ? 'bg-blue-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:bg-gray-200'}`}
+                        >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 3a7 7 0 100 14 7 7 0 000-14zM2 10a8 8 0 1116 0 8 8 0 01-16 0zm9 5a1 1 0 11-2 0 1 1 0 012 0zM10 4a1 1 0 011 1v2a1 1 0 11-2 0V5a1 1 0 011-1z" /></svg>
+                        <span className="font-medium">สร้างโจทย์</span>
+                        </button>
+                       
                         <button
                         onClick={() => setCurrentView('chatbot')}
                         className={`flex items-center space-x-2 p-2 rounded-lg transition-all duration-200 ${currentView === 'chatbot' ? 'bg-blue-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:bg-gray-200'}`}
@@ -554,6 +555,7 @@
 
 </body>
 </html>
+
 
 
 
