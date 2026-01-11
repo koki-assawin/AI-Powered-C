@@ -494,18 +494,26 @@
             const [customProblemTopic, setCustomProblemTopic] = useState('การวนซ้ำ (Loops)');
             const [numberOfProblems, setNumberOfProblems] = useState(1);
 
-            useEffect(() => {
-                // ตรวจสอบ API Key ตามลำดับ: system_api_key (จาก admin) -> user's own API key
-                const systemApiKey = localStorage.getItem('system_api_key');
-                const userApiKey = localStorage.getItem('gemini_api_key');
+            // ⚙️ ผู้ดูแลระบบ: กรอก API Key ของคุณที่นี่
+            const SYSTEM_API_KEY = "YOUR_GEMINI_API_KEY_HERE"; // 🔑 เปลี่ยนเป็น API Key ของคุณ
 
-                if (systemApiKey) {
-                    setApiKey(systemApiKey);
-                } else if (userApiKey) {
-                    setApiKey(userApiKey);
+            useEffect(() => {
+                // ลำดับความสำคัญ API Key:
+                // 1. Hardcoded System API Key (จากผู้ดูแล)
+                // 2. API Key จาก localStorage (ถ้าผู้ใช้ตั้งเอง)
+
+                if (SYSTEM_API_KEY && SYSTEM_API_KEY !== "YOUR_GEMINI_API_KEY_HERE") {
+                    // ใช้ API Key ที่ผู้ดูแลตั้งไว้
+                    setApiKey(SYSTEM_API_KEY);
                 } else {
-                    // ไม่มี API Key เลย แสดง Settings
-                    setShowSettings(true);
+                    // ถ้าผู้ดูแลยังไม่ตั้ง ให้ตรวจสอบ localStorage
+                    const userApiKey = localStorage.getItem('gemini_api_key');
+                    if (userApiKey) {
+                        setApiKey(userApiKey);
+                    } else {
+                        // ไม่มี API Key เลย (แต่ไม่แสดง Settings modal อัตโนมัติ)
+                        console.warn('⚠️ ไม่พบ API Key กรุณาติดต่อผู้ดูแลระบบ');
+                    }
                 }
             }, []);
 
