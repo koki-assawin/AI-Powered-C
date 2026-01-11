@@ -2,7 +2,36 @@
 
 ## ขั้นตอนการตั้งค่า API Key สำหรับผู้ใช้ทั้งหมด
 
-### วิธีที่ 1: Hardcode API Key (แนะนำสำหรับ GitHub Pages) ⭐
+### 🔥 วิธีที่ 1: Firebase Realtime Database (แนะนำ - ปลอดภัยที่สุด) ⭐⭐⭐
+
+**📖 อ่านคู่มือฉบับเต็มที่:** [FIREBASE_SETUP.md](FIREBASE_SETUP.md)
+
+#### ขั้นตอนสรุป (5 ขั้นตอนหลัก):
+
+1. **สร้าง Firebase Project** ที่ [Firebase Console](https://console.firebase.google.com/)
+2. **เปิดใช้ Realtime Database** (เลือก asia-southeast1)
+3. **ตั้งค่า Security Rules** (read-only):
+   ```json
+   {
+     "rules": {
+       "config": {
+         ".read": true,
+         ".write": false
+       }
+     }
+   }
+   ```
+4. **เพิ่ม API Key** ใน Database path: `/config/gemini_api_key`
+5. **แก้ไข index.html** บรรทัดที่ 499: ใส่ Firebase Database URL ของคุณ
+   ```javascript
+   const FIREBASE_DATABASE_URL = "https://your-project.firebaseio.com";
+   ```
+
+**เสร็จแล้ว!** Push ขึ้น GitHub และระบบจะทำงานอัตโนมัติ ✅
+
+---
+
+### วิธีที่ 2: Hardcode API Key (ง่ายแต่ความปลอดภัยน้อยกว่า)
 
 #### ขั้นตอนที่ 1: รับ API Key ฟรี
 
@@ -14,14 +43,24 @@
 #### ขั้นตอนที่ 2: ใส่ API Key ในโค้ด
 
 1. เปิดไฟล์ `index.html`
-2. ค้นหาบรรทัดที่มีข้อความ:
+2. ค้นหาบรรทัดที่ 499 (FIREBASE_DATABASE_URL)
+3. แทนที่โค้ดทั้งหมดด้วย:
    ```javascript
-   const SYSTEM_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
-   ```
-
-3. เปลี่ยนเป็น:
-   ```javascript
+   // ใช้ Hardcode แทน Firebase
    const SYSTEM_API_KEY = "AIzaSyB..."; // API Key ของคุณ
+
+   useEffect(() => {
+       if (SYSTEM_API_KEY && SYSTEM_API_KEY !== "YOUR_GEMINI_API_KEY_HERE") {
+           setApiKey(SYSTEM_API_KEY);
+       } else {
+           const userApiKey = localStorage.getItem('gemini_api_key');
+           if (userApiKey) {
+               setApiKey(userApiKey);
+           } else {
+               console.warn('⚠️ ไม่พบ API Key กรุณาติดต่อผู้ดูแลระบบ');
+           }
+       }
+   }, []);
    ```
 
 #### ขั้นตอนที่ 3: Commit และ Push
@@ -62,62 +101,10 @@ git push origin main
 
 ---
 
-## วิธีที่ 2: ใช้ Firebase Realtime Database (ปลอดภัยกว่า) 🔐
+## 📝 หมายเหตุ
 
-### ข้อดี
-- 🔒 API Key ไม่ปรากฏในโค้ด
-- 🔄 เปลี่ยน API Key ได้โดยไม่ต้อง redeploy
-- 📊 ควบคุมการเข้าถึงได้
-
-### ขั้นตอน
-
-#### 1. สร้าง Firebase Project
-
-1. ไปที่ [Firebase Console](https://console.firebase.google.com/)
-2. สร้าง Project ใหม่
-3. เลือก Realtime Database
-4. ตั้งค่า Rules:
-   ```json
-   {
-     "rules": {
-       "config": {
-         ".read": true,
-         ".write": false
-       }
-     }
-   }
-   ```
-
-#### 2. เพิ่ม API Key ใน Database
-
-ใน Realtime Database ให้สร้าง structure:
-```json
-{
-  "config": {
-    "gemini_api_key": "YOUR_API_KEY_HERE"
-  }
-}
-```
-
-#### 3. แก้ไขโค้ดใน index.html
-
-เพิ่มโค้ดนี้ใน `useEffect`:
-
-```javascript
-useEffect(() => {
-    // ดึง API Key จาก Firebase
-    fetch('https://YOUR_PROJECT.firebaseio.com/config/gemini_api_key.json')
-        .then(res => res.json())
-        .then(apiKey => {
-            if (apiKey) {
-                setApiKey(apiKey);
-            }
-        })
-        .catch(err => {
-            console.error('Error loading API key:', err);
-        });
-}, []);
-```
+- **วิธีที่ 1 (Firebase)** เหมาะสำหรับการใช้งานที่ต้องการความปลอดภัยสูงและไม่ต้องการให้ API Key ปรากฏในโค้ด
+- **วิธีที่ 2 (Hardcode)** เหมาะสำหรับการทดสอบหรือใช้งานในวงจำกัด แต่ API Key จะเห็นได้จาก source code
 
 ---
 

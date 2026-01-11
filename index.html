@@ -321,7 +321,7 @@
                                     รองรับหลายภาษา (C, C++, Python, Java) พร้อมระบบวิเคราะห์โค้ด สร้างโจทย์ และ AI Chatbot
                                 </p>
                                 <div className="mt-3 text-xs text-gray-500">
-                                    <p>Version 2.1 | © 2025 Triam Udom Suksa of The South</p>
+                                    <p>Version 2.2 (Firebase Edition) | © 2025 Triam Udom Suksa of The South</p>
                                     <p>Developed by Assawin Chullamool</p>
                                 </div>
                             </div>
@@ -494,27 +494,54 @@
             const [customProblemTopic, setCustomProblemTopic] = useState('การวนซ้ำ (Loops)');
             const [numberOfProblems, setNumberOfProblems] = useState(1);
 
-            // ⚙️ ผู้ดูแลระบบ: กรอก API Key ของคุณที่นี่
-            const SYSTEM_API_KEY = "YOUR_GEMINI_API_KEY_HERE"; // 🔑 เปลี่ยนเป็น API Key ของคุณ
+            // 🔥 Firebase Realtime Database Configuration
+            // ⚙️ ผู้ดูแลระบบ: เปลี่ยน URL นี้เป็น Firebase Database URL ของ PathoVetAssist project
+            const FIREBASE_DATABASE_URL = "https://YOUR-PROJECT-ID.firebaseio.com"; // ⚠️ เปลี่ยนเป็น URL จาก Firebase Console
 
             useEffect(() => {
-                // ลำดับความสำคัญ API Key:
-                // 1. Hardcoded System API Key (จากผู้ดูแล)
-                // 2. API Key จาก localStorage (ถ้าผู้ใช้ตั้งเอง)
+                // โหลด API Key จาก Firebase Realtime Database
+                const loadApiKeyFromFirebase = async () => {
+                    try {
+                        console.log('🔄 กำลังโหลด API Key จาก Firebase...');
 
-                if (SYSTEM_API_KEY && SYSTEM_API_KEY !== "YOUR_GEMINI_API_KEY_HERE") {
-                    // ใช้ API Key ที่ผู้ดูแลตั้งไว้
-                    setApiKey(SYSTEM_API_KEY);
-                } else {
-                    // ถ้าผู้ดูแลยังไม่ตั้ง ให้ตรวจสอบ localStorage
-                    const userApiKey = localStorage.getItem('gemini_api_key');
-                    if (userApiKey) {
-                        setApiKey(userApiKey);
-                    } else {
-                        // ไม่มี API Key เลย (แต่ไม่แสดง Settings modal อัตโนมัติ)
-                        console.warn('⚠️ ไม่พบ API Key กรุณาติดต่อผู้ดูแลระบบ');
+                        // ⚠️ สังเกต path: ai-powered-code/config/gemini_api_key (แยกจาก PathoVetAssist)
+                        const response = await fetch(`${FIREBASE_DATABASE_URL}/ai-powered-code/config/gemini_api_key.json`);
+
+                        if (!response.ok) {
+                            throw new Error(`Firebase fetch failed: ${response.status}`);
+                        }
+
+                        const firebaseApiKey = await response.json();
+
+                        if (firebaseApiKey && typeof firebaseApiKey === 'string') {
+                            setApiKey(firebaseApiKey);
+                            console.log('✅ โหลด API Key จาก Firebase สำเร็จ');
+                        } else {
+                            // ถ้า Firebase ไม่มี API Key ให้ลองใช้ localStorage
+                            console.warn('⚠️ ไม่พบ API Key ใน Firebase');
+                            const userApiKey = localStorage.getItem('gemini_api_key');
+                            if (userApiKey) {
+                                setApiKey(userApiKey);
+                                console.log('✅ ใช้ API Key จาก localStorage');
+                            } else {
+                                console.error('❌ ไม่พบ API Key กรุณาติดต่อผู้ดูแลระบบ');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('❌ ข้อผิดพลาดในการโหลด API Key จาก Firebase:', error);
+
+                        // Fallback: ลองใช้ localStorage
+                        const userApiKey = localStorage.getItem('gemini_api_key');
+                        if (userApiKey) {
+                            setApiKey(userApiKey);
+                            console.log('✅ ใช้ API Key จาก localStorage (Fallback)');
+                        } else {
+                            console.error('❌ ไม่พบ API Key กรุณาติดต่อผู้ดูแลระบบ');
+                        }
                     }
-                }
+                };
+
+                loadApiKeyFromFirebase();
             }, []);
 
             const handleSaveApiKey = (newApiKey) => {
