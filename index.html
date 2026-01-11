@@ -5,77 +5,153 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI-Powered Code Practice System</title>
 
-    <!-- Tailwind CSS for styling -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Google Fonts (Sarabun for Thai) -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <!-- React and Babel for running JSX in the browser -->
+    <!-- React and Babel -->
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Chart.js for infographic -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Highlight.js for Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
     <style>
         body {
             font-family: 'Sarabun', sans-serif;
         }
 
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-
-        /* Gradient animation */
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .gradient-bg {
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
-        }
-
-        /* Code mirror style */
-        .code-editor {
+        /* Code Editor Styles - VSCode like */
+        .code-editor-container {
+            display: flex;
             background-color: #1e1e1e;
-            color: #d4d4d4;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.6;
         }
 
         .line-numbers {
-            counter-reset: line;
+            background-color: #252526;
+            color: #858585;
+            padding: 16px 12px;
+            text-align: right;
+            user-select: none;
+            min-width: 50px;
+            border-right: 1px solid #3e3e42;
         }
 
-        .line-numbers .line::before {
-            counter-increment: line;
-            content: counter(line);
-            display: inline-block;
-            width: 3em;
-            padding-right: 1em;
-            text-align: right;
-            color: #858585;
+        .code-input-area {
+            flex: 1;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+
+        .code-input-area::placeholder {
+            color: #6a737d;
+        }
+
+        /* Syntax Highlighting Colors (VSCode Dark+) */
+        .hljs {
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+
+        .hljs-keyword {
+            color: #569cd6;
+        }
+
+        .hljs-string {
+            color: #ce9178;
+        }
+
+        .hljs-number {
+            color: #b5cea8;
+        }
+
+        .hljs-comment {
+            color: #6a9955;
+            font-style: italic;
+        }
+
+        .hljs-function {
+            color: #dcdcaa;
+        }
+
+        .hljs-title {
+            color: #4ec9b0;
+        }
+
+        .hljs-params {
+            color: #9cdcfe;
+        }
+
+        .hljs-built_in {
+            color: #4ec9b0;
+        }
+
+        .hljs-type {
+            color: #4ec9b0;
+        }
+
+        .hljs-meta {
+            color: #569cd6;
+        }
+
+        .hljs-preprocessor {
+            color: #c586c0;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4e4e4e;
+        }
+
+        /* Error highlight in code */
+        .error-line {
+            background-color: rgba(255, 0, 0, 0.1);
+            border-left: 3px solid #f44747;
+            padding-left: 5px;
+        }
+
+        .warning-line {
+            background-color: rgba(255, 193, 7, 0.1);
+            border-left: 3px solid #cca700;
+            padding-left: 5px;
         }
     </style>
 </head>
@@ -91,27 +167,81 @@
             c: {
                 name: 'C',
                 icon: '🔵',
-                defaultCode: `#include <stdio.h>\n\nint main() {\n    // Write your C code here\n    printf("Hello, World!");\n    return 0;\n}`,
-                color: '#A8B9CC'
+                defaultCode: `#include <stdio.h>\n\nint main() {\n    // Write your C code here\n    printf("Hello, World!\\n");\n    return 0;\n}`,
+                color: '#A8B9CC',
+                hljsLang: 'c'
             },
             cpp: {
                 name: 'C++',
                 icon: '🔷',
                 defaultCode: `#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your C++ code here\n    cout << "Hello, World!" << endl;\n    return 0;\n}`,
-                color: '#00599C'
+                color: '#00599C',
+                hljsLang: 'cpp'
             },
             python: {
                 name: 'Python',
                 icon: '🐍',
                 defaultCode: `# Write your Python code here\ndef main():\n    print("Hello, World!")\n\nif __name__ == "__main__":\n    main()`,
-                color: '#3776AB'
+                color: '#3776AB',
+                hljsLang: 'python'
             },
             java: {
                 name: 'Java',
                 icon: '☕',
                 defaultCode: `public class Main {\n    public static void main(String[] args) {\n        // Write your Java code here\n        System.out.println("Hello, World!");\n    }\n}`,
-                color: '#007396'
+                color: '#007396',
+                hljsLang: 'java'
             }
+        };
+
+        // Code Editor Component with Line Numbers
+        const CodeEditor = ({ value, onChange, language, placeholder }) => {
+            const textareaRef = useRef(null);
+            const lineNumbersRef = useRef(null);
+
+            const lines = value.split('\n');
+            const lineCount = lines.length;
+
+            const handleScroll = () => {
+                if (textareaRef.current && lineNumbersRef.current) {
+                    lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+                }
+            };
+
+            const handleTab = (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = e.target.selectionStart;
+                    const end = e.target.selectionEnd;
+                    const newValue = value.substring(0, start) + '    ' + value.substring(end);
+                    onChange(newValue);
+
+                    setTimeout(() => {
+                        e.target.selectionStart = e.target.selectionEnd = start + 4;
+                    }, 0);
+                }
+            };
+
+            return (
+                <div className="code-editor-container">
+                    <div ref={lineNumbersRef} className="line-numbers">
+                        {Array.from({ length: lineCount }, (_, i) => (
+                            <div key={i + 1}>{i + 1}</div>
+                        ))}
+                    </div>
+                    <textarea
+                        ref={textareaRef}
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        onScroll={handleScroll}
+                        onKeyDown={handleTab}
+                        className="code-input-area"
+                        placeholder={placeholder}
+                        spellCheck="false"
+                        style={{ minHeight: '500px' }}
+                    />
+                </div>
+            );
         };
 
         // Settings Modal Component
@@ -141,20 +271,19 @@
                         </div>
 
                         <div className="p-6 space-y-6">
-                            {/* API Key Section */}
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                                <h3 className="text-xl font-bold mb-4 text-blue-900">🔑 Google Gemini API Key</h3>
+                                <h3 className="text-xl font-bold mb-4 text-blue-900">🔑 Google Gemini API Key (ไม่บังคับ)</h3>
 
                                 <div className="mb-4">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        API Key ของคุณ:
+                                        API Key ส่วนตัวของคุณ:
                                     </label>
                                     <div className="relative">
                                         <input
                                             type={showApiKey ? "text" : "password"}
                                             value={tempApiKey}
                                             onChange={(e) => setTempApiKey(e.target.value)}
-                                            placeholder="กรอก API Key ของคุณที่นี่..."
+                                            placeholder="กรอก API Key ของคุณที่นี่ (ไม่บังคับ)..."
                                             className="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                         <button
@@ -171,36 +300,32 @@
                                     <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
                                         <li>เปิด <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Google AI Studio</a></li>
                                         <li>เข้าสู่ระบบด้วย Google Account</li>
-                                        <li>คลิก "Create API Key" หรือ "Get API Key"</li>
+                                        <li>คลิก "Create API Key"</li>
                                         <li>คัดลอก API Key ที่ได้</li>
                                         <li>นำมาวางในช่องด้านบน</li>
                                     </ol>
-                                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                        <p className="text-xs text-yellow-800">
-                                            <strong>🔒 ความปลอดภัย:</strong> API Key จะถูกเก็บในเบราว์เซอร์ของคุณเท่านั้น (localStorage)
-                                            และจะไม่ถูกส่งไปยังเซิร์ฟเวอร์อื่นใด
+                                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                        <p className="text-xs text-green-800">
+                                            <strong>✅ หมายเหตุ:</strong> ถ้าคุณไม่กรอก API Key ส่วนตัว ระบบจะใช้ API Key กลางที่ผู้ดูแลตั้งไว้ให้อัตโนมัติ
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* About Section */}
                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
                                 <h3 className="text-xl font-bold mb-3 text-gray-900">ℹ️ เกี่ยวกับระบบ</h3>
                                 <p className="text-gray-700 mb-2">
                                     <strong>ระบบฝึกเขียนโค้ดอัจฉริยะ (AI-Powered Code Practice System)</strong>
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                    ระบบช่วยเหลือการเรียนรู้การเขียนโปรแกรมด้วย AI รองรับหลายภาษา (C, C++, Python, Java)
-                                    พร้อมระบบวิเคราะห์โค้ด สร้างโจทย์ และ AI Chatbot สำหรับการเรียนรู้
+                                    รองรับหลายภาษา (C, C++, Python, Java) พร้อมระบบวิเคราะห์โค้ด สร้างโจทย์ และ AI Chatbot
                                 </p>
                                 <div className="mt-3 text-xs text-gray-500">
-                                    <p>Version 2.0 | © 2025 Triam Udom Suksa of The South</p>
+                                    <p>Version 2.1 | © 2025 Triam Udom Suksa of The South</p>
                                     <p>Developed by Assawin Chullamool</p>
                                 </div>
                             </div>
 
-                            {/* Action Buttons */}
                             <div className="flex space-x-3">
                                 <button
                                     onClick={handleSave}
@@ -221,7 +346,7 @@
             );
         };
 
-        // Analysis Result Component with Infographic
+        // Analysis Result Component with Line References
         const AnalysisResult = ({ analysis, language }) => {
             if (!analysis) return null;
 
@@ -297,7 +422,6 @@
                         </div>
                     </div>
 
-                    {/* Metrics Chart */}
                     {analysis.metrics && (
                         <div className="mb-6 bg-white rounded-lg p-4">
                             <h4 className="font-bold text-gray-700 mb-3 text-center">📊 คะแนนการวิเคราะห์</h4>
@@ -307,7 +431,6 @@
                         </div>
                     )}
 
-                    {/* Feedback */}
                     <div className="bg-white rounded-lg p-4 mb-4">
                         <h4 className="font-bold text-gray-800 mb-2 flex items-center">
                             <span className="mr-2">💬</span> ข้อเสนอแนะ:
@@ -315,7 +438,6 @@
                         <p className="text-gray-700 whitespace-pre-line">{analysis.feedback}</p>
                     </div>
 
-                    {/* Issues */}
                     {analysis.issues && analysis.issues.length > 0 && (
                         <div className="bg-white rounded-lg p-4 mb-4">
                             <h4 className="font-bold text-gray-800 mb-3 flex items-center">
@@ -323,16 +445,22 @@
                             </h4>
                             <ul className="space-y-2">
                                 {analysis.issues.map((issue, idx) => (
-                                    <li key={idx} className="flex items-start space-x-2 text-sm">
-                                        <span className="text-red-500 font-bold">•</span>
-                                        <span className="text-gray-700">{issue}</span>
+                                    <li key={idx} className="flex items-start space-x-2 text-sm bg-red-50 p-3 rounded border-l-4 border-red-500">
+                                        <span className="text-red-500 font-bold text-lg">⚠</span>
+                                        <div className="flex-1">
+                                            {issue.line && (
+                                                <div className="text-xs text-red-600 font-mono mb-1">
+                                                    บรรทัดที่ {issue.line}
+                                                </div>
+                                            )}
+                                            <span className="text-gray-700">{issue.message || issue}</span>
+                                        </div>
                                     </li>
                                 ))}
                             </ul>
                         </div>
                     )}
 
-                    {/* Suggestions */}
                     {analysis.suggestion && (
                         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200">
                             <h4 className="font-bold text-gray-800 mb-2 flex items-center">
@@ -360,40 +488,41 @@
             const [apiKey, setApiKey] = useState('');
             const [showSettings, setShowSettings] = useState(false);
 
-            // Problem generation states
             const [customProblemTitle, setCustomProblemTitle] = useState('');
             const [customProblemDescription, setCustomProblemDescription] = useState('');
             const [customProblemDifficulty, setCustomProblemDifficulty] = useState('ง่าย');
             const [customProblemTopic, setCustomProblemTopic] = useState('การวนซ้ำ (Loops)');
             const [numberOfProblems, setNumberOfProblems] = useState(1);
 
-            // Load API key from localStorage on mount
             useEffect(() => {
-                const savedApiKey = localStorage.getItem('gemini_api_key');
-                if (savedApiKey) {
-                    setApiKey(savedApiKey);
+                // ตรวจสอบ API Key ตามลำดับ: system_api_key (จาก admin) -> user's own API key
+                const systemApiKey = localStorage.getItem('system_api_key');
+                const userApiKey = localStorage.getItem('gemini_api_key');
+
+                if (systemApiKey) {
+                    setApiKey(systemApiKey);
+                } else if (userApiKey) {
+                    setApiKey(userApiKey);
                 } else {
-                    setShowSettings(true); // Show settings if no API key
+                    // ไม่มี API Key เลย แสดง Settings
+                    setShowSettings(true);
                 }
             }, []);
 
-            // Save API key to localStorage
             const handleSaveApiKey = (newApiKey) => {
                 setApiKey(newApiKey);
                 localStorage.setItem('gemini_api_key', newApiKey);
             };
 
-            // Change language handler
             const handleLanguageChange = (lang) => {
                 setSelectedLanguage(lang);
                 setCode(LANGUAGES[lang].defaultCode);
                 setAnalysis(null);
             };
 
-            // API call function with retry logic
             const callGeminiApi = async (prompt, schema = null) => {
                 if (!apiKey || apiKey.trim() === '') {
-                    throw new Error('กรุณาตั้งค่า API Key ในหน้าการตั้งค่า (คลิกปุ่มเฟืองมุมขวาบน)');
+                    throw new Error('ไม่พบ API Key กรุณาติดต่อผู้ดูแลระบบหรือตั้งค่า API Key ของคุณเอง');
                 }
 
                 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
@@ -408,14 +537,13 @@
                     payload.generationConfig.responseSchema = schema;
                 }
 
-                let response;
                 let attempts = 0;
                 const maxAttempts = 3;
                 let delay = 1000;
 
                 while (attempts < maxAttempts) {
                     try {
-                        response = await fetch(API_URL, {
+                        const response = await fetch(API_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
@@ -430,7 +558,6 @@
                                 throw new Error("ได้รับการตอบกลับที่ไม่ถูกต้องจาก API");
                             }
                         } else {
-                            const errorText = await response.text();
                             if (response.status === 429) {
                                 throw new Error('API Key ถูกใช้งานเกินขีดจำกัด กรุณารอสักครู่แล้วลองใหม่');
                             } else if (response.status === 400) {
@@ -438,12 +565,12 @@
                             } else if (response.status >= 500) {
                                 attempts++;
                                 if (attempts >= maxAttempts) {
-                                    throw new Error(`เซิร์ฟเวอร์มีปัญหา (${response.status}) กรุณาลองใหม่ภายหลัง`);
+                                    throw new Error(`เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ภายหลัง`);
                                 }
                                 await new Promise(resolve => setTimeout(resolve, delay));
                                 delay *= 2;
                             } else {
-                                throw new Error(`เกิดข้อผิดพลาด (${response.status}): ${errorText}`);
+                                throw new Error(`เกิดข้อผิดพลาด (${response.status})`);
                             }
                         }
                     } catch (error) {
@@ -455,24 +582,30 @@
                         delay *= 2;
                     }
                 }
-                throw new Error("ไม่สามารถเชื่อมต่อกับ API ได้ กรุณาลองใหม่อีกครั้ง");
+                throw new Error("ไม่สามารถเชื่อมต่อกับ API ได้");
             };
 
-            // Analyze code function
             const analyzeCode = async () => {
                 setLoading(true);
                 setAnalysis(null);
 
                 const languageInfo = LANGUAGES[selectedLanguage];
+                const codeLines = code.split('\n');
+
                 const prompt = `
 You are an expert programming AI assistant. Analyze the following ${languageInfo.name} code and provide detailed feedback in Thai language.
+
+IMPORTANT: When you find errors or issues, specify the LINE NUMBER where the problem occurs.
 
 The output must be a single JSON object with the following structure:
 {
     "status": "success" | "warning" | "error",
     "feedback": "detailed explanation in Thai",
     "suggestion": "helpful suggestion in Thai",
-    "issues": ["issue1", "issue2", ...],
+    "issues": [
+        {"line": line_number, "message": "description of the issue in Thai"},
+        ...
+    ],
     "metrics": {
         "quality": 0-100,
         "correctness": 0-100,
@@ -482,19 +615,19 @@ The output must be a single JSON object with the following structure:
     }
 }
 
-Code to analyze:
-\`\`\`${selectedLanguage}
-${code}
-\`\`\`
+Code to analyze (with line numbers):
+${codeLines.map((line, idx) => `${idx + 1}: ${line}`).join('\n')}
 
 Please analyze:
-1. Syntax correctness
+1. Syntax correctness (specify line numbers)
 2. Logic and algorithm quality
 3. Code efficiency
 4. Readability and structure
 5. Best practices for ${languageInfo.name}
-6. Potential bugs or issues
-7. Security concerns (if any)
+6. Potential bugs or issues (specify line numbers)
+7. Security concerns if any (specify line numbers)
+
+For each issue found, provide the line number where it occurs.
 `;
 
                 const schema = {
@@ -505,7 +638,13 @@ Please analyze:
                         "suggestion": {"type": "STRING"},
                         "issues": {
                             "type": "ARRAY",
-                            "items": {"type": "STRING"}
+                            "items": {
+                                "type": "OBJECT",
+                                "properties": {
+                                    "line": {"type": "NUMBER"},
+                                    "message": {"type": "STRING"}
+                                }
+                            }
                         },
                         "metrics": {
                             "type": "OBJECT",
@@ -536,7 +675,6 @@ Please analyze:
                 }
             };
 
-            // Generate problem function
             const handleGenerateProblem = async () => {
                 setGeneratingProblem(true);
                 setProblemsList([]);
@@ -596,7 +734,6 @@ ${userProvidedProblem ? `- Title (first problem): "${customProblemTitle}"\n- Des
                 }
             };
 
-            // Chat submit function
             const handleChatSubmit = async (e) => {
                 e.preventDefault();
                 if (!chatInput.trim()) return;
@@ -628,7 +765,6 @@ User's question: "${chatInput}"
 
             return (
                 <div className="flex flex-col min-h-screen">
-                    {/* Header */}
                     <header className="bg-white shadow-md sticky top-0 z-10">
                         <div className="container mx-auto px-4">
                             <div className="flex justify-between items-center py-4">
@@ -636,24 +772,31 @@ User's question: "${chatInput}"
                                     <img src="https://www.triamudomsouth.ac.th/images/theme/logo.png" alt="Logo" className="w-12 h-12 object-contain" />
                                     <div>
                                         <h1 className="text-xl font-bold text-blue-600">ระบบฝึกเขียนโค้ดอัจฉริยะ</h1>
-                                        <p className="text-xs text-gray-600">AI-Powered Code Practice System</p>
+                                        <p className="text-xs text-gray-600">AI-Powered Code Practice System v2.1</p>
                                     </div>
                                 </div>
 
-                                {/* Settings Button */}
-                                <button
-                                    onClick={() => setShowSettings(true)}
-                                    className="p-2 rounded-lg hover:bg-gray-100 transition-all"
-                                    title="การตั้งค่า"
-                                >
-                                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                </button>
+                                <div className="flex items-center space-x-3">
+                                    <a
+                                        href="admin.html"
+                                        className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-all text-sm font-medium"
+                                        title="Admin Panel"
+                                    >
+                                        🔐 Admin
+                                    </a>
+                                    <button
+                                        onClick={() => setShowSettings(true)}
+                                        className="p-2 rounded-lg hover:bg-gray-100 transition-all"
+                                        title="การตั้งค่า"
+                                    >
+                                        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
 
-                            {/* Navigation */}
                             <div className="flex justify-center border-t p-2 space-x-4">
                                 <button
                                     onClick={() => setCurrentView('editor')}
@@ -675,7 +818,6 @@ User's question: "${chatInput}"
                                 </button>
                             </div>
 
-                            {/* Language Selector */}
                             <div className="flex justify-center py-3 border-t space-x-2">
                                 {Object.keys(LANGUAGES).map(lang => (
                                     <button
@@ -691,27 +833,22 @@ User's question: "${chatInput}"
                         </div>
                     </header>
 
-                    {/* Main Content */}
                     <main className="flex-1 p-4 md:p-8">
-                        {/* Code Editor View */}
                         {currentView === 'editor' && (
                             <div className="flex flex-col lg:flex-row gap-8">
                                 <div className="lg:w-2/3 flex flex-col bg-white rounded-xl shadow-lg p-6">
                                     <div className="mb-4">
                                         <h2 className="text-2xl font-bold text-slate-800 mb-1">
-                                            {LANGUAGES[selectedLanguage].icon} {LANGUAGES[selectedLanguage].name} Code Analyzer
+                                            {LANGUAGES[selectedLanguage].icon} {LANGUAGES[selectedLanguage].name} Code Editor
                                         </h2>
                                         <p className="text-slate-500">วางโค้ดของคุณที่นี่เพื่อให้ AI วิเคราะห์และให้คำแนะนำ</p>
                                     </div>
-                                    <div className="flex-1">
-                                        <textarea
-                                            value={code}
-                                            onChange={(e) => setCode(e.target.value)}
-                                            className="w-full h-full code-editor font-mono text-sm p-4 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder={`// เขียนโค้ด ${LANGUAGES[selectedLanguage].name} ของคุณที่นี่...`}
-                                            style={{ minHeight: '400px' }}
-                                        />
-                                    </div>
+                                    <CodeEditor
+                                        value={code}
+                                        onChange={setCode}
+                                        language={selectedLanguage}
+                                        placeholder={`// เขียนโค้ด ${LANGUAGES[selectedLanguage].name} ของคุณที่นี่...`}
+                                    />
                                 </div>
 
                                 <div className="lg:w-1/3 flex flex-col bg-white rounded-xl shadow-lg p-6">
@@ -758,7 +895,6 @@ User's question: "${chatInput}"
                             </div>
                         )}
 
-                        {/* Problems View */}
                         {currentView === 'problems' && (
                             <div className="bg-white rounded-xl shadow-lg p-6 max-w-4xl mx-auto">
                                 <h2 className="text-2xl font-bold mb-4 flex items-center space-x-2">
@@ -862,7 +998,6 @@ User's question: "${chatInput}"
                                     )}
                                 </button>
 
-                                {/* Problems Display */}
                                 <div className="mt-6">
                                     {generatingProblem && (
                                         <div className="flex flex-col items-center justify-center py-12 text-blue-500">
@@ -896,11 +1031,11 @@ User's question: "${chatInput}"
                                                         <div className="grid md:grid-cols-2 gap-4">
                                                             <div>
                                                                 <p className="font-bold text-gray-700 mb-2">📥 ตัวอย่าง Input:</p>
-                                                                <pre className="bg-gray-900 text-green-400 p-3 rounded-lg text-sm overflow-x-auto">{problem.inputExample}</pre>
+                                                                <pre className="bg-gray-900 text-green-400 p-3 rounded-lg text-sm overflow-x-auto font-mono">{problem.inputExample}</pre>
                                                             </div>
                                                             <div>
                                                                 <p className="font-bold text-gray-700 mb-2">📤 ตัวอย่าง Output:</p>
-                                                                <pre className="bg-gray-900 text-blue-400 p-3 rounded-lg text-sm overflow-x-auto">{problem.outputExample}</pre>
+                                                                <pre className="bg-gray-900 text-blue-400 p-3 rounded-lg text-sm overflow-x-auto font-mono">{problem.outputExample}</pre>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -929,7 +1064,6 @@ User's question: "${chatInput}"
                             </div>
                         )}
 
-                        {/* Chatbot View */}
                         {currentView === 'chatbot' && (
                             <div className="bg-white rounded-xl shadow-lg p-6 max-w-3xl mx-auto flex flex-col" style={{height: '75vh'}}>
                                 <h2 className="text-2xl font-bold mb-4 flex items-center space-x-2">
@@ -988,13 +1122,11 @@ User's question: "${chatInput}"
                         )}
                     </main>
 
-                    {/* Footer */}
                     <footer className="bg-gray-800 text-white p-4 text-center text-sm">
-                        <p>© 2025 AI-Powered Code Practice System v2.0 | Triam Udom Suksa of The South</p>
+                        <p>© 2025 AI-Powered Code Practice System v2.1 | Triam Udom Suksa of The South</p>
                         <p className="text-xs text-gray-400 mt-1">Developed by Assawin Chullamool</p>
                     </footer>
 
-                    {/* Settings Modal */}
                     <SettingsModal
                         isOpen={showSettings}
                         onClose={() => setShowSettings(false)}
