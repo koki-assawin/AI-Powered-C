@@ -56,13 +56,19 @@ const CodingWorkspace = () => {
             setSelectedLanguage(c.language || 'c');
             setCode(localStorage.getItem(`draft_${courseId}`) || LANGUAGES[c.language || 'c'].defaultCode);
 
-            const [lessonSnap, assignSnap] = await Promise.all([
-                db.collection('lessons').where('courseId', '==', courseId).orderBy('order').get(),
-                db.collection('assignments').where('courseId', '==', courseId).get(),
-            ]);
-            setLessons(lessonSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            // Load assignments (critical - must not block on lesson index error)
+            const assignSnap = await db.collection('assignments').where('courseId', '==', courseId).get();
             const assigns = assignSnap.docs.map(d => ({ id: d.id, ...d.data() }));
             setAssignments(assigns);
+
+            // Load lessons separately (needs composite index - may fail silently)
+            db.collection('lessons').where('courseId', '==', courseId).orderBy('order').get()
+                .then(snap => setLessons(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+                .catch(() => {
+                    // Fallback: load without ordering if index not ready
+                    db.collection('lessons').where('courseId', '==', courseId).get()
+                        .then(snap => setLessons(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+                });
 
             // Auto-select assignment from URL or first one
             const target = assigns.find(a => a.id === assignmentId) || assigns[0];
