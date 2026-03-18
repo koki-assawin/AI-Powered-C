@@ -1,9 +1,25 @@
 // ============================================================
-// js/grader.js - Auto-Grader via Piston API
-// Piston: https://emkc.org/api/v2/piston (no API key needed)
+// js/grader.js - Auto-Grader via Wandbox API
+// Wandbox: https://wandbox.org (free, no API key needed)
 // ============================================================
 
-const PISTON_URL = 'https://emkc.org/api/v2/piston/execute';
+const WANDBOX_URL = 'https://wandbox.org/api/compile.json';
+
+// Wandbox compiler mapping per language
+const WANDBOX_COMPILER = {
+    c:      'gcc-head',
+    cpp:    'gcc-head',
+    python: 'cpython-3.12.0',
+    java:   'openjdk-head',
+};
+
+// Extra compile options per language
+const WANDBOX_OPTIONS = {
+    c:      '-x c',
+    cpp:    '',
+    python: '',
+    java:   '',
+};
 
 // Normalize output for comparison (trim whitespace, unify newlines)
 const normalizeOutput = (str) =>
@@ -13,33 +29,33 @@ const normalizeOutput = (str) =>
 
 // Run code against a single test case input
 const runSingleTest = async (code, language, testCase) => {
-    const langInfo = LANGUAGES[language];
     const startTime = Date.now();
 
     try {
-        const res = await fetch(PISTON_URL, {
+        const body = {
+            compiler: WANDBOX_COMPILER[language] || 'gcc-head',
+            code,
+            stdin: testCase.input || '',
+        };
+        if (WANDBOX_OPTIONS[language]) body.options = WANDBOX_OPTIONS[language];
+
+        const res = await fetch(WANDBOX_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                language: langInfo.pistonLang,
-                version: '*',
-                files: [{ content: code }],
-                stdin: testCase.input || '',
-                run_timeout: 8000, // 8 second hard limit
-            }),
+            body: JSON.stringify(body),
         });
 
-        if (!res.ok) throw new Error(`Piston HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`Wandbox HTTP ${res.status}`);
 
         const data = await res.json();
         const execTime = Date.now() - startTime;
-        const actualOutput = normalizeOutput(data.run?.stdout);
+        const actualOutput = normalizeOutput(data.program_output || '');
         const expectedOutput = normalizeOutput(testCase.expectedOutput);
         const passed = actualOutput === expectedOutput;
-        const errorLog = data.run?.stderr ? data.run.stderr.trim() : null;
-
-        // Detect compile errors (stderr present and no stdout)
-        const isCompileError = !passed && errorLog && !data.run?.stdout;
+        const compilerError = data.compiler_error ? data.compiler_error.trim() : null;
+        const runtimeError = data.program_error ? data.program_error.trim() : null;
+        const errorLog = compilerError || runtimeError || null;
+        const isCompileError = !!compilerError && !data.program_output;
 
         return {
             testCaseId: testCase.id,
