@@ -6,8 +6,29 @@ const CourseViewer = () => {
     const [loading, setLoading] = React.useState(true);
     const [enrolling, setEnrolling] = React.useState(null);
     const [msg, setMsg] = React.useState('');
+    const [joinCode, setJoinCode] = React.useState('');
+    const [joining, setJoining] = React.useState(false);
+    const [joinMsg, setJoinMsg] = React.useState('');
 
-    React.useEffect(() => { loadCourses(); }, []);
+    React.useEffect(() => {
+        loadCourses();
+        // Check for ?join=CODE in URL
+        const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+        const codeFromUrl = params.get('join');
+        if (codeFromUrl) {
+            setJoinCode(codeFromUrl.toUpperCase().trim());
+        }
+    }, []);
+
+    // Auto-trigger join when userDoc is ready and code is in URL
+    React.useEffect(() => {
+        if (!userDoc) return;
+        const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+        const codeFromUrl = params.get('join');
+        if (codeFromUrl) {
+            handleJoinByCode(codeFromUrl.toUpperCase().trim());
+        }
+    }, [userDoc]);
 
     const loadCourses = async () => {
         setLoading(true);
@@ -23,6 +44,26 @@ const CourseViewer = () => {
 
     const isEnrolled = (courseId) => (userDoc?.enrolledCourses || []).includes(courseId);
 
+    const doEnroll = async (courseId) => {
+        // Add course to user's enrolledCourses array
+        await db.collection('users').doc(userDoc.id).update({
+            enrolledCourses: arrayUnion(courseId),
+        });
+        // Create enrollment document
+        await db.collection('enrollments').add({
+            studentId: userDoc.id,
+            courseId,
+            enrolledAt: serverTimestamp(),
+            progress: 0,
+            completedLessons: [],
+            lastAccessedAt: serverTimestamp(),
+        });
+        // Increment course enrollment count
+        await db.collection('courses').doc(courseId).update({
+            enrollmentCount: increment(1),
+        });
+    };
+
     const handleEnroll = async (courseId) => {
         if (isEnrolled(courseId)) {
             window.location.hash = `#/student/workspace?course=${courseId}`;
@@ -30,23 +71,7 @@ const CourseViewer = () => {
         }
         setEnrolling(courseId);
         try {
-            // Add course to user's enrolledCourses array
-            await db.collection('users').doc(userDoc.id).update({
-                enrolledCourses: arrayUnion(courseId),
-            });
-            // Create enrollment document
-            await db.collection('enrollments').add({
-                studentId: userDoc.id,
-                courseId,
-                enrolledAt: serverTimestamp(),
-                progress: 0,
-                completedLessons: [],
-                lastAccessedAt: serverTimestamp(),
-            });
-            // Increment course enrollment count
-            await db.collection('courses').doc(courseId).update({
-                enrollmentCount: increment(1),
-            });
+            await doEnroll(courseId);
             setMsg('ลงทะเบียนสำเร็จ!');
             setTimeout(() => {
                 window.location.hash = `#/student/workspace?course=${courseId}`;
@@ -58,12 +83,78 @@ const CourseViewer = () => {
         }
     };
 
-    const diffColor = { ง่าย: 'green', ปานกลาง: 'yellow', ยาก: 'red' };
+    const handleJoinByCode = async (codeOverride) => {
+        const trimCode = (codeOverride || joinCode).toUpperCase().trim();
+        if (!trimCode || trimCode.length !== 6) {
+            setJoinMsg('กรุณากรอกรหัส 6 ตัวอักษร');
+            return;
+        }
+        if (!userDoc) {
+            setJoinMsg('กรุณาเข้าสู่ระบบก่อน');
+            return;
+        }
+        setJoining(true);
+        setJoinMsg('');
+        try {
+            const snap = await db.collection('courses').where('classCode', '==', trimCode).get();
+            if (snap.empty) {
+                setJoinMsg('ไม่พบรหัสห้องเรียนนี้ กรุณาตรวจสอบอีกครั้ง');
+                setJoining(false);
+                return;
+            }
+            const courseDoc = snap.docs[0];
+            const courseId = courseDoc.id;
+            if (isEnrolled(courseId)) {
+                setJoinMsg('คุณลงทะเบียนวิชานี้แล้ว กำลังพาไปยังห้องเรียน...');
+                setTimeout(() => {
+                    window.location.hash = `#/student/workspace?course=${courseId}`;
+                }, 1000);
+                return;
+            }
+            await doEnroll(courseId);
+            setJoinMsg('เข้าร่วมสำเร็จ! กำลังพาไปยังห้องเรียน...');
+            setTimeout(() => {
+                window.location.hash = `#/student/workspace?course=${courseId}`;
+            }, 1000);
+        } catch (err) {
+            setJoinMsg('เกิดข้อผิดพลาด: ' + err.message);
+        } finally {
+            setJoining(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gray-50">
             <Navbar title="AI-Powered Coding LMS" subtitle="ค้นหารายวิชา" />
             <main className="max-w-7xl mx-auto px-4 py-8">
+
+                {/* Join by Code - prominent section at top */}
+                <div className="mb-8 rounded-2xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' }}>
+                    <h2 className="text-xl font-bold mb-1">🔑 เข้าร่วมห้องเรียนด้วยรหัส</h2>
+                    <p className="text-blue-100 text-sm mb-4">กรอกรหัส 6 หลักที่ได้รับจากครู เพื่อเข้าร่วมวิชา</p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <input
+                            value={joinCode}
+                            onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                            onKeyDown={e => { if (e.key === 'Enter') handleJoinByCode(); }}
+                            maxLength={6}
+                            placeholder="เช่น AB12CD"
+                            className="flex-1 px-4 py-3 rounded-xl text-gray-800 font-mono text-lg font-bold tracking-widest text-center outline-none focus:ring-2 focus:ring-white bg-white"
+                        />
+                        <button
+                            onClick={() => handleJoinByCode()}
+                            disabled={joining || joinCode.trim().length !== 6}
+                            className="px-8 py-3 bg-white text-blue-700 font-bold rounded-xl hover:bg-blue-50 disabled:opacity-50 transition-all text-sm whitespace-nowrap">
+                            {joining ? 'กำลังเข้าร่วม...' : 'เข้าร่วม'}
+                        </button>
+                    </div>
+                    {joinMsg && (
+                        <div className={`mt-3 text-sm px-3 py-2 rounded-lg ${joinMsg.includes('สำเร็จ') || joinMsg.includes('แล้ว') ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                            {joinMsg}
+                        </div>
+                    )}
+                </div>
+
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">📚 รายวิชาที่เปิดสอน</h2>
                     {msg && <span className="text-green-600 text-sm font-medium">{msg}</span>}
@@ -93,6 +184,12 @@ const CourseViewer = () => {
                                             )}
                                         </div>
                                         <h3 className="font-bold text-gray-800 text-lg mb-1 leading-snug">{course.title}</h3>
+                                        {/* Grade / room / semester / year info */}
+                                        <div className="flex flex-wrap gap-1 mb-2">
+                                            {course.grade && <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded">{course.grade}</span>}
+                                            {course.room && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">ห้อง {course.room}</span>}
+                                            {course.semester && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">เทอม {course.semester}/{course.academicYear || ''}</span>}
+                                        </div>
                                         <p className="text-sm text-gray-500 mb-3 line-clamp-2">{course.description}</p>
                                         <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
                                             <span className="bg-gray-100 px-2 py-1 rounded">{lang?.name}</span>

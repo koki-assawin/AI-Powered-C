@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seed Data - ว31281</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f1f5f9; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .container { background: white; border-radius: 16px; padding: 32px; width: 100%; max-width: 520px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+        h1 { font-size: 1.4rem; font-weight: 700; color: #1e40af; margin-bottom: 6px; }
+        .subtitle { font-size: 0.85rem; color: #6b7280; margin-bottom: 24px; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 4px; }
+        input { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; outline: none; margin-bottom: 14px; }
+        input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        button { width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+        .btn-login { background: #2563eb; color: white; }
+        .btn-login:hover { background: #1d4ed8; }
+        .btn-login:disabled { background: #93c5fd; cursor: not-allowed; }
+        .btn-seed { background: #059669; color: white; }
+        .btn-seed:hover { background: #047857; }
+        .btn-seed:disabled { background: #6ee7b7; cursor: not-allowed; }
+        .msg { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.6; }
+        .msg.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .msg.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+        .msg.info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .log { margin-top: 16px; background: #1e293b; color: #e2e8f0; border-radius: 10px; padding: 14px; font-size: 0.78rem; font-family: monospace; max-height: 320px; overflow-y: auto; line-height: 1.8; }
+        .log .ok { color: #4ade80; }
+        .log .err { color: #f87171; }
+        .log .wait { color: #fbbf24; }
+        .divider { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
+        .user-info { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; color: #166534; margin-bottom: 16px; }
+        .code-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px; margin-top: 16px; text-align: center; }
+        .code-box .code { font-size: 2.5rem; font-weight: 900; letter-spacing: 0.2em; color: #1d4ed8; font-family: monospace; }
+        .code-box .label { font-size: 0.8rem; color: #3b82f6; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🌱 Seed Data Tool</h1>
+    <p class="subtitle">สร้างข้อมูลตัวอย่าง: รายวิชา ว31281 พร้อมบทเรียนและแบบฝึกหัด</p>
+
+    <!-- Login Section -->
+    <div id="loginSection">
+        <label for="email">อีเมล (บัญชีครู)</label>
+        <input type="email" id="email" placeholder="teacher@school.com" />
+        <label for="password">รหัสผ่าน</label>
+        <input type="password" id="password" placeholder="••••••••" />
+        <button class="btn-login" id="loginBtn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    </div>
+
+    <!-- Seed Section (hidden until login) -->
+    <div id="seedSection" style="display:none">
+        <div class="user-info" id="userInfo"></div>
+        <button class="btn-seed" id="seedBtn" onclick="doSeed()">🌱 สร้างรายวิชา ว31281 (10 บทเรียน + 20 แบบฝึกหัด)</button>
+        <div id="log" class="log" style="display:none"></div>
+        <div id="codeBox" style="display:none" class="code-box">
+            <div class="label">รหัสห้องเรียน (Class Code)</div>
+            <div class="code" id="classCodeDisplay"></div>
+        </div>
+    </div>
+
+    <div id="msgBox"></div>
+</div>
+
+<!-- Firebase SDK v9 compat -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyCu21yPXCeRDYxcVsB_9MLTiPCaa1OgCcM",
+    authDomain: "pathovetassist.firebaseapp.com",
+    databaseURL: "https://pathovetassist-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "pathovetassist",
+    storageBucket: "pathovetassist.firebasestorage.app",
+    messagingSenderId: "17025284854",
+    appId: "1:17025284854:web:13adce1651d17e103b0ad7"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+function generateClassCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    return code;
+}
+
+function showMsg(text, type) {
+    document.getElementById('msgBox').innerHTML = `<div class="msg ${type}">${text}</div>`;
+}
+
+function appendLog(text, type) {
+    const log = document.getElementById('log');
+    log.style.display = 'block';
+    const line = document.createElement('div');
+    line.className = type || '';
+    line.textContent = text;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+}
+
+async function doLogin() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    if (!email || !password) { showMsg('กรุณากรอกอีเมลและรหัสผ่าน', 'error'); return; }
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.textContent = 'กำลังเข้าสู่ระบบ...';
+    try {
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('seedSection').style.display = 'block';
+        document.getElementById('userInfo').textContent = `✅ เข้าสู่ระบบแล้ว: ${cred.user.email} (UID: ${cred.user.uid})`;
+        document.getElementById('msgBox').innerHTML = '';
+    } catch (err) {
+        showMsg('เกิดข้อผิดพลาด: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'เข้าสู่ระบบ';
+    }
+}
+
+async function doSeed() {
+    const btn = document.getElementById('seedBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ กำลังสร้างข้อมูล...';
+    document.getElementById('msgBox').innerHTML = '';
+    document.getElementById('codeBox').style.display = 'none';
+
+    const uid = auth.currentUser.uid;
+    const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp;
+
+    try {
+        // ── Create Course ──
+        const classCode = generateClassCode();
+        appendLog('📁 กำลังสร้างรายวิชา...', 'wait');
+        const courseRef = await db.collection('courses').add({
+            title: 'ว31281 การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น',
+            description: 'เรียนรู้การเขียนโปรแกรมด้วยภาษา C++ ตั้งแต่พื้นฐานจนถึงการนำไปประยุกต์ใช้ สำหรับนักเรียนชั้น ม.4',
+            language: 'cpp',
+            grade: 'ม.4',
+            room: '1',
+            semester: '1',
+            academicYear: '2568',
+            isPublished: true,
+            enrollmentCount: 0,
+            classCode: classCode,
+            teacherId: uid,
+            createdAt: serverTimestamp(),
+        });
+        appendLog(`✅ สร้างรายวิชาสำเร็จ! ID: ${courseRef.id}  ClassCode: ${classCode}`, 'ok');
+
+        // ── Lessons data ──
+        const lessonsData = [
+            {
+                order: 1,
+                title: 'แนะนำภาษา C++ และโครงสร้างโปรแกรม',
+                content: `# แนะนำภาษา C++ และโครงสร้างโปรแกรม
+
+## ประวัติภาษา C++
+ภาษา C++ พัฒนาโดย Bjarne Stroustrup ในปี 1979 ที่ Bell Labs เป็นภาษาที่ต่อยอดมาจาก C
+โดยเพิ่มแนวคิด Object-Oriented Programming (OOP) เข้าไป
+
+## โครงสร้างโปรแกรม C++ พื้นฐาน
+\`\`\`cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Hello, World!" << endl;
+    return 0;
+}
+\`\`\`
+
+## ส่วนประกอบสำคัญ
+- **#include <iostream>** - นำเข้า library สำหรับ input/output
+- **using namespace std;** - ใช้ namespace มาตรฐาน
+- **int main()** - ฟังก์ชันหลักของโปรแกรม
+- **cout** - แสดงผลออกหน้าจอ
+- **endl** - ขึ้นบรรทัดใหม่
+- **return 0;** - คืนค่า 0 บอกว่าโปรแกรมสิ้นสุดปกติ`
+            },
+            {
+                order: 2,
+                title: 'ตัวแปรและชนิดข้อมูล (Variables & Data Types)',
+                content: `# ตัวแปรและชนิดข้อมูล
+
+## ชนิดข้อมูลพื้นฐาน
+| ชนิด | ขนาด | ตัวอย่าง |
+|------|------|----------|
+| int | 4 bytes | 42, -10, 0 |
+| float | 4 bytes | 3.14f |
+| double | 8 bytes | 3.14159265 |
+| char | 1 byte | 'A', 'z' |
+| bool | 1 byte | true, false |
+| string | dynamic | "Hello" |
+
+## การประกาศตัวแปร
+\`\`\`cpp
+int age = 16;
+float price = 99.99f;
+double pi = 3.14159265;
+char grade = 'A';
+bool isStudent = true;
+string name = "Somchai";
+\`\`\``
+            },
+            {
+                order: 3,
+                title: 'การรับข้อมูลและแสดงผล (cin / cout)',
+                content: `# การรับข้อมูลและแสดงผล
+
+## cout - แสดงผล
+\`\`\`cpp
+cout << "Hello" << endl;        // ขึ้นบรรทัดใหม่
+cout << "Value: " << 42 << "\\n";  // \\n ก็ขึ้นบรรทัดใหม่
+cout << fixed << setprecision(2) << 3.14159; // ทศนิยม 2 ตำแหน่ง
+\`\`\`
+
+## cin - รับข้อมูล
+\`\`\`cpp
+int x;
+cin >> x;           // รับตัวเลข
+
+string name;
+cin >> name;        // รับคำเดียว (หยุดที่ช่องว่าง)
+
+string line;
+getline(cin, line); // รับทั้งบรรทัด
+\`\`\`
+
+## รับหลายค่าในบรรทัดเดียว
+\`\`\`cpp
+int a, b;
+cin >> a >> b; // รับ 2 ค่าคั่นด้วย space
+\`\`\``
+            },
+            {
+                order: 4,
+                title: 'ตัวดำเนินการ (Operators)',
+                content: `# ตัวดำเนินการ (Operators)
+
+## Arithmetic Operators
+\`\`\`cpp
+int a = 10, b = 3;
+cout << a + b;  // 13
+cout << a - b;  // 7
+cout << a * b;  // 30
+cout << a / b;  // 3 (หารจำนวนเต็ม)
+cout << a % b;  // 1 (เศษ)
+\`\`\`
+
+## Relational Operators
+\`\`\`cpp
+// ==, !=, <, >, <=, >=
+cout << (a > b);  // 1 (true)
+cout << (a == b); // 0 (false)
+\`\`\`
+
+## Logical Operators
+\`\`\`cpp
+// && (and), || (or), ! (not)
+cout << (a > 5 && b < 5); // true && true = 1
+\`\`\`
+
+## Increment / Decrement
+\`\`\`cpp
+int x = 5;
+x++;   // x = 6 (post-increment)
+++x;   // x = 7 (pre-increment)
+x--;   // x = 6 (post-decrement)
+\`\`\``
+            },
+            {
+                order: 5,
+                title: 'คำสั่งเลือก if / else / switch',
+                content: `# คำสั่งเลือก
+
+## if / else if / else
+\`\`\`cpp
+int score = 85;
+if (score >= 80) {
+    cout << "A";
+} else if (score >= 70) {
+    cout << "B";
+} else if (score >= 60) {
+    cout << "C";
+} else {
+    cout << "F";
+}
+\`\`\`
+
+## Nested if
+\`\`\`cpp
+int x = 10;
+if (x > 0) {
+    if (x % 2 == 0) {
+        cout << "บวกและเลขคู่";
+    }
+}
+\`\`\`
+
+## switch-case
+\`\`\`cpp
+char day = 'M';
+switch (day) {
+    case 'M': cout << "Monday"; break;
+    case 'T': cout << "Tuesday"; break;
+    default:  cout << "Other"; break;
+}
+\`\`\``
+            },
+            {
+                order: 6,
+                title: 'การวนซ้ำด้วย for loop',
+                content: `# การวนซ้ำด้วย for loop
+
+## โครงสร้าง for loop
+\`\`\`cpp
+for (initialization; condition; update) {
+    // คำสั่งที่ต้องการวนซ้ำ
+}
+\`\`\`
+
+## ตัวอย่าง
+\`\`\`cpp
+// นับ 1 ถึง 5
+for (int i = 1; i <= 5; i++) {
+    cout << i << " ";
+}
+// Output: 1 2 3 4 5
+\`\`\`
+
+## Nested for loop
+\`\`\`cpp
+for (int i = 1; i <= 3; i++) {
+    for (int j = 1; j <= 3; j++) {
+        cout << i * j << "\\t";
+    }
+    cout << endl;
+}
+\`\`\`
+
+## break และ continue
+\`\`\`cpp
+for (int i = 1; i <= 10; i++) {
+    if (i == 5) continue; // ข้ามรอบนี้
+    if (i == 8) break;    // หยุดลูป
+    cout << i << " ";
+}
+// Output: 1 2 3 4 6 7
+\`\`\``
+            },
+            {
+                order: 7,
+                title: 'การวนซ้ำด้วย while และ do-while',
+                content: `# การวนซ้ำด้วย while และ do-while
+
+## while loop
+\`\`\`cpp
+int n = 1;
+while (n <= 5) {
+    cout << n << " ";
+    n++;
+}
+// Output: 1 2 3 4 5
+\`\`\`
+
+## do-while loop
+ทำงานอย่างน้อย 1 ครั้งเสมอ
+\`\`\`cpp
+int n;
+do {
+    cout << "กรอกตัวเลขบวก: ";
+    cin >> n;
+} while (n <= 0);
+\`\`\`
+
+## ป้องกัน Infinite Loop
+\`\`\`cpp
+int i = 0;
+while (i < 10) {
+    cout << i;
+    i++;  // อย่าลืมอัปเดตตัวแปร!
+}
+\`\`\``
+            },
+            {
+                order: 8,
+                title: 'ฟังก์ชัน (Functions)',
+                content: `# ฟังก์ชัน (Functions)
+
+## void function (ไม่คืนค่า)
+\`\`\`cpp
+void greet(string name) {
+    cout << "Hello, " << name << "!" << endl;
+}
+
+int main() {
+    greet("Somchai");
+    return 0;
+}
+\`\`\`
+
+## ฟังก์ชันที่คืนค่า
+\`\`\`cpp
+int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int result = add(3, 5);
+    cout << result; // 8
+    return 0;
+}
+\`\`\`
+
+## Function Overloading
+\`\`\`cpp
+int square(int x)    { return x * x; }
+double square(double x) { return x * x; }
+\`\`\`
+
+## Scope ของตัวแปร
+- **Local variable**: ใช้ได้แค่ในฟังก์ชัน
+- **Global variable**: ใช้ได้ทุกที่ในโปรแกรม`
+            },
+            {
+                order: 9,
+                title: 'อาร์เรย์ (Arrays)',
+                content: `# อาร์เรย์ (Arrays)
+
+## 1D Array
+\`\`\`cpp
+int arr[5] = {10, 20, 30, 40, 50};
+cout << arr[0]; // 10 (index เริ่มจาก 0)
+
+// วนลูปกับ array
+for (int i = 0; i < 5; i++) {
+    cout << arr[i] << " ";
+}
+\`\`\`
+
+## 2D Array
+\`\`\`cpp
+int matrix[2][3] = {{1,2,3},{4,5,6}};
+for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 3; j++) {
+        cout << matrix[i][j] << " ";
+    }
+    cout << endl;
+}
+\`\`\`
+
+## อัลกอริทึมพื้นฐาน
+\`\`\`cpp
+// หาค่าสูงสุด
+int maxVal = arr[0];
+for (int i = 1; i < 5; i++) {
+    if (arr[i] > maxVal) maxVal = arr[i];
+}
+\`\`\``
+            },
+            {
+                order: 10,
+                title: 'สตริง (string)',
+                content: `# สตริง (string)
+
+## การใช้ string class
+\`\`\`cpp
+#include <iostream>
+#include <string>
+using namespace std;
+
+string s = "Hello, World!";
+\`\`\`
+
+## ฟังก์ชันสำคัญ
+\`\`\`cpp
+string s = "Hello";
+
+// ความยาว
+cout << s.length();    // 5
+cout << s.size();      // 5
+
+// substring
+cout << s.substr(1, 3); // "ell" (เริ่มที่ index 1, ยาว 3)
+
+// ค้นหา
+int pos = s.find("ll"); // 2
+
+// เปรียบเทียบ
+if (s == "Hello") cout << "เท่ากัน";
+
+// รับ string ที่มีช่องว่าง
+string line;
+getline(cin, line);
+\`\`\`
+
+## กลับสตริง
+\`\`\`cpp
+#include <algorithm>
+string s = "Hello";
+reverse(s.begin(), s.end());
+cout << s; // "olleH"
+\`\`\``
+            },
+        ];
+
+        // ── Create lessons ──
+        const lessonIds = [];
+        for (let i = 0; i < lessonsData.length; i++) {
+            const ld = lessonsData[i];
+            appendLog(`📖 กำลังสร้างบทเรียน ${i+1}/10: ${ld.title}`, 'wait');
+            const lRef = await db.collection('lessons').add({
+                courseId: courseRef.id,
+                title: ld.title,
+                content: ld.content,
+                order: ld.order,
+                createdAt: serverTimestamp(),
+            });
+            lessonIds.push(lRef.id);
+            appendLog(`  ✅ บทเรียน ${i+1} สำเร็จ`, 'ok');
+        }
+
+        // ── Assignments data ──
+        const assignmentsData = [
+            // Lesson 1
+            {
+                lessonIndex: 0,
+                title: '1.1 Hello World',
+                difficulty: 'ง่าย', timeLimit: 2000, memoryLimit: 64, totalPoints: 10,
+                description: 'เขียนโปรแกรมแสดงคำว่า Hello, World! บนหน้าจอ',
+                testCases: [
+                    { input: '', expected: 'Hello, World!', isHidden: false, points: 5, order: 1 },
+                    { input: '', expected: 'Hello, World!', isHidden: true, points: 5, order: 2 },
+                ],
+            },
+            {
+                lessonIndex: 0,
+                title: '1.2 แสดงชื่อและอายุ',
+                difficulty: 'ง่าย', timeLimit: 2000, memoryLimit: 64, totalPoints: 10,
+                description: 'รับชื่อ 1 คำ และอายุ (จำนวนเต็ม) แล้วแสดงผล\nInput: ชื่อ อายุ (บรรทัดเดียวกัน)\nOutput: My name is [ชื่อ], I am [อายุ] years old.',
+                testCases: [
+                    { input: 'Assawin 16', expected: 'My name is Assawin, I am 16 years old.', isHidden: false, points: 5, order: 1 },
+                    { input: 'Somchai 15', expected: 'My name is Somchai, I am 15 years old.', isHidden: false, points: 3, order: 2 },
+                    { input: 'Malee 17', expected: 'My name is Malee, I am 17 years old.', isHidden: true, points: 2, order: 3 },
+                ],
+            },
+            // Lesson 2
+            {
+                lessonIndex: 1,
+                title: '2.1 คำนวณพื้นที่สี่เหลี่ยมผืนผ้า',
+                difficulty: 'ง่าย', timeLimit: 2000, memoryLimit: 64, totalPoints: 10,
+                description: 'รับความกว้างและความยาว (จำนวนเต็ม) คำนวณพื้นที่\nInput: กว้าง ยาว\nOutput: พื้นที่ (จำนวนเต็ม)',
+                testCases: [
+                    { input: '5 3', expected: '15', isHidden: false, points: 4, order: 1 },
+                    { input: '10 7', expected: '70', isHidden: false, points: 3, order: 2 },
+                    { input: '100 50', expected: '5000', isHidden: true, points: 3, order: 3 },
+                ],
+            },
+            {
+                lessonIndex: 1,
+                title: '2.2 แปลงอุณหภูมิ Celsius เป็น Fahrenheit',
+                difficulty: 'ง่าย', timeLimit: 2000, memoryLimit: 64, totalPoints: 10,
+                description: 'รับอุณหภูมิ Celsius (ทศนิยม) แปลงเป็น Fahrenheit\nสูตร: F = (C × 9/5) + 32\nOutput: แสดงทศนิยม 2 ตำแหน่ง',
+                testCases: [
+                    { input: '0', expected: '32.00', isHidden: false, points: 4, order: 1 },
+                    { input: '100', expected: '212.00', isHidden: false, points: 3, order: 2 },
+                    { input: '37', expected: '98.60', isHidden: true, points: 3, order: 3 },
+                ],
+            },
+            // Lesson 3
+            {
+                lessonIndex: 2,
+                title: '3.1 คำนวณเงินทอน',
+                difficulty: 'ง่าย', timeLimit: 2000, memoryLimit: 64, totalPoints: 10,
+                description: 'รับราคาสินค้า และเงินที่จ่าย (จำนวนเต็ม)\nOutput: เงินทอน\nหมายเหตุ: สมมติว่าจ่ายเงินพอเสมอ',
+                testCases: [
+                    { input: '45 100', expected: '55', isHidden: false, points: 5, order: 1 },
+                    { input: '199 200', expected: '1', isHidden: false, points: 3, order: 2 },
+                    { input: '350 500', expected: '150', isHidden: true, points: 2, order: 3 },
+                ],
+            },
+            {
+                lessonIndex: 2,
+                title: '3.2 คะแนนเฉลี่ย 3 วิชา',
+                difficulty: 'ง่าย', timeLimit: 2000, memoryLimit: 64, totalPoints: 10,
+                description: 'รับคะแนน 3 วิชา (จำนวนเต็ม บรรทัดเดียวกัน)\nOutput บรรทัดที่ 1: ผลรวมคะแนน\nOutput บรรทัดที่ 2: คะแนนเฉลี่ย (ทศนิยม 2 ตำแหน่ง)',
+                testCases: [
+                    { input: '80 90 70', expected: '240\n80.00', isHidden: false, points: 5, order: 1 },
+                    { input: '100 75 85', expected: '260\n86.67', isHidden: false, points: 3, order: 2 },
+                    { input: '55 60 65', expected: '180\n60.00', isHidden: true, points: 2, order: 3 },
+                ],
+            },
+            // Lesson 4
+            {
+                lessonIndex: 3,
+                title: '4.1 เลขคู่หรือเลขคี่',
+                difficulty: 'ง่าย', timeLimit: 2000, memoryLimit: 64, totalPoints: 10,
+                description: 'รับจำนวนเต็ม 1 จำนวน\nOutput: Even ถ้าเป็นเลขคู่, Odd ถ้าเป็นเลขคี่',
+                testCases: [
+                    { input: '4', expected: 'Even', isHidden: false, points: 4, order: 1 },
+                    { input: '7', expected: 'Odd', isHidden: false, points: 3, order: 2 },
+                    { input: '0', expected: 'Even', isHidden: true, points: 3, order: 3 },
+                ],
+            },
+            {
+                lessonIndex: 3,
+                title: '4.2 คำนวณค่า BMI',
+                difficulty: 'ปานกลาง', timeLimit: 2000, memoryLimit: 64, totalPoints: 15,
+                description: 'รับน้ำหนัก (kg) และส่วนสูง (m) เป็นทศนิยม\nสูตร: BMI = น้ำหนัก / (ส่วนสูง²)\nOutput: ค่า BMI ทศนิยม 2 ตำแหน่ง',
+                testCases: [
+                    { input: '70 1.75', expected: '22.86', isHidden: false, points: 5, order: 1 },
+                    { input: '50 1.60', expected: '19.53', isHidden: false, points: 5, order: 2 },
+                    { input: '90 1.80', expected: '27.78', isHidden: true, points: 5, order: 3 },
+                ],
+            },
+            // Lesson 5
+            {
+                lessonIndex: 4,
+                title: '5.1 ตัดเกรดจากคะแนน',
+                difficulty: 'ปานกลาง', timeLimit: 2000, memoryLimit: 64, totalPoints: 15,
+                description: 'รับคะแนน (0-100)\nOutput: เกรด ตามเกณฑ์\n80-100 = A\n70-79 = B\n60-69 = C\n50-59 = D\n0-49 = F',
+                testCases: [
+                    { input: '85', expected: 'A', isHidden: false, points: 3, order: 1 },
+                    { input: '72', expected: 'B', isHidden: false, points: 3, order: 2 },
+                    { input: '65', expected: 'C', isHidden: false, points: 3, order: 3 },
+                    { input: '45', expected: 'F', isHidden: true, points: 6, order: 4 },
+                ],
+            },
+            {
+                lessonIndex: 4,
+                title: '5.2 หาค่ามากที่สุดจาก 3 จำนวน',
+                difficulty: 'ปานกลาง', timeLimit: 2000, memoryLimit: 64, totalPoints: 15,
+                description: 'รับจำนวนเต็ม 3 จำนวน บรรทัดเดียวกัน\nOutput: จำนวนที่มากที่สุด',
+                testCases: [
+                    { input: '3 7 5', expected: '7', isHidden: false, points: 5, order: 1 },
+                    { input: '10 10 5', expected: '10', isHidden: false, points: 5, order: 2 },
+                    { input: '-1 -5 -3', expected: '-1', isHidden: true, points: 5, order: 3 },
+                ],
+            },
+            // Lesson 6
+            {
+                lessonIndex: 5,
+                title: '6.1 ผลรวม 1 ถึง N',
+                difficulty: 'ง่าย', timeLimit: 2000, memoryLimit: 64, totalPoints: 10,
+                description: 'รับจำนวนเต็มบวก N\nOutput: ผลรวมของ 1+2+3+...+N',
+                testCases: [
+                    { input: '5', expected: '15', isHidden: false, points: 4, order: 1 },
+                    { input: '10', expected: '55', isHidden: false, points: 3, order: 2 },
+                    { input: '100', expected: '5050', isHidden: true, points: 3, order: 3 },
+                ],
+            },
+            {
+                lessonIndex: 5,
+                title: '6.2 สามเหลี่ยมดาว',
+                difficulty: 'ปานกลาง', timeLimit: 2000, memoryLimit: 64, totalPoints: 15,
+                description: 'รับจำนวนเต็มบวก N\nแสดงสามเหลี่ยมดาวขนาด N แถว\nแถวที่ i มี i ดาว (ไม่มีช่องว่าง)\nตัวอย่าง N=3:\n*\n**\n***',
+                testCases: [
+                    { input: '3', expected: '*\n**\n***', isHidden: false, points: 5, order: 1 },
+                    { input: '5', expected: '*\n**\n***\n****\n*****', isHidden: false, points: 5, order: 2 },
+                    { input: '1', expected: '*', isHidden: true, points: 5, order: 3 },
+                ],
+            },
+            // Lesson 7
+            {
+                lessonIndex: 6,
+                title: '7.1 หา GCD (ห.ร.ม.)',
+                difficulty: 'ปานกลาง', timeLimit: 2000, memoryLimit: 64, totalPoints: 15,
+                description: 'รับจำนวนเต็มบวก 2 จำนวน\nOutput: ห.ร.ม. ของสองจำนวนนั้น\n(ใช้ Euclidean Algorithm)',
+                testCases: [
+                    { input: '12 8', expected: '4', isHidden: false, points: 5, order: 1 },
+                    { input: '100 75', expected: '25', isHidden: false, points: 5, order: 2 },
+                    { input: '17 13', expected: '1', isHidden: true, points: 5, order: 3 },
+                ],
+            },
+            {
+                lessonIndex: 6,
+                title: '7.2 ตรวจสอบจำนวนเฉพาะ',
+                difficulty: 'ปานกลาง', timeLimit: 2000, memoryLimit: 64, totalPoints: 15,
+                description: 'รับจำนวนเต็ม N (N >= 2)\nOutput: Prime ถ้าเป็นจำนวนเฉพาะ, Not Prime ถ้าไม่ใช่',
+                testCases: [
+                    { input: '7', expected: 'Prime', isHidden: false, points: 5, order: 1 },
+                    { input: '9', expected: 'Not Prime', isHidden: false, points: 5, order: 2 },
+                    { input: '97', expected: 'Prime', isHidden: true, points: 5, order: 3 },
+                ],
+            },
+            // Lesson 8
+            {
+                lessonIndex: 7,
+                title: '8.1 ฟังก์ชัน Power (a^b)',
+                difficulty: 'ปานกลาง', timeLimit: 2000, memoryLimit: 64, totalPoints: 15,
+                description: 'รับ base และ exponent (จำนวนเต็มไม่ติดลบ)\nOutput: base ยกกำลัง exponent\n(เขียนฟังก์ชัน power(a, b) เอง ไม่ใช้ pow())',
+                testCases: [
+                    { input: '2 10', expected: '1024', isHidden: false, points: 5, order: 1 },
+                    { input: '3 4', expected: '81', isHidden: false, points: 5, order: 2 },
+                    { input: '5 0', expected: '1', isHidden: true, points: 5, order: 3 },
+                ],
+            },
+            {
+                lessonIndex: 7,
+                title: '8.2 Factorial N!',
+                difficulty: 'ปานกลาง', timeLimit: 2000, memoryLimit: 64, totalPoints: 15,
+                description: 'รับจำนวนเต็มไม่เป็นลบ N (0 ≤ N ≤ 12)\nOutput: N! (แฟกทอเรียล)\n(เขียนฟังก์ชัน factorial(n) เอง)',
+                testCases: [
+                    { input: '5', expected: '120', isHidden: false, points: 5, order: 1 },
+                    { input: '0', expected: '1', isHidden: false, points: 5, order: 2 },
+                    { input: '10', expected: '3628800', isHidden: true, points: 5, order: 3 },
+                ],
+            },
+            // Lesson 9
+            {
+                lessonIndex: 8,
+                title: '9.1 หาค่าสูงสุดและต่ำสุดในอาร์เรย์',
+                difficulty: 'ปานกลาง', timeLimit: 2000, memoryLimit: 64, totalPoints: 20,
+                description: 'รับจำนวนเต็ม N บรรทัดแรก\nบรรทัดที่สอง: N จำนวนเต็มคั่นด้วยช่องว่าง\nOutput บรรทัดแรก: max\nOutput บรรทัดสอง: min',
+                testCases: [
+                    { input: '5\n3 1 4 1 5', expected: '5\n1', isHidden: false, points: 7, order: 1 },
+                    { input: '4\n10 20 5 15', expected: '20\n5', isHidden: false, points: 7, order: 2 },
+                    { input: '3\n-5 -1 -3', expected: '-1\n-5', isHidden: true, points: 6, order: 3 },
+                ],
+            },
+            {
+                lessonIndex: 8,
+                title: '9.2 Bubble Sort เรียงจากน้อยไปมาก',
+                difficulty: 'ยาก', timeLimit: 2000, memoryLimit: 64, totalPoints: 20,
+                description: 'รับ N บรรทัดแรก\nบรรทัดสอง: N จำนวนเต็มคั่นด้วยช่องว่าง\nOutput: ตัวเลขเรียงจากน้อยไปมาก คั่นด้วยช่องว่าง',
+                testCases: [
+                    { input: '5\n64 25 12 22 11', expected: '11 12 22 25 64', isHidden: false, points: 7, order: 1 },
+                    { input: '4\n5 3 8 1', expected: '1 3 5 8', isHidden: false, points: 7, order: 2 },
+                    { input: '3\n3 1 2', expected: '1 2 3', isHidden: true, points: 6, order: 3 },
+                ],
+            },
+            // Lesson 10
+            {
+                lessonIndex: 9,
+                title: '10.1 นับตัวอักษรในสตริง',
+                difficulty: 'ง่าย', timeLimit: 2000, memoryLimit: 64, totalPoints: 10,
+                description: 'รับสตริง 1 บรรทัด (ไม่มีช่องว่าง)\nOutput: จำนวนตัวอักษร',
+                testCases: [
+                    { input: 'Hello', expected: '5', isHidden: false, points: 4, order: 1 },
+                    { input: 'Programming', expected: '11', isHidden: false, points: 3, order: 2 },
+                    { input: 'A', expected: '1', isHidden: true, points: 3, order: 3 },
+                ],
+            },
+            {
+                lessonIndex: 9,
+                title: '10.2 กลับสตริง (Reverse)',
+                difficulty: 'ปานกลาง', timeLimit: 2000, memoryLimit: 64, totalPoints: 15,
+                description: 'รับสตริง 1 บรรทัด (ไม่มีช่องว่าง)\nOutput: สตริงที่กลับด้าน',
+                testCases: [
+                    { input: 'Hello', expected: 'olleH', isHidden: false, points: 5, order: 1 },
+                    { input: 'abcde', expected: 'edcba', isHidden: false, points: 5, order: 2 },
+                    { input: 'racecar', expected: 'racecar', isHidden: true, points: 5, order: 3 },
+                ],
+            },
+        ];
+
+        // ── Create Assignments + TestCases ──
+        let assignmentCount = 0;
+        for (let ai = 0; ai < assignmentsData.length; ai++) {
+            const ad = assignmentsData[ai];
+            const lessonId = lessonIds[ad.lessonIndex];
+            appendLog(`📝 กำลังสร้างแบบฝึกหัด ${ai+1}/20: ${ad.title}`, 'wait');
+
+            const aRef = await db.collection('assignments').add({
+                courseId: courseRef.id,
+                lessonId: lessonId,
+                title: ad.title,
+                description: ad.description,
+                difficulty: ad.difficulty,
+                timeLimit: ad.timeLimit,
+                memoryLimit: ad.memoryLimit,
+                totalPoints: ad.totalPoints,
+                order: ai + 1,
+                createdAt: serverTimestamp(),
+            });
+            assignmentCount++;
+
+            for (let ti = 0; ti < ad.testCases.length; ti++) {
+                const tc = ad.testCases[ti];
+                await db.collection('testCases').add({
+                    assignmentId: aRef.id,
+                    courseId: courseRef.id,
+                    input: tc.input,
+                    expected: tc.expected,
+                    isHidden: tc.isHidden,
+                    points: tc.points,
+                    order: tc.order,
+                });
+            }
+            appendLog(`  ✅ แบบฝึกหัด ${ai+1} + ${ad.testCases.length} test cases สำเร็จ`, 'ok');
+        }
+
+        appendLog('', '');
+        appendLog(`🎉 สำเร็จ! สร้างทั้งหมด:`, 'ok');
+        appendLog(`  - 1 รายวิชา`, 'ok');
+        appendLog(`  - ${lessonsData.length} บทเรียน`, 'ok');
+        appendLog(`  - ${assignmentCount} แบบฝึกหัด`, 'ok');
+        appendLog(`  - ClassCode: ${classCode}`, 'ok');
+
+        document.getElementById('classCodeDisplay').textContent = classCode;
+        document.getElementById('codeBox').style.display = 'block';
+        showMsg('สร้างข้อมูลสำเร็จทั้งหมด!', 'success');
+        btn.textContent = '✅ สร้างข้อมูลสำเร็จแล้ว';
+
+    } catch (err) {
+        appendLog('❌ เกิดข้อผิดพลาด: ' + err.message, 'err');
+        showMsg('เกิดข้อผิดพลาด: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '🌱 สร้างรายวิชา ว31281 (ลองอีกครั้ง)';
+    }
+}
+</script>
+</body>
+</html>
