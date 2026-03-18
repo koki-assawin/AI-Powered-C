@@ -7,7 +7,7 @@ const callGeminiApi = async (prompt, schema = null) => {
         throw new Error('ไม่พบ Gemini API Key กรุณาติดต่อผู้ดูแลระบบ');
     }
 
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_KEY}`;
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
 
     const payload = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
