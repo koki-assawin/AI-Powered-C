@@ -12,8 +12,8 @@ const SystemSettings = () => {
 
     const loadCurrentKey = async () => {
         try {
-            const snap = await rtdb.ref('ai-powered-code/config/gemini_api_key').get();
-            if (snap.val()) setGeminiKey(snap.val());
+            const snap = await db.collection('config').doc('gemini').get();
+            if (snap.exists && snap.data().apiKey) setGeminiKey(snap.data().apiKey);
         } catch (err) {
             console.error('Could not load Gemini key:', err);
         }
@@ -24,7 +24,7 @@ const SystemSettings = () => {
         setSaving(true);
         setMsg('');
         try {
-            await rtdb.ref('ai-powered-code/config/gemini_api_key').set(geminiKey.trim());
+            await db.collection('config').doc('gemini').set({ apiKey: geminiKey.trim() });
             GEMINI_KEY = geminiKey.trim(); // Update in-memory key immediately
             setMsg('✅ บันทึก Gemini API Key สำเร็จ!');
         } catch (err) {

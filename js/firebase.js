@@ -67,17 +67,17 @@ const LANGUAGES = {
     },
 };
 
-// ── Gemini API key (loaded from Firebase Realtime Database) ──
+// ── Gemini API key (loaded from Firestore) ──
 // Stored at the module level; populated by loadGeminiKey() on app start
 let GEMINI_KEY = '';
 
 const loadGeminiKey = async () => {
     try {
-        const snap = await rtdb.ref('ai-powered-code/config/gemini_api_key').get();
-        const key = snap.val();
+        const snap = await db.collection('config').doc('gemini').get();
+        const key = snap.exists ? snap.data().apiKey : null;
         if (key && typeof key === 'string') {
             GEMINI_KEY = key;
-            console.log('✅ Gemini API Key loaded from Firebase');
+            console.log('✅ Gemini API Key loaded from Firestore');
         } else {
             // Fallback to localStorage (for offline dev)
             const local = localStorage.getItem('gemini_api_key');
@@ -89,7 +89,7 @@ const loadGeminiKey = async () => {
             }
         }
     } catch (err) {
-        console.error('❌ Firebase RTDB error:', err);
+        console.error('❌ Firestore error loading Gemini key:', err);
         const local = localStorage.getItem('gemini_api_key');
         if (local) GEMINI_KEY = local;
     }
