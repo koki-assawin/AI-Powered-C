@@ -1,0 +1,134 @@
+// js/pages/teacher/TeacherDashboard.js
+
+const TeacherDashboard = () => {
+    const { userDoc } = useAuth();
+    const [courses, setCourses] = React.useState([]);
+    const [stats, setStats] = React.useState({ totalStudents: 0, totalSubmissions: 0, avgScore: 0 });
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => { if (userDoc) loadData(); }, [userDoc]);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const snap = await db.collection('courses')
+                .where('teacherId', '==', userDoc.id)
+                .get();
+            const courseList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setCourses(courseList);
+
+            const courseIds = courseList.map(c => c.id);
+            let totalStudents = 0, totalSubs = 0, totalScore = 0, scoredSubs = 0;
+
+            if (courseIds.length > 0) {
+                const [enrollSnaps, subSnaps] = await Promise.all([
+                    db.collection('enrollments').where('courseId', 'in', courseIds.slice(0, 10)).get(),
+                    db.collection('submissions').where('courseId', 'in', courseIds.slice(0, 10)).get(),
+                ]);
+                totalStudents = new Set(enrollSnaps.docs.map(d => d.data().studentId)).size;
+                totalSubs = subSnaps.size;
+                subSnaps.docs.forEach(d => {
+                    if (d.data().score != null) { totalScore += d.data().score; scoredSubs++; }
+                });
+            }
+
+            setStats({
+                totalStudents,
+                totalSubmissions: totalSubs,
+                avgScore: scoredSubs ? Math.round(totalScore / scoredSubs) : 0,
+            });
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const togglePublish = async (courseId, current) => {
+        await db.collection('courses').doc(courseId).update({ isPublished: !current });
+        setCourses(cs => cs.map(c => c.id === courseId ? { ...c, isPublished: !current } : c));
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <Navbar title="AI-Powered Coding LMS" subtitle="Teacher Portal" />
+            <main className="max-w-7xl mx-auto px-4 py-8">
+                <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl p-6 text-white mb-8 shadow-lg">
+                    <h2 className="text-2xl font-bold mb-1">สวัสดี, {userDoc?.displayName} 👨‍🏫</h2>
+                    <p className="text-green-100">จัดการรายวิชาและโจทย์การเขียนโปรแกรม</p>
+                </div>
+
+                {loading ? <Spinner /> : (
+                    <>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            {[
+                                { label: 'รายวิชาของฉัน', value: courses.length, icon: '📚' },
+                                { label: 'นักเรียนทั้งหมด', value: stats.totalStudents, icon: '👥' },
+                                { label: 'การส่งงานทั้งหมด', value: stats.totalSubmissions, icon: '📋' },
+                                { label: 'คะแนนเฉลี่ย', value: `${stats.avgScore}%`, icon: '📊' },
+                            ].map(s => (
+                                <div key={s.label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                                    <div className="text-3xl mb-2">{s.icon}</div>
+                                    <div className="text-2xl font-bold text-gray-800">{s.value}</div>
+                                    <div className="text-sm text-gray-500">{s.label}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-gray-800">📚 รายวิชาของฉัน</h3>
+                            <a href="#/teacher/courses"
+                                className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors flex items-center space-x-2">
+                                <span>+</span><span>สร้างรายวิชาใหม่</span>
+                            </a>
+                        </div>
+
+                        {courses.length === 0 ? (
+                            <div className="bg-white rounded-xl p-12 text-center text-gray-400 border border-gray-100">
+                                <div className="text-5xl mb-3">📚</div>
+                                <p className="text-lg mb-4">ยังไม่มีรายวิชา</p>
+                                <a href="#/teacher/courses" className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 inline-block">
+                                    สร้างรายวิชาแรก
+                                </a>
+                            </div>
+                        ) : (
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {courses.map(course => (
+                                    <div key={course.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                                        <div className="h-1.5" style={{ background: LANGUAGES[course.language]?.color || '#6b7280' }}></div>
+                                        <div className="p-5">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="text-2xl">{LANGUAGES[course.language]?.icon || '📚'}</div>
+                                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${course.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                    {course.isPublished ? 'เปิดสอน' : 'ฉบับร่าง'}
+                                                </span>
+                                            </div>
+                                            <h4 className="font-bold text-gray-800 mb-1">{course.title}</h4>
+                                            <p className="text-xs text-gray-400 mb-4 line-clamp-2">{course.description}</p>
+                                            <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
+                                                <span>👥 {course.enrollmentCount || 0} นักเรียน</span>
+                                                <span>{LANGUAGES[course.language]?.name}</span>
+                                            </div>
+                                            <div className="flex space-x-2">
+                                                <a href={`#/teacher/courses?edit=${course.id}`}
+                                                    className="flex-1 text-center py-1.5 border border-blue-300 text-blue-600 rounded-lg text-xs hover:bg-blue-50 transition-colors">
+                                                    แก้ไข
+                                                </a>
+                                                <button
+                                                    onClick={() => togglePublish(course.id, course.isPublished)}
+                                                    className={`flex-1 py-1.5 rounded-lg text-xs text-white transition-colors
+                                                        ${course.isPublished ? 'bg-gray-400 hover:bg-gray-500' : 'bg-green-500 hover:bg-green-600'}`}>
+                                                    {course.isPublished ? 'ซ่อน' : 'เปิดเผย'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
+            </main>
+        </div>
+    );
+};
