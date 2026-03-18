@@ -194,9 +194,16 @@ const CodingWorkspace = () => {
                 {/* Left Sidebar - Assignment list */}
                 <aside className="w-64 bg-white border-r border-gray-200 overflow-y-auto hidden lg:block">
                     <div className="p-4">
-                        <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-3">โจทย์</h3>
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide">โจทย์</h3>
+                            <button onClick={() => loadCourse()} title="รีโหลดโจทย์"
+                                className="text-gray-400 hover:text-blue-500 text-xs px-2 py-1 rounded hover:bg-blue-50">🔄</button>
+                        </div>
                         {assignments.length === 0 ? (
-                            <p className="text-gray-400 text-sm">ยังไม่มีโจทย์</p>
+                            <div className="text-center py-4">
+                                <p className="text-gray-400 text-sm mb-2">ยังไม่มีโจทย์</p>
+                                <button onClick={() => loadCourse()} className="text-xs text-blue-500 hover:underline">🔄 โหลดใหม่</button>
+                            </div>
                         ) : assignments.map(a => (
                             <button
                                 key={a.id}
