@@ -94,6 +94,15 @@ const AssignmentManager = () => {
         setAssignments(as => as.map(a => a.id === id ? { ...a, isPublished: !cur } : a));
     };
 
+    const publishAll = async () => {
+        const hidden = assignments.filter(a => !a.isPublished);
+        if (hidden.length === 0) { setMsg('✅ โจทย์ทุกข้อเปิดอยู่แล้ว'); return; }
+        await Promise.all(hidden.map(a => db.collection('assignments').doc(a.id).update({ isPublished: true })));
+        setAssignments(as => as.map(a => ({ ...a, isPublished: true })));
+        setMsg(`✅ เปิดโจทย์ทั้งหมด ${hidden.length} ข้อสำเร็จ!`);
+        setTimeout(() => setMsg(''), 3000);
+    };
+
     const deleteAssignment = async (id) => {
         if (!confirm('ยืนยันการลบโจทย์นี้?')) return;
         await db.collection('assignments').doc(id).delete();
@@ -124,6 +133,18 @@ const AssignmentManager = () => {
                 {tab === 'list' && (
                     loading ? <Spinner /> : (
                         <div className="space-y-3">
+                            {assignments.length > 0 && (
+                                <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-2">
+                                    <span className="text-sm text-blue-700">
+                                        เปิดอยู่ {assignments.filter(a => a.isPublished).length}/{assignments.length} ข้อ
+                                    </span>
+                                    <button onClick={publishAll}
+                                        className="px-4 py-1.5 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 font-medium">
+                                        🟢 เปิดทั้งหมด
+                                    </button>
+                                </div>
+                            )}
+                            {msg && <div className="p-3 rounded-lg text-sm bg-green-50 text-green-700 border border-green-200">{msg}</div>}
                             {assignments.length === 0 && (
                                 <div className="text-center py-12 text-gray-400 bg-white rounded-xl border border-gray-100">
                                     <div className="text-4xl mb-3">📝</div>
@@ -159,8 +180,8 @@ const AssignmentManager = () => {
                                             แก้ไข
                                         </button>
                                         <button onClick={() => togglePublish(a.id, a.isPublished)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs ${a.isPublished ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
-                                            {a.isPublished ? 'ซ่อน' : 'เปิด'}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium ${a.isPublished ? 'bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-600' : 'bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700'}`}>
+                                            {a.isPublished ? '🟢 เปิดอยู่' : '⭕ ซ่อนอยู่'}
                                         </button>
                                         <button onClick={() => deleteAssignment(a.id)}
                                             className="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg text-xs hover:bg-red-200">ลบ</button>
