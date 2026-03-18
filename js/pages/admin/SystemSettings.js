@@ -86,8 +86,8 @@ const SystemSettings = () => {
                     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                         <h3 className="font-bold text-gray-800 text-lg mb-1">🤖 Google Gemini API Key</h3>
                         <p className="text-sm text-gray-500 mb-4">
-                            เก็บใน Firebase Realtime Database ที่ path:{' '}
-                            <code className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">ai-powered-code/config/gemini_api_key</code>
+                            เก็บใน Firestore ที่ collection:{' '}
+                            <code className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">config/gemini</code>
                         </p>
 
                         <div className="relative mb-3">
