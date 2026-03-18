@@ -8,7 +8,7 @@ const WANDBOX_URL = 'https://wandbox.org/api/compile.json';
 // Wandbox compiler mapping per language
 const WANDBOX_COMPILER = {
     c:      'gcc-head',
-    cpp:    'gcc-head',
+    cpp:    'g++-head',
     python: 'cpython-3.12.0',
     java:   'openjdk-head',
 };
@@ -50,7 +50,7 @@ const runSingleTest = async (code, language, testCase) => {
         const data = await res.json();
         const execTime = Date.now() - startTime;
         const actualOutput = normalizeOutput(data.program_output || '');
-        const expectedOutput = normalizeOutput(testCase.expectedOutput);
+        const expectedOutput = normalizeOutput(testCase.expectedOutput || testCase.expected || '');
         const passed = actualOutput === expectedOutput;
         const compilerError = data.compiler_error ? data.compiler_error.trim() : null;
         const runtimeError = data.program_error ? data.program_error.trim() : null;
@@ -71,7 +71,7 @@ const runSingleTest = async (code, language, testCase) => {
             testCaseId: testCase.id,
             passed: false,
             actualOutput: '',
-            expectedOutput: normalizeOutput(testCase.expectedOutput),
+            expectedOutput: normalizeOutput(testCase.expectedOutput || testCase.expected || ''),
             executionTime: Date.now() - startTime,
             errorLog: `Network error: ${err.message}`,
             isCompileError: false,

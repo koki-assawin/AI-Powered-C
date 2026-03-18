@@ -112,6 +112,7 @@ const CodingWorkspace = () => {
         if (!currentAssignment) return;
         setSampleRunning(true);
         setSampleResults(null);
+        setView('grade');
         try {
             const results = await runSampleTests(code, selectedLanguage, currentAssignment.id);
             setSampleResults(results);
@@ -293,29 +294,6 @@ const CodingWorkspace = () => {
                             />
                         </div>
 
-                        {/* Sample test results */}
-                        {sampleResults && (
-                            <div className="mt-3 bg-gray-900 rounded-lg p-3 text-sm">
-                                <p className="text-gray-300 font-medium mb-2">ผลการทดสอบตัวอย่าง:</p>
-                                {sampleResults.map((r, i) => (
-                                    <div key={i} className={`mb-2 p-2 rounded ${r.passed ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
-                                        <span className={r.passed ? 'text-green-400' : 'text-red-400'}>
-                                            {r.passed ? '✓ ผ่าน' : '✗ ไม่ผ่าน'} — Test {i + 1} ({r.executionTime}ms)
-                                        </span>
-                                        {!r.passed && (
-                                            <div className="mt-1 text-xs">
-                                                <span className="text-gray-400">Expected: </span>
-                                                <span className="text-blue-300 font-mono">{r.expectedOutput}</span>
-                                                <br />
-                                                <span className="text-gray-400">Actual: </span>
-                                                <span className="text-yellow-300 font-mono">{r.actualOutput || '(ไม่มี output)'}</span>
-                                                {r.errorLog && <div className="text-red-400 mt-1">{r.errorLog}</div>}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                     </div>
 
                     {/* Right Panel */}
@@ -378,7 +356,7 @@ const CodingWorkspace = () => {
                                                         <div>
                                                             <p className="text-xs text-gray-500 mb-1">Expected:</p>
                                                             <pre className="bg-gray-800 text-blue-300 p-2 rounded text-xs font-mono overflow-x-auto">
-                                                                {tc.expectedOutput}
+                                                                {tc.expectedOutput || tc.expected || '(ไม่มี)'}
                                                             </pre>
                                                         </div>
                                                     </div>
@@ -398,15 +376,37 @@ const CodingWorkspace = () => {
                             {/* Grade Results */}
                             {view === 'grade' && (
                                 <div>
-                                    {submitting && (
+                                    {(submitting || sampleRunning) && (
                                         <div className="text-center py-8">
-                                            <Spinner text="กำลังตรวจ Test Cases..." />
+                                            <Spinner text={sampleRunning ? 'กำลังรัน Test Cases...' : 'กำลังตรวจ Test Cases...'} />
                                         </div>
                                     )}
-                                    {!submitting && !gradeResult && (
+                                    {!submitting && !sampleRunning && !gradeResult && sampleResults && (
+                                        <div>
+                                            <p className="font-bold text-gray-700 mb-3">ผลการทดสอบตัวอย่าง:</p>
+                                            {sampleResults.map((r, i) => (
+                                                <div key={i} className={`p-3 rounded-lg mb-2 border ${r.passed ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className={`text-sm font-medium ${r.passed ? 'text-green-700' : 'text-red-700'}`}>
+                                                            {r.passed ? '✓ ผ่าน' : '✗ ไม่ผ่าน'} — Test {i + 1}
+                                                        </span>
+                                                        <span className="text-xs text-gray-400">{r.executionTime}ms</span>
+                                                    </div>
+                                                    {!r.passed && (
+                                                        <div className="text-xs mt-2 space-y-1">
+                                                            <div><span className="text-gray-500">คาดหวัง: </span><code className="text-blue-600">{r.expectedOutput}</code></div>
+                                                            <div><span className="text-gray-500">ได้รับ: </span><code className="text-red-600">{r.actualOutput || '(ไม่มี output)'}</code></div>
+                                                            {r.errorLog && <div className="text-red-500 bg-red-50 p-2 rounded mt-1 font-mono text-xs">{r.errorLog}</div>}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {!submitting && !sampleRunning && !gradeResult && !sampleResults && (
                                         <div className="text-center py-8 text-gray-400">
                                             <div className="text-4xl mb-2">📝</div>
-                                            <p>กด Submit เพื่อดูผลการตรวจ</p>
+                                            <p>กด ▶ ทดสอบตัวอย่าง หรือ Submit เพื่อดูผล</p>
                                         </div>
                                     )}
                                     {gradeResult && (
