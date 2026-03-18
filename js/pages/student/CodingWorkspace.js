@@ -58,7 +58,7 @@ const CodingWorkspace = () => {
 
             const [lessonSnap, assignSnap] = await Promise.all([
                 db.collection('lessons').where('courseId', '==', courseId).orderBy('order').get(),
-                db.collection('assignments').where('courseId', '==', courseId).where('isPublished', '==', true).get(),
+                db.collection('assignments').where('courseId', '==', courseId).get(),
             ]);
             setLessons(lessonSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             const assigns = assignSnap.docs.map(d => ({ id: d.id, ...d.data() }));
