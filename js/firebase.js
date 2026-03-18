@@ -8,13 +8,13 @@
 // Web App configuration from Firebase Console > Project Settings > Your apps
 // The PathoVetAssist project's databaseURL is pre-filled.
 const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_WEB_API_KEY",         // ← Replace this
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com", // ← Replace this
+    apiKey: "AIzaSyCu21yPXCeRDYxcVsB_9MLTiPCaa1OgCcM",         // ← Replace this
+    authDomain: "pathovetassist.firebaseapp.com", // ← Replace this
     databaseURL: "https://pathovetassist-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "YOUR_PROJECT_ID",                 // ← Replace this
-    storageBucket: "YOUR_PROJECT_ID.appspot.com", // ← Replace this
-    messagingSenderId: "YOUR_SENDER_ID",          // ← Replace this
-    appId: "YOUR_APP_ID"                          // ← Replace this
+    projectId: "pathovetassist",                 // ← Replace this
+    storageBucket: "pathovetassist.firebasestorage.app", // ← Replace this
+    messagingSenderId: "17025284854",          // ← Replace this
+    appId: "1:17025284854:web:13adce1651d17e103b0ad7"                          // ← Replace this
 };
 
 // Initialize Firebase (guard against duplicate init during hot-reload)
