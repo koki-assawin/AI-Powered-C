@@ -8,7 +8,7 @@ const WANDBOX_URL = 'https://wandbox.org/api/compile.json';
 // Wandbox compiler mapping per language
 const WANDBOX_COMPILER = {
     c:      'gcc-head',
-    cpp:    'g++-head',
+    cpp:    'gcc-head',
     python: 'cpython-3.12.0',
     java:   'openjdk-head',
 };
