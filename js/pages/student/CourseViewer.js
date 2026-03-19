@@ -125,13 +125,17 @@ const CourseViewer = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI-Powered Coding LMS" subtitle="ค้นหารายวิชา" />
+            <Navbar title="AI Coding Platform" subtitle="ค้นหารายวิชา" />
             <main className="max-w-7xl mx-auto px-4 py-8">
 
-                {/* Join by Code - prominent section at top */}
-                <div className="mb-8 rounded-2xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' }}>
-                    <h2 className="text-xl font-bold mb-1">🔑 เข้าร่วมห้องเรียนด้วยรหัส</h2>
-                    <p className="text-blue-100 text-sm mb-4">กรอกรหัส 6 หลักที่ได้รับจากครู เพื่อเข้าร่วมวิชา</p>
+                {/* Join by Code */}
+                <div className="mb-8 rounded-2xl p-6" style={{
+                    background: 'linear-gradient(135deg, #FFF0F5 0%, #FFD1DC 100%)',
+                    border: '1px solid #FFB6C8',
+                    boxShadow: '0 2px 12px rgba(236,64,122,.08)',
+                }}>
+                    <h2 className="text-xl font-bold mb-1" style={{ color: '#AD1457' }}>🔑 เข้าร่วมห้องเรียนด้วยรหัส</h2>
+                    <p className="text-sm mb-4" style={{ color: '#C2185B' }}>กรอกรหัส 6 หลักที่ได้รับจากครู เพื่อเข้าร่วมวิชา</p>
                     <div className="flex flex-col sm:flex-row gap-3">
                         <input
                             value={joinCode}
@@ -139,17 +143,20 @@ const CourseViewer = () => {
                             onKeyDown={e => { if (e.key === 'Enter') handleJoinByCode(); }}
                             maxLength={6}
                             placeholder="เช่น AB12CD"
-                            className="flex-1 px-4 py-3 rounded-xl text-gray-800 font-mono text-lg font-bold tracking-widest text-center outline-none focus:ring-2 focus:ring-white bg-white"
+                            className="flex-1 px-4 py-3 rounded-xl font-mono text-lg font-bold tracking-widest text-center outline-none bg-white"
+                            style={{ border: '1.5px solid #FFB6C8', color: '#AD1457', boxShadow: '0 0 0 0 transparent', transition: 'box-shadow .2s' }}
+                            onFocus={e => e.target.style.boxShadow = '0 0 0 3px rgba(236,64,122,.15)'}
+                            onBlur={e => e.target.style.boxShadow = '0 0 0 0 transparent'}
                         />
                         <button
                             onClick={() => handleJoinByCode()}
                             disabled={joining || joinCode.trim().length !== 6}
-                            className="px-8 py-3 bg-white text-blue-700 font-bold rounded-xl hover:bg-blue-50 disabled:opacity-50 transition-all text-sm whitespace-nowrap">
+                            className="k-btn-pink px-8 py-3 font-bold text-sm whitespace-nowrap disabled:opacity-50">
                             {joining ? 'กำลังเข้าร่วม...' : 'เข้าร่วม'}
                         </button>
                     </div>
                     {joinMsg && (
-                        <div className={`mt-3 text-sm px-3 py-2 rounded-lg ${joinMsg.includes('สำเร็จ') || joinMsg.includes('แล้ว') ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                        <div className={`mt-3 text-sm px-3 py-2 rounded-lg ${joinMsg.includes('สำเร็จ') || joinMsg.includes('แล้ว') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             {joinMsg}
                         </div>
                     )}
@@ -198,11 +205,7 @@ const CourseViewer = () => {
                                         <button
                                             onClick={() => handleEnroll(course.id)}
                                             disabled={enrolling === course.id}
-                                            className={`w-full py-2 rounded-lg font-medium text-sm transition-all
-                                                ${enrolled
-                                                    ? 'bg-green-500 text-white hover:bg-green-600'
-                                                    : 'bg-blue-500 text-white hover:bg-blue-600'}
-                                                disabled:opacity-50`}
+                                            className={`w-full py-2 rounded-lg font-medium text-sm transition-all disabled:opacity-50 ${enrolled ? 'bg-green-500 text-white hover:bg-green-600' : 'k-btn-pink'}`}
                                         >
                                             {enrolling === course.id ? 'กำลังลงทะเบียน...' : enrolled ? 'เข้าเรียน →' : 'ลงทะเบียน'}
                                         </button>

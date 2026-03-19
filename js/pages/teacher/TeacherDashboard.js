@@ -53,10 +53,13 @@ const TeacherDashboard = () => {
         <div className="min-h-screen bg-gray-50">
             <Navbar title="AI Coding Platform" subtitle="Teacher Portal" />
             <main className="max-w-7xl mx-auto px-4 py-8">
-                <div style={{ background: 'linear-gradient(135deg, #EC407A 0%, #AD1457 100%)' }}
-                    className="rounded-2xl p-6 text-white mb-8 shadow-lg">
-                    <h2 className="text-2xl font-bold mb-1">สวัสดี, {userDoc?.displayName} 👨‍🏫</h2>
-                    <p style={{ color: '#FFD1DC' }}>จัดการรายวิชาและโจทย์การเขียนโปรแกรม</p>
+                <div className="rounded-2xl p-6 mb-8" style={{
+                    background: 'linear-gradient(135deg, #FFF0F5 0%, #FFD1DC 100%)',
+                    border: '1px solid #FFB6C8',
+                    boxShadow: '0 2px 12px rgba(236,64,122,.08)',
+                }}>
+                    <h2 className="text-2xl font-bold mb-1" style={{ color: '#AD1457' }}>สวัสดี, {userDoc?.displayName} 👨‍🏫</h2>
+                    <p style={{ color: '#C2185B', fontSize: '14px' }}>จัดการรายวิชาและโจทย์การเขียนโปรแกรม</p>
                 </div>
 
                 {loading ? <Spinner /> : (

@@ -57,10 +57,13 @@ const StudentDashboard = () => {
 
             <main className="max-w-7xl mx-auto px-4 py-8">
                 {/* Welcome */}
-                <div style={{ background: 'linear-gradient(135deg, #F48FB1 0%, #C2185B 100%)' }}
-                    className="rounded-2xl p-6 text-white mb-8 shadow-lg">
-                    <h2 className="text-2xl font-bold mb-1">สวัสดี, {userDoc?.displayName} 👋</h2>
-                    <p style={{ color: '#FFD1DC' }}>พร้อมเรียนรู้การเขียนโปรแกรมวันนี้แล้วหรือยัง?</p>
+                <div className="rounded-2xl p-6 mb-8" style={{
+                    background: 'linear-gradient(135deg, #FFF0F5 0%, #FFD1DC 100%)',
+                    border: '1px solid #FFB6C8',
+                    boxShadow: '0 2px 12px rgba(236,64,122,.08)',
+                }}>
+                    <h2 className="text-2xl font-bold mb-1" style={{ color: '#AD1457' }}>สวัสดี, {userDoc?.displayName} 👋</h2>
+                    <p style={{ color: '#C2185B', fontSize: '14px' }}>พร้อมเรียนรู้การเขียนโปรแกรมวันนี้แล้วหรือยัง?</p>
                 </div>
 
                 {loading ? <Spinner text="กำลังโหลดข้อมูล..." /> : (
