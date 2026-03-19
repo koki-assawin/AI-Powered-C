@@ -97,5 +97,6 @@ const loadGeminiKey = async () => {
 
 // ── Firestore helpers ──
 const serverTimestamp = () => firebase.firestore.FieldValue.serverTimestamp();
-const arrayUnion = (...items) => firebase.firestore.FieldValue.arrayUnion(...items);
-const increment = (n) => firebase.firestore.FieldValue.increment(n);
+const arrayUnion  = (...items) => firebase.firestore.FieldValue.arrayUnion(...items);
+const arrayRemove = (...items) => firebase.firestore.FieldValue.arrayRemove(...items);
+const increment   = (n) => firebase.firestore.FieldValue.increment(n);

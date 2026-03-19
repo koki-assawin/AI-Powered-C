@@ -40,7 +40,16 @@ const StudentManagement = () => {
             const enrollSnap = await db.collection('enrollments')
                 .where('courseId', '==', selectedCourseId)
                 .get();
-            const enrollList = enrollSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            // De-duplicate: keep only the first enrollment doc per studentId
+            const seen = new Set();
+            const enrollList = [];
+            enrollSnap.docs.forEach(d => {
+                const data = d.data();
+                if (!seen.has(data.studentId)) {
+                    seen.add(data.studentId);
+                    enrollList.push({ id: d.id, ...data });
+                }
+            });
             setEnrollments(enrollList);
             const ids = enrollList.map(e => e.studentId);
             if (ids.length > 0) {
@@ -63,6 +72,16 @@ const StudentManagement = () => {
         }
         setEnrollingId(studentId);
         try {
+            // Double-check in Firestore to prevent duplicates
+            const existing = await db.collection('enrollments')
+                .where('courseId', '==', selectedCourseId)
+                .where('studentId', '==', studentId)
+                .limit(1).get();
+            if (!existing.empty) {
+                showMsg('⚠️ นักเรียนคนนี้ลงทะเบียนวิชานี้แล้ว');
+                loadEnrolled();
+                return;
+            }
             await db.collection('users').doc(studentId).update({
                 enrolledCourses: arrayUnion(selectedCourseId),
             });
