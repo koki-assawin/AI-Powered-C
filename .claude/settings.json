@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/xampp/htdocs/AI-Powered-C -type f \\\\\\(-name *.html -o -name *.js -o -name *.jsx -o -name *.json \\\\\\))",
+      "Read(//tmp/**)",
+      "Bash(git -C /c/xampp/htdocs/AI-Powered-C log --oneline -10)",
+      "Bash(git -C /c/xampp/htdocs/AI-Powered-C diff HEAD -- index.html)",
+      "Bash(git -C /c/xampp/htdocs/AI-Powered-C show b88e93e:index.html)",
+      "Bash(firebase --version)",
+      "Bash(firebase deploy:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -X POST https://emkc.org/api/v2/piston/execute -H \"Content-Type: application/json\" -d '{\"\"language\"\":\"\"python\"\",\"\"version\"\":\"\"*\"\",\"\"files\"\":[{\"\"content\"\":\"\"print\\(1\\)\"\"}]}')",
+      "Bash(curl -s:*)",
+      "Bash(sed -i \"s|title={course?.title || ''จัดการโจทย์''}|title=\"\"AI-Powered Coding Platform\"\"|g\" js/pages/teacher/AssignmentManager.js)",
+      "Bash(sed -i \"s|title={assignment?.title || ''Test Case Editor''}|title=\"\"AI-Powered Coding Platform\"\"|g\" js/pages/teacher/TestCaseEditor.js)",
+      "Bash(sed -i \"s|title={course?.title} subtitle=\"\"โหมดสอบ\"\"|title=\"\"AI-Powered Coding Platform\"\" subtitle=\"\"โหมดสอบ\"\"|g; s|title={course?.title || ''Coding Workspace''}|title=\"\"AI-Powered Coding Platform\"\"|g\" js/pages/student/CodingWorkspace.js)"
+    ]
+  }
+}

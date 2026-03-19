@@ -162,7 +162,7 @@ const TestCaseEditor = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title={assignment?.title || 'Test Case Editor'} subtitle="Test Case Manager" />
+            <Navbar title="AI-Powered Coding Platform" subtitle="จัดการ Test Cases" />
             <main className="max-w-6xl mx-auto px-4 py-8">
                 <div className="flex items-center space-x-3 mb-6 text-sm">
                     <a href="#/teacher/courses" style={{ color: '#EC407A' }} className="hover:underline">← รายวิชา</a>

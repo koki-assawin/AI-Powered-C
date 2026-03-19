@@ -144,7 +144,7 @@ const CourseBuilder = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI-Powered Coding LMS" subtitle="จัดการรายวิชา" />
+            <Navbar title="AI-Powered Coding Platform" subtitle="จัดการรายวิชา" />
             <main className="max-w-6xl mx-auto px-4 py-8">
                 <div className="flex border-b border-gray-200 mb-6">
                     <button onClick={() => setTab('courses')}

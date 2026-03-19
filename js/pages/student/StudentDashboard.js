@@ -53,7 +53,7 @@ const StudentDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI Coding Platform" subtitle="Student Portal" />
+            <Navbar title="AI-Powered Coding Platform" subtitle="Student Portal" />
 
             <main className="max-w-7xl mx-auto px-4 py-8">
                 {/* Welcome */}

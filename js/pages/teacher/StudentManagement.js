@@ -179,7 +179,7 @@ const StudentManagement = () => {
 
     return (
         <div className="min-h-screen" style={{ background: '#FFF5F7', fontFamily: "'Prompt',sans-serif" }}>
-            <Navbar title="จัดการนักเรียน" subtitle="Student Management" />
+            <Navbar title="AI-Powered Coding Platform" subtitle="Student Management" />
             <main className="max-w-5xl mx-auto px-4 py-8">
 
                 <h2 className="text-2xl font-bold mb-6" style={{ color: '#AD1457' }}>👥 จัดการนักเรียนในรายวิชา</h2>

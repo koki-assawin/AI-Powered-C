@@ -71,7 +71,7 @@ const SystemSettings = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI-Powered Coding LMS" subtitle="ตั้งค่าระบบ" />
+            <Navbar title="AI-Powered Coding Platform" subtitle="ตั้งค่าระบบ" />
             <main className="max-w-4xl mx-auto px-4 py-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">⚙️ ตั้งค่าระบบ</h2>
 

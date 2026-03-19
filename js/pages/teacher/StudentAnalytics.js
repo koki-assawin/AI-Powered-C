@@ -302,7 +302,7 @@ const StudentAnalytics = () => {
 
     return (
         <div className="min-h-screen" style={{ background: '#fdf2f8', fontFamily: "'Prompt', sans-serif" }}>
-            <Navbar title="Analytics Dashboard" subtitle="วิเคราะห์ผลการเรียน" />
+            <Navbar title="AI-Powered Coding Platform" subtitle="วิเคราะห์ผลการเรียน" />
             <main className="max-w-7xl mx-auto px-4 py-8">
                 <h2 className="text-2xl font-bold mb-6" style={{ color: '#be185d' }}>
                     📊 Teacher Analytics Dashboard

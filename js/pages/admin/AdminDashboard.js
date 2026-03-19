@@ -51,11 +51,11 @@ const AdminDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI-Powered Coding LMS" subtitle="Admin Dashboard" />
+            <Navbar title="AI-Powered Coding Platform" subtitle="Admin Dashboard" />
             <main className="max-w-7xl mx-auto px-4 py-8">
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white mb-8 shadow-lg">
-                    <h2 className="text-2xl font-bold mb-1">แดชบอร์ดผู้ดูแลระบบ 🔐</h2>
-                    <p className="text-purple-100">ภาพรวมทั้งระบบ</p>
+                <div className="rounded-2xl p-6 mb-8" style={{ background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '1px solid #FFD1DC' }}>
+                    <h2 className="text-2xl font-bold mb-1" style={{ color: '#AD1457' }}>แดชบอร์ดผู้ดูแลระบบ 🔐</h2>
+                    <p style={{ color: '#EC407A' }}>ภาพรวมทั้งระบบ</p>
                 </div>
 
                 {loading ? <Spinner /> : (
@@ -78,15 +78,16 @@ const AdminDashboard = () => {
 
                         <div className="grid md:grid-cols-3 gap-4 mb-8">
                             {[
-                                { href: '#/admin/users', label: 'จัดการผู้ใช้', icon: '👥', desc: 'อนุมัติครู เปลี่ยนสิทธิ์', color: 'from-blue-500 to-blue-600' },
-                                { href: '#/admin/settings', label: 'ตั้งค่าระบบ', icon: '⚙️', desc: 'API Keys & Grader settings', color: 'from-purple-500 to-purple-600' },
-                                { href: '#/teacher/analytics', label: 'วิเคราะห์ข้อมูล', icon: '📊', desc: 'สถิติการส่งงาน', color: 'from-orange-500 to-orange-600' },
+                                { href: '#/admin/users',      label: 'จัดการผู้ใช้',   icon: '👥', desc: 'อนุมัติครู เปลี่ยนสิทธิ์',    bg: '#FFF0F5', border: '#FFD1DC', color: '#AD1457' },
+                                { href: '#/admin/settings',   label: 'ตั้งค่าระบบ',    icon: '⚙️', desc: 'API Keys & Grader settings', bg: '#F5F0FF', border: '#DDD6FE', color: '#6D28D9' },
+                                { href: '#/teacher/analytics',label: 'วิเคราะห์ข้อมูล',icon: '📊', desc: 'สถิติการส่งงาน',            bg: '#FFF7ED', border: '#FED7AA', color: '#C2410C' },
                             ].map(link => (
                                 <a key={link.href} href={link.href}
-                                    className={`bg-gradient-to-r ${link.color} text-white rounded-xl p-5 shadow-sm hover:opacity-90 transition-opacity`}>
+                                    className="rounded-xl p-5 shadow-sm transition-opacity hover:opacity-80"
+                                    style={{ background: link.bg, border: `1px solid ${link.border}`, textDecoration: 'none' }}>
                                     <div className="text-3xl mb-2">{link.icon}</div>
-                                    <div className="font-bold text-lg">{link.label}</div>
-                                    <div className="text-sm opacity-80 mt-1">{link.desc}</div>
+                                    <div className="font-bold text-lg" style={{ color: link.color }}>{link.label}</div>
+                                    <div className="text-sm mt-1" style={{ color: link.color, opacity: 0.7 }}>{link.desc}</div>
                                 </a>
                             ))}
                         </div>

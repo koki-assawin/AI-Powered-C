@@ -283,7 +283,7 @@ const AssignmentManager = () => {
     // ── Render ───────────────────────────────────────────────────────
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title={course?.title || 'จัดการโจทย์'} subtitle="Assignment Manager" />
+            <Navbar title="AI-Powered Coding Platform" subtitle="จัดการโจทย์" />
             <main className="max-w-5xl mx-auto px-4 py-8">
                 <div className="flex items-center space-x-3 mb-6">
                     <a href="#/teacher/courses" style={{ color: '#EC407A', fontSize: '14px' }} className="hover:underline">← รายวิชา</a>

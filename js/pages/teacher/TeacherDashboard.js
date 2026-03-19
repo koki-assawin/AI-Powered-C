@@ -51,7 +51,7 @@ const TeacherDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI Coding Platform" subtitle="Teacher Portal" />
+            <Navbar title="AI-Powered Coding Platform" subtitle="Teacher Portal" />
             <main className="max-w-7xl mx-auto px-4 py-8">
                 <div className="rounded-2xl p-6 mb-8" style={{
                     background: 'linear-gradient(135deg, #FFF0F5 0%, #FFD1DC 100%)',

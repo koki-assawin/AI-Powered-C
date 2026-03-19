@@ -125,7 +125,7 @@ const CourseViewer = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI Coding Platform" subtitle="ค้นหารายวิชา" />
+            <Navbar title="AI-Powered Coding Platform" subtitle="ค้นหารายวิชา" />
             <main className="max-w-7xl mx-auto px-4 py-8">
 
                 {/* Join by Code */}
