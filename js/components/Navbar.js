@@ -15,10 +15,12 @@ const Navbar = ({ title, subtitle }) => {
             { hash: '#/student/practice',  label: 'ฝึกเอง',        icon: '🎯' },
             { hash: '#/student/gradebook', label: 'คะแนน',         icon: '📊' },
             { hash: '#/student/history',   label: 'ประวัติ',        icon: '📋' },
+            { hash: '#/student/profile',   label: 'โปรไฟล์',       icon: '👤' },
         ],
         teacher: [
             { hash: '#/teacher/dashboard', label: 'แดชบอร์ด',      icon: '🏠' },
             { hash: '#/teacher/courses',   label: 'จัดการรายวิชา',  icon: '📚' },
+            { hash: '#/teacher/students',  label: 'จัดการนักเรียน', icon: '👥' },
             { hash: '#/teacher/analytics', label: 'วิเคราะห์นักเรียน', icon: '📊' },
         ],
         admin: [

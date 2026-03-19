@@ -36,6 +36,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(SubmissionHistory));
         if (route === '#/student/practice')
             return guard(React.createElement(SelfPractice));
+        if (route === '#/student/profile')
+            return guard(React.createElement(StudentProfile));
 
         // Default student route
         return guard(React.createElement(StudentDashboard));
@@ -56,6 +58,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(TestCaseEditor));
         if (route === '#/teacher/analytics')
             return guard(React.createElement(StudentAnalytics));
+        if (route.startsWith('#/teacher/students'))
+            return guard(React.createElement(StudentManagement));
 
         return guard(React.createElement(TeacherDashboard));
     }
