@@ -51,11 +51,12 @@ const TeacherDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI-Powered Coding LMS" subtitle="Teacher Portal" />
+            <Navbar title="AI Coding Platform" subtitle="Teacher Portal" />
             <main className="max-w-7xl mx-auto px-4 py-8">
-                <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl p-6 text-white mb-8 shadow-lg">
+                <div style={{ background: 'linear-gradient(135deg, #EC407A 0%, #AD1457 100%)' }}
+                    className="rounded-2xl p-6 text-white mb-8 shadow-lg">
                     <h2 className="text-2xl font-bold mb-1">สวัสดี, {userDoc?.displayName} 👨‍🏫</h2>
-                    <p className="text-green-100">จัดการรายวิชาและโจทย์การเขียนโปรแกรม</p>
+                    <p style={{ color: '#FFD1DC' }}>จัดการรายวิชาและโจทย์การเขียนโปรแกรม</p>
                 </div>
 
                 {loading ? <Spinner /> : (
@@ -78,7 +79,7 @@ const TeacherDashboard = () => {
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-bold text-gray-800">📚 รายวิชาของฉัน</h3>
                             <a href="#/teacher/courses"
-                                className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors flex items-center space-x-2">
+                                className="k-btn-pink px-4 py-2 text-sm flex items-center space-x-2" style={{ textDecoration: 'none' }}>
                                 <span>+</span><span>สร้างรายวิชาใหม่</span>
                             </a>
                         </div>
@@ -87,7 +88,7 @@ const TeacherDashboard = () => {
                             <div className="bg-white rounded-xl p-12 text-center text-gray-400 border border-gray-100">
                                 <div className="text-5xl mb-3">📚</div>
                                 <p className="text-lg mb-4">ยังไม่มีรายวิชา</p>
-                                <a href="#/teacher/courses" className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 inline-block">
+                                <a href="#/teacher/courses" className="k-btn-pink px-6 py-2 inline-block" style={{ textDecoration: 'none' }}>
                                     สร้างรายวิชาแรก
                                 </a>
                             </div>
@@ -111,13 +112,14 @@ const TeacherDashboard = () => {
                                             </div>
                                             <div className="flex space-x-2">
                                                 <a href={`#/teacher/courses?edit=${course.id}`}
-                                                    className="flex-1 text-center py-1.5 border border-blue-300 text-blue-600 rounded-lg text-xs hover:bg-blue-50 transition-colors">
+                                                    className="flex-1 text-center py-1.5 rounded-lg text-xs transition-colors"
+                                                    style={{ border: '1.5px solid #FFD1DC', color: '#C2185B', textDecoration: 'none' }}>
                                                     แก้ไข
                                                 </a>
                                                 <button
                                                     onClick={() => togglePublish(course.id, course.isPublished)}
                                                     className={`flex-1 py-1.5 rounded-lg text-xs text-white transition-colors
-                                                        ${course.isPublished ? 'bg-gray-400 hover:bg-gray-500' : 'bg-green-500 hover:bg-green-600'}`}>
+                                                        ${course.isPublished ? 'bg-gray-400 hover:bg-gray-500' : 'k-btn-pink'}`}>
                                                     {course.isPublished ? 'ซ่อน' : 'เปิดเผย'}
                                                 </button>
                                             </div>

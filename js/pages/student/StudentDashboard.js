@@ -53,13 +53,14 @@ const StudentDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI-Powered Coding LMS" subtitle="Student Portal" />
+            <Navbar title="AI Coding Platform" subtitle="Student Portal" />
 
             <main className="max-w-7xl mx-auto px-4 py-8">
                 {/* Welcome */}
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white mb-8 shadow-lg">
+                <div style={{ background: 'linear-gradient(135deg, #F48FB1 0%, #C2185B 100%)' }}
+                    className="rounded-2xl p-6 text-white mb-8 shadow-lg">
                     <h2 className="text-2xl font-bold mb-1">สวัสดี, {userDoc?.displayName} 👋</h2>
-                    <p className="text-blue-100">พร้อมเรียนรู้การเขียนโปรแกรมวันนี้แล้วหรือยัง?</p>
+                    <p style={{ color: '#FFD1DC' }}>พร้อมเรียนรู้การเขียนโปรแกรมวันนี้แล้วหรือยัง?</p>
                 </div>
 
                 {loading ? <Spinner text="กำลังโหลดข้อมูล..." /> : (
@@ -85,7 +86,7 @@ const StudentDashboard = () => {
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-lg font-bold text-gray-800">📚 รายวิชาของฉัน</h3>
-                                    <a href="#/student/courses" className="text-blue-500 text-sm hover:underline">ดูทั้งหมด</a>
+                                    <a href="#/student/courses" style={{ color: '#EC407A', fontSize: '14px' }} className="hover:underline">ดูทั้งหมด</a>
                                 </div>
                                 {courses.length === 0 ? (
                                     <div className="text-center py-8 text-gray-400">
@@ -118,7 +119,7 @@ const StudentDashboard = () => {
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-lg font-bold text-gray-800">📋 การส่งล่าสุด</h3>
-                                    <a href="#/student/history" className="text-blue-500 text-sm hover:underline">ดูทั้งหมด</a>
+                                    <a href="#/student/history" style={{ color: '#EC407A', fontSize: '14px' }} className="hover:underline">ดูทั้งหมด</a>
                                 </div>
                                 {recentSubmissions.length === 0 ? (
                                     <div className="text-center py-8 text-gray-400">

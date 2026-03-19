@@ -47,6 +47,11 @@ const CodingWorkspace = () => {
     const [loading, setLoading] = React.useState(true);
     const [view, setView] = React.useState('problems'); // 'problems' | 'grade' | 'ai'
 
+    // Collapsible tree state
+    const [collapsedUnits, setCollapsedUnits] = React.useState({});
+    const [collapsedGroups, setCollapsedGroups] = React.useState({});
+    const fileInputRef = React.useRef(null);
+
     const isExamMode = currentAssignment?.assignmentType === 'exam';
 
     React.useEffect(() => { if (courseId) loadCourse(); }, [courseId]);
@@ -274,6 +279,32 @@ const CodingWorkspace = () => {
         }
     };
 
+    // Build assignment tree: { unitName: { groupName: [assignments] } }
+    const assignmentTree = React.useMemo(() => {
+        const tree = {};
+        assignments.forEach(a => {
+            const unit  = a.unitName  || '📂 ไม่มีหน่วย';
+            const group = a.groupName || '📁 ไม่มีกลุ่ม';
+            if (!tree[unit]) tree[unit] = {};
+            if (!tree[unit][group]) tree[unit][group] = [];
+            tree[unit][group].push(a);
+        });
+        return tree;
+    }, [assignments]);
+
+    const toggleUnit  = (u) => setCollapsedUnits(s => ({ ...s, [u]: !s[u] }));
+    const toggleGroup = (k) => setCollapsedGroups(s => ({ ...s, [k]: !s[k] }));
+
+    const handleFileAttach = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => setCode(ev.target.result);
+        reader.readAsText(file, 'UTF-8');
+        // Reset input so the same file can be reloaded
+        e.target.value = '';
+    };
+
     if (loading) return (
         <div className="min-h-screen bg-gray-50">
             <Navbar />
@@ -347,42 +378,86 @@ const CodingWorkspace = () => {
             )}
 
             <div className="flex flex-1 overflow-hidden">
-                {/* Left Sidebar - Assignment list */}
-                <aside className="w-64 bg-white border-r border-gray-200 overflow-y-auto hidden lg:block">
-                    <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide">โจทย์</h3>
-                            <button onClick={() => loadCourse()} title="รีโหลดโจทย์"
-                                className="text-gray-400 hover:text-blue-500 text-xs px-2 py-1 rounded hover:bg-blue-50">🔄</button>
-                        </div>
-                        {assignments.length === 0 ? (
-                            <div className="text-center py-4">
-                                <p className="text-gray-400 text-sm mb-2">ยังไม่มีโจทย์</p>
-                                <button onClick={() => loadCourse()} className="text-xs text-blue-500 hover:underline">🔄 โหลดใหม่</button>
-                            </div>
-                        ) : assignments.map(a => (
-                            <button
-                                key={a.id}
-                                onClick={() => selectAssignment(a)}
-                                className={`w-full text-left px-3 py-2 rounded-lg mb-1 text-sm transition-colors
-                                    ${currentAssignment?.id === a.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
-                            >
-                                <div className="truncate">{a.title}</div>
-                                <div className="text-xs text-gray-400 mt-0.5">
-                                    {a.difficulty} • {a.timeLimit ? `${a.timeLimit/1000}s` : '∞'}
-                                </div>
-                            </button>
-                        ))}
+                {/* Left Sidebar - Collapsible assignment tree */}
+                <aside className="w-72 bg-white border-r overflow-y-auto hidden lg:flex flex-col" style={{ borderColor: '#E0E0E0' }}>
+                    <div className="px-3 py-3 border-b flex items-center justify-between" style={{ borderColor: '#F5F5F5' }}>
+                        <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#AD1457' }}>📂 โจทย์</span>
+                        <button onClick={() => loadCourse()} title="รีโหลด"
+                            className="text-gray-400 hover:text-pink-500 text-xs px-2 py-1 rounded hover:bg-pink-50 transition-colors">
+                            🔄
+                        </button>
+                    </div>
 
-                        {lessons.length > 0 && (
-                            <>
-                                <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-3 mt-6">บทเรียน</h3>
-                                {lessons.map(l => (
-                                    <div key={l.id} className="text-sm text-gray-600 px-3 py-2 rounded hover:bg-gray-50 cursor-pointer">
-                                        {l.title}
+                    <div className="flex-1 overflow-y-auto py-2">
+                        {assignments.length === 0 ? (
+                            <div className="text-center py-8 px-4">
+                                <p className="text-gray-400 text-sm">ยังไม่มีโจทย์</p>
+                            </div>
+                        ) : (
+                            Object.entries(assignmentTree).map(([unitName, groups]) => {
+                                const unitCollapsed = collapsedUnits[unitName];
+                                return (
+                                    <div key={unitName} className="mb-1">
+                                        {/* Unit row */}
+                                        <button
+                                            onClick={() => toggleUnit(unitName)}
+                                            className="w-full flex items-center px-3 py-2 text-xs font-bold text-left transition-colors hover:bg-pink-50"
+                                            style={{ color: '#AD1457' }}
+                                        >
+                                            <span className="mr-1.5 text-xs" style={{ minWidth: '12px' }}>
+                                                {unitCollapsed ? '▶' : '▼'}
+                                            </span>
+                                            <span className="truncate">{unitName}</span>
+                                        </button>
+
+                                        {!unitCollapsed && Object.entries(groups).map(([groupName, groupAssigns]) => {
+                                            const groupKey = `${unitName}::${groupName}`;
+                                            const groupCollapsed = collapsedGroups[groupKey];
+                                            return (
+                                                <div key={groupKey}>
+                                                    {/* Group row */}
+                                                    <button
+                                                        onClick={() => toggleGroup(groupKey)}
+                                                        className="w-full flex items-center pl-6 pr-3 py-1.5 text-xs text-left transition-colors hover:bg-gray-50"
+                                                        style={{ color: '#6B7280' }}
+                                                    >
+                                                        <span className="mr-1.5" style={{ minWidth: '12px' }}>
+                                                            {groupCollapsed ? '▶' : '▼'}
+                                                        </span>
+                                                        <span className="truncate">{groupName}</span>
+                                                    </button>
+
+                                                    {!groupCollapsed && groupAssigns.map(a => (
+                                                        <button
+                                                            key={a.id}
+                                                            onClick={() => selectAssignment(a)}
+                                                            className={`w-full text-left pl-10 pr-3 py-2 text-sm transition-colors
+                                                                ${currentAssignment?.id === a.id
+                                                                    ? 'font-semibold border-r-2'
+                                                                    : 'text-gray-600 hover:bg-gray-50'}`}
+                                                            style={currentAssignment?.id === a.id
+                                                                ? { color: '#C2185B', borderColor: '#EC407A', background: '#FFF5F7' }
+                                                                : {}}
+                                                        >
+                                                            <div className="flex items-start gap-1.5">
+                                                                <span className="mt-0.5 text-xs shrink-0" style={{ color: '#F48FB1' }}>
+                                                                    {a.assignmentType === 'exam' ? '🏆' : '📝'}
+                                                                </span>
+                                                                <div className="min-w-0">
+                                                                    <div className="truncate text-xs leading-snug">{a.topicName ? `${a.topicName} — ` : ''}{a.title}</div>
+                                                                    <div className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>
+                                                                        {a.difficulty}{a.timeLimit ? ` • ${a.timeLimit/1000}s` : ''}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                ))}
-                            </>
+                                );
+                            })
                         )}
                     </div>
                 </aside>
@@ -399,11 +474,25 @@ const CodingWorkspace = () => {
                                         key={lang}
                                         onClick={() => setSelectedLanguage(lang)}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all
-                                            ${selectedLanguage === lang ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                            ${selectedLanguage === lang ? 'text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                        style={selectedLanguage === lang ? { background: '#EC407A' } : {}}
                                     >
                                         {LANGUAGES[lang].icon} {LANGUAGES[lang].name}
                                     </button>
                                 ))}
+                                {/* File attach button */}
+                                <label title="โหลดไฟล์โค้ด"
+                                    className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 cursor-pointer flex items-center gap-1 transition-colors select-none"
+                                    style={{ border: '1px solid #E0E0E0' }}>
+                                    📎 แนบไฟล์
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".c,.cpp,.py,.java,.txt"
+                                        onChange={handleFileAttach}
+                                        className="hidden"
+                                    />
+                                </label>
                             </div>
                             <div className="flex items-center space-x-2">
                                 {/* Run sample: hidden in exam mode */}
@@ -411,7 +500,8 @@ const CodingWorkspace = () => {
                                     <button
                                         onClick={handleRunSample}
                                         disabled={sampleRunning || !currentAssignment}
-                                        className="px-4 py-1.5 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800 disabled:opacity-50 flex items-center space-x-1"
+                                        className="px-4 py-1.5 text-white rounded-lg text-sm disabled:opacity-50 flex items-center space-x-1"
+                                        style={{ background: '#455A64' }}
                                     >
                                         {sampleRunning ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>▶</span>}
                                         <span>{sampleRunning ? 'รัน...' : 'ทดสอบตัวอย่าง'}</span>
@@ -420,7 +510,7 @@ const CodingWorkspace = () => {
                                 <button
                                     onClick={handleSubmit}
                                     disabled={submitting || cooldown > 0 || !currentAssignment || examFinished}
-                                    className="px-4 py-1.5 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 disabled:opacity-50 flex items-center space-x-1"
+                                    className="k-btn-pink px-4 py-1.5 text-sm disabled:opacity-50 flex items-center space-x-1"
                                 >
                                     {submitting ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>✓</span>}
                                     <span>{examFinished ? 'ส่งแล้ว' : cooldown > 0 ? `รอ ${cooldown}s` : submitting ? 'กำลังตรวจ...' : 'Submit'}</span>
@@ -430,7 +520,8 @@ const CodingWorkspace = () => {
                                     <button
                                         onClick={handleAIAnalysis}
                                         disabled={aiAnalyzing}
-                                        className="px-4 py-1.5 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600 disabled:opacity-50 flex items-center space-x-1"
+                                        className="px-4 py-1.5 text-white rounded-lg text-sm disabled:opacity-50 flex items-center space-x-1"
+                                        style={{ background: '#7B1FA2' }}
                                     >
                                         {aiAnalyzing ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>🤖</span>}
                                         <span>{aiAnalyzing ? 'AI กำลังวิเคราะห์...' : 'AI วิเคราะห์'}</span>
@@ -466,8 +557,10 @@ const CodingWorkspace = () => {
                                 <button
                                     key={t.key}
                                     onClick={() => setView(t.key)}
-                                    className={`flex-1 py-3 text-xs font-medium transition-colors
-                                        ${view === t.key ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`flex-1 py-3 text-xs font-medium transition-colors`}
+                                    style={view === t.key
+                                        ? { borderBottom: '2px solid #EC407A', color: '#C2185B' }
+                                        : { color: '#6B7280' }}
                                 >
                                     {t.label}
                                 </button>

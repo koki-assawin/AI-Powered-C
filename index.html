@@ -24,9 +24,20 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Highlight.js -->
+    <!-- Highlight.js (kept for compatibility) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- CodeMirror 5 — real-time syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/placeholder.min.js"></script>
 
     <!-- Firebase SDK v9 compat -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -41,77 +52,80 @@
         *, *::before, *::after { box-sizing: border-box; }
         body {
             font-family: 'Prompt', 'Segoe UI', sans-serif;
-            background-color: #fdf2f8;
+            background-color: #FFF5F7;
         }
 
-        /* ── Pink theme: override Tailwind blue/purple globally ── */
+        /* ============================================================ */
+        /* PASTEL PINK CLASSIC PALETTE                                 */
+        /* Primary: #FFD1DC  |  White: #FFF  |  Gray: #E0E0E0        */
+        /* ============================================================ */
         /* Backgrounds */
-        .bg-blue-50  { background-color: #fdf2f8 !important; }
-        .bg-blue-100 { background-color: #fce7f3 !important; }
-        .bg-blue-200 { background-color: #fbcfe8 !important; }
-        .bg-blue-400 { background-color: #f472b6 !important; }
-        .bg-blue-500 { background-color: #ec4899 !important; }
-        .bg-blue-600 { background-color: #db2777 !important; }
-        .bg-blue-700 { background-color: #be185d !important; }
-        .bg-blue-800 { background-color: #9d174d !important; }
-        .bg-blue-900 { background-color: #831843 !important; }
-        .bg-purple-50  { background-color: #fdf2f8 !important; }
-        .bg-purple-100 { background-color: #fce7f3 !important; }
-        .bg-purple-500 { background-color: #f472b6 !important; }
-        .bg-purple-600 { background-color: #ec4899 !important; }
+        .bg-blue-50  { background-color: #FFF5F7 !important; }
+        .bg-blue-100 { background-color: #FFE4EC !important; }
+        .bg-blue-200 { background-color: #FFD1DC !important; }
+        .bg-blue-400 { background-color: #F48FB1 !important; }
+        .bg-blue-500 { background-color: #EC407A !important; }
+        .bg-blue-600 { background-color: #D81B60 !important; }
+        .bg-blue-700 { background-color: #C2185B !important; }
+        .bg-blue-800 { background-color: #AD1457 !important; }
+        .bg-blue-900 { background-color: #880E4F !important; }
+        .bg-purple-50  { background-color: #FFF5F7 !important; }
+        .bg-purple-100 { background-color: #FFE4EC !important; }
+        .bg-purple-500 { background-color: #F48FB1 !important; }
+        .bg-purple-600 { background-color: #EC407A !important; }
         /* Text */
-        .text-blue-100 { color: #fce7f3 !important; }
-        .text-blue-200 { color: #fbcfe8 !important; }
-        .text-blue-300 { color: #f9a8d4 !important; }
-        .text-blue-400 { color: #f472b6 !important; }
-        .text-blue-500 { color: #ec4899 !important; }
-        .text-blue-600 { color: #db2777 !important; }
-        .text-blue-700 { color: #be185d !important; }
-        .text-blue-800 { color: #9d174d !important; }
-        .text-purple-600 { color: #db2777 !important; }
-        .text-purple-800 { color: #9d174d !important; }
+        .text-blue-100 { color: #FFE4EC !important; }
+        .text-blue-200 { color: #FFD1DC !important; }
+        .text-blue-300 { color: #F48FB1 !important; }
+        .text-blue-400 { color: #EC407A !important; }
+        .text-blue-500 { color: #EC407A !important; }
+        .text-blue-600 { color: #D81B60 !important; }
+        .text-blue-700 { color: #C2185B !important; }
+        .text-blue-800 { color: #AD1457 !important; }
+        .text-purple-600 { color: #D81B60 !important; }
+        .text-purple-800 { color: #AD1457 !important; }
         /* Borders */
-        .border-blue-200 { border-color: #fbcfe8 !important; }
-        .border-blue-300 { border-color: #f9a8d4 !important; }
-        .border-blue-500 { border-color: #ec4899 !important; }
-        .border-blue-600 { border-color: #db2777 !important; }
+        .border-blue-200 { border-color: #FFD1DC !important; }
+        .border-blue-300 { border-color: #F48FB1 !important; }
+        .border-blue-500 { border-color: #EC407A !important; }
+        .border-blue-600 { border-color: #D81B60 !important; }
         /* Hover */
-        .hover\:bg-blue-50:hover  { background-color: #fdf2f8 !important; }
-        .hover\:bg-blue-600:hover { background-color: #db2777 !important; }
-        .hover\:bg-blue-700:hover { background-color: #be185d !important; }
-        .hover\:bg-purple-600:hover { background-color: #db2777 !important; }
-        .hover\:text-blue-600:hover { color: #db2777 !important; }
-        .hover\:text-blue-500:hover { color: #ec4899 !important; }
+        .hover\:bg-blue-50:hover  { background-color: #FFF5F7 !important; }
+        .hover\:bg-blue-600:hover { background-color: #D81B60 !important; }
+        .hover\:bg-blue-700:hover { background-color: #C2185B !important; }
+        .hover\:bg-purple-600:hover { background-color: #D81B60 !important; }
+        .hover\:text-blue-600:hover { color: #D81B60 !important; }
+        .hover\:text-blue-500:hover { color: #EC407A !important; }
         /* Focus rings */
-        .focus\:ring-blue-400:focus { --tw-ring-color: rgba(244,114,182,.5) !important; }
-        .focus\:ring-blue-500:focus { --tw-ring-color: rgba(236,72,153,.5) !important; }
+        .focus\:ring-blue-400:focus { --tw-ring-color: rgba(244,143,177,.4) !important; }
+        .focus\:ring-blue-500:focus { --tw-ring-color: rgba(236,64,122,.4) !important; }
         /* Gradients */
-        .from-blue-400 { --tw-gradient-from: #f472b6 !important; }
-        .from-blue-500 { --tw-gradient-from: #ec4899 !important; }
-        .from-blue-600 { --tw-gradient-from: #db2777 !important; }
-        .from-blue-700 { --tw-gradient-from: #be185d !important; }
-        .from-blue-900 { --tw-gradient-from: #831843 !important; }
-        .to-blue-600   { --tw-gradient-to: #db2777 !important; }
-        .to-blue-700   { --tw-gradient-to: #be185d !important; }
-        .via-blue-700  { --tw-gradient-stops: var(--tw-gradient-from), #be185d, var(--tw-gradient-to) !important; }
-        .from-purple-600 { --tw-gradient-from: #ec4899 !important; }
-        .to-purple-600   { --tw-gradient-to: #ec4899 !important; }
-        .to-purple-700   { --tw-gradient-to: #be185d !important; }
-        .to-purple-800   { --tw-gradient-to: #9d174d !important; }
-        .hover\:from-blue-600:hover { --tw-gradient-from: #db2777 !important; }
-        .hover\:to-blue-700:hover   { --tw-gradient-to: #be185d !important; }
+        .from-blue-400 { --tw-gradient-from: #F48FB1 !important; }
+        .from-blue-500 { --tw-gradient-from: #EC407A !important; }
+        .from-blue-600 { --tw-gradient-from: #D81B60 !important; }
+        .from-blue-700 { --tw-gradient-from: #C2185B !important; }
+        .from-blue-900 { --tw-gradient-from: #880E4F !important; }
+        .to-blue-600   { --tw-gradient-to: #D81B60 !important; }
+        .to-blue-700   { --tw-gradient-to: #C2185B !important; }
+        .via-blue-700  { --tw-gradient-stops: var(--tw-gradient-from), #C2185B, var(--tw-gradient-to) !important; }
+        .from-purple-600 { --tw-gradient-from: #EC407A !important; }
+        .to-purple-600   { --tw-gradient-to: #EC407A !important; }
+        .to-purple-700   { --tw-gradient-to: #C2185B !important; }
+        .to-purple-800   { --tw-gradient-to: #AD1457 !important; }
+        .hover\:from-blue-600:hover { --tw-gradient-from: #D81B60 !important; }
+        .hover\:to-blue-700:hover   { --tw-gradient-to: #C2185B !important; }
         /* Selected role card */
-        .border-blue-500.bg-blue-50 { border-color: #ec4899 !important; background-color: #fdf2f8 !important; }
+        .border-blue-500.bg-blue-50 { border-color: #EC407A !important; background-color: #FFF5F7 !important; }
 
         /* Page background */
-        .min-h-screen.bg-gray-50 { background-color: #fdf2f8 !important; }
-        .bg-gray-50 { background-color: #fdf2f8 !important; }
+        .min-h-screen.bg-gray-50 { background-color: #FFF5F7 !important; }
+        .bg-gray-50 { background-color: #FFF5F7 !important; }
 
-        /* Scrollbar — pink tint */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #fce7f3; }
-        ::-webkit-scrollbar-thumb { background: #f9a8d4; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #ec4899; }
+        /* Scrollbar — soft pink */
+        ::-webkit-scrollbar { width: 7px; height: 7px; }
+        ::-webkit-scrollbar-track { background: #F5F5F5; }
+        ::-webkit-scrollbar-thumb { background: #F48FB1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #EC407A; }
 
         /* VSCode-like Code Editor */
         .code-editor-container {
@@ -167,7 +181,7 @@
         @keyframes lms-spin { to { transform: rotate(360deg); } }
         #initial-loader {
             position: fixed; inset: 0;
-            background: linear-gradient(160deg, #fdf2f8 0%, #fce7f3 50%, #fbcfe8 100%);
+            background: linear-gradient(160deg, #FFF5F7 0%, #FFE4EC 50%, #FFD1DC 100%);
             display: flex; align-items: center; justify-content: center;
             z-index: 9999; flex-direction: column; gap: 14px;
         }
@@ -181,42 +195,63 @@
         #initial-loader .loader-logo img { width: 100%; border-radius: 50%; }
         #initial-loader .loader-ring {
             width: 48px; height: 48px;
-            border: 4px solid #fce7f3;
-            border-top-color: #ec4899;
+            border: 4px solid #FFD1DC;
+            border-top-color: #EC407A;
             border-radius: 50%;
             animation: lms-spin 0.9s linear infinite;
         }
         #initial-loader h2 {
-            color: #9d174d; font-size: 17px; font-weight: 700; text-align: center;
+            color: #AD1457; font-size: 17px; font-weight: 700; text-align: center;
             max-width: 320px; line-height: 1.5;
         }
-        #initial-loader p { color: #f472b6; font-size: 13px; }
+        #initial-loader p { color: #F48FB1; font-size: 13px; }
 
         /* K-Minimal card style helper */
         .k-card {
             background: #fff;
             border-radius: 20px;
-            border: 1px solid #fce7f3;
-            box-shadow: 0 4px 24px rgba(236,72,153,.08);
+            border: 1px solid #FFD1DC;
+            box-shadow: 0 4px 20px rgba(236,64,122,.07);
         }
         .k-btn-pink {
-            background: linear-gradient(135deg, #f472b6, #ec4899);
+            background: linear-gradient(135deg, #EC407A, #C2185B);
             color: #fff; border: none; border-radius: 12px;
             font-family: 'Prompt', sans-serif; font-weight: 600;
             transition: opacity .15s, transform .15s;
+            cursor: pointer;
         }
-        .k-btn-pink:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
-        .k-btn-pink:disabled { opacity: .55; cursor: not-allowed; }
+        .k-btn-pink:hover:not(:disabled) { opacity: .88; transform: translateY(-1px); }
+        .k-btn-pink:disabled { opacity: .5; cursor: not-allowed; }
+        .k-btn-outline {
+            background: #fff;
+            color: #C2185B; border: 1.5px solid #FFD1DC; border-radius: 12px;
+            font-family: 'Prompt', sans-serif; font-weight: 600;
+            transition: border-color .15s, background .15s;
+            cursor: pointer;
+        }
+        .k-btn-outline:hover:not(:disabled) { border-color: #EC407A; background: #FFF5F7; }
         .k-input {
-            border: 1.5px solid #fce7f3; border-radius: 12px;
+            border: 1.5px solid #E0E0E0; border-radius: 12px;
             padding: 11px 16px; font-family: 'Prompt', sans-serif;
             outline: none; transition: border-color .2s, box-shadow .2s;
             width: 100%;
         }
-        .k-input:focus { border-color: #f472b6; box-shadow: 0 0 0 3px rgba(244,114,182,.15); }
-        .k-badge-student { background: #fce7f3; color: #be185d; }
-        .k-badge-teacher  { background: #dcfce7; color: #166534; }
-        .k-badge-admin    { background: #ede9fe; color: #6d28d9; }
+        .k-input:focus { border-color: #EC407A; box-shadow: 0 0 0 3px rgba(236,64,122,.12); }
+        .k-badge-student { background: #FFE4EC; color: #C2185B; }
+        .k-badge-teacher  { background: #E8F5E9; color: #2E7D32; }
+        .k-badge-admin    { background: #EDE7F6; color: #5E35B1; }
+
+        /* CodeMirror theme overrides for integration */
+        .CodeMirror {
+            height: 100% !important;
+            min-height: inherit !important;
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace !important;
+            font-size: 14px !important;
+            line-height: 1.6 !important;
+            border-radius: 0.75rem !important;
+        }
+        .CodeMirror-scroll { min-height: inherit !important; }
+        .CodeMirror-placeholder { color: #6a737d !important; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -244,37 +279,37 @@
         7. app.js         - Root App + hash router (LAST)
     -->
 
-    <script type="text/babel" src="js/firebase.js?v=4.1"></script>
-    <script type="text/babel" src="js/gemini.js?v=4.1"></script>
-    <script type="text/babel" src="js/grader.js?v=4.1"></script>
-    <script type="text/babel" src="js/context.js?v=4.1"></script>
+    <script type="text/babel" src="js/firebase.js?v=4.2"></script>
+    <script type="text/babel" src="js/gemini.js?v=4.2"></script>
+    <script type="text/babel" src="js/grader.js?v=4.2"></script>
+    <script type="text/babel" src="js/context.js?v=4.2"></script>
 
-    <script type="text/babel" src="js/components/Spinner.js?v=4.1"></script>
-    <script type="text/babel" src="js/components/CodeEditor.js?v=4.1"></script>
-    <script type="text/babel" src="js/components/RadarChart.js?v=4.1"></script>
-    <script type="text/babel" src="js/components/ProtectedRoute.js?v=4.1"></script>
-    <script type="text/babel" src="js/components/Navbar.js?v=4.1"></script>
+    <script type="text/babel" src="js/components/Spinner.js?v=4.2"></script>
+    <script type="text/babel" src="js/components/CodeEditor.js?v=4.2"></script>
+    <script type="text/babel" src="js/components/RadarChart.js?v=4.2"></script>
+    <script type="text/babel" src="js/components/ProtectedRoute.js?v=4.2"></script>
+    <script type="text/babel" src="js/components/Navbar.js?v=4.2"></script>
 
-    <script type="text/babel" src="js/pages/LoginPage.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/RegisterPage.js?v=4.1"></script>
+    <script type="text/babel" src="js/pages/LoginPage.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/RegisterPage.js?v=4.2"></script>
 
-    <script type="text/babel" src="js/pages/student/StudentDashboard.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/student/CourseViewer.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/student/CodingWorkspace.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/student/Gradebook.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/student/SubmissionHistory.js?v=4.1"></script>
+    <script type="text/babel" src="js/pages/student/StudentDashboard.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/student/CourseViewer.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/student/CodingWorkspace.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/student/Gradebook.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/student/SubmissionHistory.js?v=4.2"></script>
 
-    <script type="text/babel" src="js/pages/teacher/TeacherDashboard.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/teacher/CourseBuilder.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/teacher/AssignmentManager.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/teacher/TestCaseEditor.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/teacher/StudentAnalytics.js?v=4.1"></script>
+    <script type="text/babel" src="js/pages/teacher/TeacherDashboard.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/teacher/CourseBuilder.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/teacher/AssignmentManager.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/teacher/TestCaseEditor.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/teacher/StudentAnalytics.js?v=4.2"></script>
 
-    <script type="text/babel" src="js/pages/admin/AdminDashboard.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/admin/UserManager.js?v=4.1"></script>
-    <script type="text/babel" src="js/pages/admin/SystemSettings.js?v=4.1"></script>
+    <script type="text/babel" src="js/pages/admin/AdminDashboard.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/admin/UserManager.js?v=4.2"></script>
+    <script type="text/babel" src="js/pages/admin/SystemSettings.js?v=4.2"></script>
 
-    <script type="text/babel" src="js/app.js?v=4.1"></script>
+    <script type="text/babel" src="js/app.js?v=4.2"></script>
 
 </body>
 </html>
