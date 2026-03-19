@@ -166,18 +166,61 @@ Question: "${question}"`;
 // ============================================================
 const generateTestCases = async (language, title, description, count) => {
     const langInfo = LANGUAGES[language];
-    const prompt = `You are a programming judge creating test cases for a ${langInfo.name} problem.
+
+    // Distribute test categories based on count
+    const basicCount   = Math.max(1, Math.floor(count * 0.3));
+    const edgeCount    = Math.max(1, Math.floor(count * 0.2));
+    const stressCount  = Math.max(1, Math.floor(count * 0.2));
+    const worstCount   = Math.max(1, Math.floor(count * 0.2));
+    // remainder → special pattern
+
+    const prompt = `You are an expert programming judge creating a rigorous, comprehensive test suite for a ${langInfo.name} problem.
 
 Problem: "${title}"
 Description: ${description}
 
-Create exactly ${count} diverse test cases. Include simple cases AND edge cases.
+Create exactly ${count} test cases. Distribute them across these REQUIRED categories:
+
+[BASIC - ${basicCount} test(s)]
+Simple, straightforward inputs that verify the core algorithm works correctly.
+Example: small numbers, typical inputs within constraints.
+
+[EDGE CASES - ${edgeCount} test(s)]
+Boundary values that commonly reveal bugs:
+- Minimum/maximum allowed values
+- Zero, negative numbers, empty input, single element
+- Duplicate values, all same elements
+- Exact boundary values (n=1, n=max, value=0, value=INT_MAX)
+
+[LARGE SCALE / STRESS TEST - ${stressCount} test(s)]
+Large input to expose O(n²) vs O(n log n) performance differences:
+- For sorting/searching: 50–200 elements with random values
+- For arithmetic: very large numbers near data type limits
+- For strings: long strings (50–200 characters)
+- For recursion: deep call depth inputs
+Note: Generate realistic but concise large inputs (do not literally write 100,000 numbers — use a representative large but finite set that fits in the JSON response)
+
+[WORST-CASE SCENARIO - ${worstCount} test(s)]
+Inputs that force the algorithm to do maximum work:
+- Linear search: target at last position or absent from list
+- Sorting with naive pivot: already-sorted or reverse-sorted array
+- Recursive Fibonacci/factorial: near the practical recursion limit
+- String matching: repeated characters, pattern at end of string
+
+[SPECIAL PATTERN - remaining tests]
+Tricky patterns that reveal logic errors:
+- Repeated elements or all-identical values
+- Already processed/sorted data
+- Palindromes, symmetric structures
+- Mixed positive/negative numbers
+- Input requiring specific output formatting
+
 Rules:
-- input: exact stdin string (empty string "" if no input needed)
-- expectedOutput: exact stdout a correct solution would print (trim trailing whitespace)
-- note: short English description of what this test covers
-- Test cases must be varied (small, large, zero, negative, boundary values etc.)
-- Do NOT include code in expectedOutput — only the program's output`;
+- input: exact stdin string as the program would receive it (empty string "" if no input needed)
+- expectedOutput: exact stdout a correct solution would print — mathematically verified, trim trailing whitespace/newline
+- note: short English label naming the category + what this test covers (e.g. "edge: single element", "stress: 100 elements sorted desc")
+- Do NOT include code in expectedOutput — only the program's actual printed output
+- Ensure all expectedOutput values are logically correct for the given input`;
 
     const schema = {
         type: 'ARRAY',

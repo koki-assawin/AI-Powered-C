@@ -1,32 +1,158 @@
-// js/pages/student/SelfPractice.js - Student self-practice: AI-generated problems + auto-grading
+// js/pages/student/SelfPractice.js - Student self-practice: AI-generated problems + auto-grading (v4.5)
 
 const BASE_SCORES = { 'ง่าย': 50, 'ปานกลาง': 75, 'ยาก': 100 };
 const TC_COUNT = 5; // number of AI-generated test cases per submission
 
+// Topic presets per language
+const TOPIC_PRESETS = {
+    c: [
+        'การแสดงผล (printf)',
+        'การรับข้อมูล (scanf)',
+        'ตัวแปรและชนิดข้อมูล',
+        'นิพจน์และการคำนวณ',
+        'การตัดสินใจ (if/else)',
+        'switch-case',
+        'for loop',
+        'while loop',
+        'do-while loop',
+        'การทำซ้ำซ้อน (Nested Loop)',
+        'break และ continue',
+        'ฟังก์ชัน',
+        'ฟังก์ชัน Recursive',
+        'อาร์เรย์ 1 มิติ',
+        'อาร์เรย์ 2 มิติ (Matrix)',
+        'Searching (การค้นหาข้อมูล)',
+        'Sorting (การเรียงลำดับ)',
+        'สตริง (string.h)',
+        'พอยน์เตอร์',
+        'อื่นๆ (ระบุเอง)',
+    ],
+    cpp: [
+        'การแสดงผล (cout)',
+        'การรับข้อมูล (cin)',
+        'ตัวแปรและชนิดข้อมูล',
+        'นิพจน์และการคำนวณ',
+        'การตัดสินใจ (if/else)',
+        'switch-case',
+        'for loop',
+        'while loop',
+        'do-while loop',
+        'การทำซ้ำซ้อน (Nested Loop)',
+        'ฟังก์ชัน',
+        'ฟังก์ชัน Recursive',
+        'อาร์เรย์ / vector',
+        'Sorting (sort + algorithm)',
+        'สตริง (std::string)',
+        'พอยน์เตอร์',
+        'OOP เบื้องต้น (class)',
+        'อื่นๆ (ระบุเอง)',
+    ],
+    python: [
+        'การแสดงผล (print)',
+        'การรับข้อมูล (input)',
+        'ตัวแปรและชนิดข้อมูล',
+        'นิพจน์และการคำนวณ',
+        'การตัดสินใจ (if/else)',
+        'for loop',
+        'while loop',
+        'การทำซ้ำซ้อน',
+        'ฟังก์ชัน (def)',
+        'ฟังก์ชัน Recursive',
+        'List',
+        'Dictionary',
+        'String',
+        'List Comprehension',
+        'Sorting (sorted/sort)',
+        'อื่นๆ (ระบุเอง)',
+    ],
+    java: [
+        'การแสดงผล (System.out)',
+        'การรับข้อมูล (Scanner)',
+        'ตัวแปรและชนิดข้อมูล',
+        'นิพจน์และการคำนวณ',
+        'การตัดสินใจ (if/else)',
+        'switch-case',
+        'for loop',
+        'while loop',
+        'การทำซ้ำซ้อน',
+        'Method',
+        'Recursive Method',
+        'Array',
+        'ArrayList',
+        'String',
+        'Sorting (Arrays.sort)',
+        'OOP เบื้องต้น (class)',
+        'อื่นๆ (ระบุเอง)',
+    ],
+};
+
 const SelfPractice = () => {
     const { userDoc } = useAuth();
 
+    // ── Course selection ──────────────────────────────────────────────
+    const [enrolledCourses, setEnrolledCourses] = React.useState([]);
+    const [coursesLoading, setCoursesLoading] = React.useState(true);
+    const [selectedCourseId, setSelectedCourseId] = React.useState('');
+
+    // ── Generator settings ────────────────────────────────────────────
     const [language, setLanguage] = React.useState('c');
     const [difficulty, setDifficulty] = React.useState('ง่าย');
-    const [topic, setTopic] = React.useState('');
+    const [topicPreset, setTopicPreset] = React.useState('');
+    const [topicCustom, setTopicCustom] = React.useState('');
+    const [hintDesc, setHintDesc] = React.useState('');
     const [problem, setProblem] = React.useState(null);
     const [generating, setGenerating] = React.useState(false);
 
     const [code, setCode] = React.useState(LANGUAGES.c.defaultCode);
     const [submitting, setSubmitting] = React.useState(false);
-    const [submitStatus, setSubmitStatus] = React.useState(''); // progress text
+    const [submitStatus, setSubmitStatus] = React.useState('');
     const [result, setResult] = React.useState(null);
 
     const [history, setHistory] = React.useState([]);
     const [historyLoading, setHistoryLoading] = React.useState(true);
 
+    const isCustomTopic = topicPreset === 'อื่นๆ (ระบุเอง)';
+    const activeTopic = isCustomTopic ? topicCustom : topicPreset;
+
+    const presets = TOPIC_PRESETS[language] || TOPIC_PRESETS.c;
+    const diffColor = { 'ง่าย': '#16a34a', 'ปานกลาง': '#d97706', 'ยาก': '#dc2626' };
+
+    // ── Sync language default code ────────────────────────────────────
     React.useEffect(() => {
         setCode(LANGUAGES[language]?.defaultCode || '');
+        // Reset topic if preset no longer valid for this language
+        if (!TOPIC_PRESETS[language]?.includes(topicPreset)) setTopicPreset('');
     }, [language]);
 
+    // ── Sync language from selected course ────────────────────────────
     React.useEffect(() => {
-        if (userDoc) loadHistory();
+        if (!selectedCourseId) return;
+        const course = enrolledCourses.find(c => c.id === selectedCourseId);
+        if (course?.language && LANGUAGES[course.language]) {
+            setLanguage(course.language);
+        }
+    }, [selectedCourseId]);
+
+    // ── Load enrolled courses ─────────────────────────────────────────
+    React.useEffect(() => {
+        if (!userDoc) return;
+        loadCourses();
+        loadHistory();
     }, [userDoc]);
+
+    const loadCourses = async () => {
+        setCoursesLoading(true);
+        try {
+            const ids = userDoc.enrolledCourses || [];
+            if (ids.length === 0) { setEnrolledCourses([]); return; }
+            const snaps = await Promise.all(ids.map(id => db.collection('courses').doc(id).get()));
+            const courses = snaps.filter(s => s.exists).map(s => ({ id: s.id, ...s.data() }));
+            setEnrolledCourses(courses);
+            // Auto-select first course
+            if (courses.length === 1) setSelectedCourseId(courses[0].id);
+        } catch (e) { console.error(e); }
+        finally { setCoursesLoading(false); }
+    };
 
     const loadHistory = async () => {
         setHistoryLoading(true);
@@ -34,25 +160,23 @@ const SelfPractice = () => {
             const snap = await db.collection('selfPracticeSubmissions')
                 .where('studentId', '==', userDoc.id)
                 .orderBy('submittedAt', 'desc')
-                .limit(15)
+                .limit(20)
                 .get();
             setHistory(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         } catch (e) { console.error(e); }
         finally { setHistoryLoading(false); }
     };
 
+    // ── Generate problem ──────────────────────────────────────────────
     const handleGenerate = async () => {
+        if (!selectedCourseId) { alert('กรุณาเลือกรายวิชาก่อน'); return; }
         setGenerating(true);
         setProblem(null);
         setResult(null);
         setCode(LANGUAGES[language]?.defaultCode || '');
         try {
-            const problems = await generateProblems(
-                language,
-                topic.trim() || 'การเขียนโปรแกรม',
-                difficulty,
-                1
-            );
+            const topic = activeTopic.trim() || 'การเขียนโปรแกรม';
+            const problems = await generateProblems(language, topic, difficulty, 1, '', hintDesc.trim());
             if (problems.length > 0) setProblem(problems[0]);
             else alert('ไม่สามารถสร้างโจทย์ได้ ลองใหม่อีกครั้ง');
         } catch (err) {
@@ -62,8 +186,10 @@ const SelfPractice = () => {
         }
     };
 
+    // ── Submit & grade ────────────────────────────────────────────────
     const handleSubmit = async () => {
         if (!problem || !code.trim()) return;
+        if (!selectedCourseId) { alert('กรุณาเลือกรายวิชาก่อน'); return; }
         setSubmitting(true);
         setResult(null);
 
@@ -95,11 +221,15 @@ const SelfPractice = () => {
             const actualScore = totalTests > 0 ? Math.round(baseScore * passedTests / totalTests) : 0;
 
             setSubmitStatus('💾 กำลังบันทึกคะแนน...');
+            const course = enrolledCourses.find(c => c.id === selectedCourseId);
             const submission = {
                 studentId:          userDoc.id,
                 displayName:        userDoc.displayName || '',
+                courseId:           selectedCourseId,
+                courseTitle:        course?.title || '',
                 language,
                 difficulty,
+                topic:              activeTopic.trim() || 'ทั่วไป',
                 problemTitle:       problem.title,
                 problemDescription: problem.description,
                 code,
@@ -122,8 +252,8 @@ const SelfPractice = () => {
     };
 
     const scoreColor = (s, base) => s >= base ? '#16a34a' : s >= base * 0.5 ? '#d97706' : '#dc2626';
-    const diffColor = { 'ง่าย': '#16a34a', 'ปานกลาง': '#d97706', 'ยาก': '#dc2626' };
 
+    // ── Render ────────────────────────────────────────────────────────
     return (
         <div className="min-h-screen" style={{ background: '#FFF5F7', fontFamily: "'Prompt',sans-serif" }}>
             <Navbar title="AI Coding Platform" subtitle="ฝึกเองตามความสนใจ" />
@@ -138,58 +268,146 @@ const SelfPractice = () => {
 
                 <div className="grid lg:grid-cols-3 gap-6">
 
-                    {/* ── Left: Generator + Editor ─────────────────────── */}
+                    {/* ── Left: Generator + Editor ─────────────────── */}
                     <div className="lg:col-span-2 space-y-4">
-                        {/* Config Card */}
-                        <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid #FFD1DC' }}>
-                            <p className="text-sm font-bold mb-3" style={{ color: '#AD1457' }}>⚙️ ตั้งค่าโจทย์ที่ต้องการฝึก</p>
-                            <div className="flex flex-wrap gap-3">
-                                <div>
-                                    <label className="text-xs text-gray-500 block mb-1">ภาษา</label>
-                                    <div className="flex gap-2">
-                                        {Object.keys(LANGUAGES).map(l => (
-                                            <button key={l} onClick={() => setLanguage(l)}
-                                                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                                                style={language === l
-                                                    ? { background: '#EC407A', color: '#fff' }
-                                                    : { background: '#F5F5F5', color: '#555' }}>
-                                                {LANGUAGES[l].icon} {LANGUAGES[l].name}
+
+                        {/* Step 1: Course Selection */}
+                        <div className="bg-white rounded-2xl p-5" style={{ border: '2px solid #FFD1DC' }}>
+                            <p className="text-sm font-bold mb-3" style={{ color: '#AD1457' }}>
+                                📚 ขั้นตอนที่ 1 — เลือกรายวิชาที่ต้องการส่งคะแนน
+                            </p>
+                            {coursesLoading ? (
+                                <Spinner text="กำลังโหลดรายวิชา..." />
+                            ) : enrolledCourses.length === 0 ? (
+                                <div className="text-center py-4 text-gray-400">
+                                    <p className="text-sm">ยังไม่ได้ลงทะเบียนรายวิชา</p>
+                                    <a href="#/student/courses" style={{ color: '#EC407A', fontSize: '13px' }} className="hover:underline">
+                                        ค้นหารายวิชา →
+                                    </a>
+                                </div>
+                            ) : (
+                                <div className="grid sm:grid-cols-2 gap-3">
+                                    {enrolledCourses.map(course => {
+                                        const lang = LANGUAGES[course.language];
+                                        const selected = selectedCourseId === course.id;
+                                        return (
+                                            <button key={course.id}
+                                                onClick={() => setSelectedCourseId(course.id)}
+                                                className="text-left p-4 rounded-xl transition-all"
+                                                style={{
+                                                    border: selected ? '2px solid #EC407A' : '1.5px solid #E0E0E0',
+                                                    background: selected ? '#FFF5F7' : '#FAFAFA',
+                                                }}>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-2xl">{lang?.icon || '📚'}</span>
+                                                    <div className="min-w-0">
+                                                        <p className="font-bold text-sm text-gray-800 truncate">{course.title}</p>
+                                                        <div className="flex gap-2 mt-0.5 flex-wrap">
+                                                            <span className="text-xs" style={{ color: lang?.color || '#888' }}>{lang?.name}</span>
+                                                            {course.grade && <span className="text-xs text-gray-400">{course.grade}</span>}
+                                                            {course.room && <span className="text-xs text-gray-400">ห้อง {course.room}</span>}
+                                                        </div>
+                                                    </div>
+                                                    {selected && <span className="ml-auto text-pink-500 font-bold shrink-0">✓</span>}
+                                                </div>
                                             </button>
-                                        ))}
-                                    </div>
+                                        );
+                                    })}
                                 </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 block mb-1">ระดับความยาก</label>
-                                    <div className="flex gap-2">
-                                        {['ง่าย', 'ปานกลาง', 'ยาก'].map(d => (
-                                            <button key={d} onClick={() => setDifficulty(d)}
-                                                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                                                style={difficulty === d
-                                                    ? { background: diffColor[d], color: '#fff' }
-                                                    : { background: '#F5F5F5', color: '#555' }}>
-                                                {d} (+{BASE_SCORES[d]})
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="flex-1 min-w-40">
-                                    <label className="text-xs text-gray-500 block mb-1">หัวข้อที่สนใจ (ไม่บังคับ)</label>
-                                    <input value={topic} onChange={e => setTopic(e.target.value)}
-                                        placeholder="เช่น loop, array, function, string..."
-                                        className="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                                        style={{ border: '1.5px solid #E0E0E0' }}
-                                        onFocus={e => e.target.style.borderColor = '#EC407A'}
-                                        onBlur={e => e.target.style.borderColor = '#E0E0E0'}
-                                    />
-                                </div>
-                                <div className="flex items-end">
-                                    <button onClick={handleGenerate} disabled={generating}
-                                        className="k-btn-pink px-5 py-2 text-sm flex items-center gap-2 disabled:opacity-50">
-                                        {generating ? <SpinIcon className="w-4 h-4" /> : '🎲'}
-                                        {generating ? 'กำลังสร้าง...' : 'สร้างโจทย์'}
-                                    </button>
+                            )}
+                        </div>
+
+                        {/* Step 2: Generator Config */}
+                        <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid #FFD1DC', opacity: !selectedCourseId ? 0.5 : 1 }}>
+                            <p className="text-sm font-bold mb-4" style={{ color: '#AD1457' }}>⚙️ ขั้นตอนที่ 2 — ตั้งค่าโจทย์ที่ต้องการฝึก</p>
+
+                            {/* Language */}
+                            <div className="mb-4">
+                                <label className="text-xs text-gray-500 block mb-1.5 font-medium">ภาษาโปรแกรม</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.keys(LANGUAGES).map(l => (
+                                        <button key={l} onClick={() => setLanguage(l)}
+                                            disabled={!selectedCourseId}
+                                            className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                            style={language === l
+                                                ? { background: '#EC407A', color: '#fff' }
+                                                : { background: '#F5F5F5', color: '#555' }}>
+                                            {LANGUAGES[l].icon} {LANGUAGES[l].name}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
+
+                            {/* Difficulty */}
+                            <div className="mb-4">
+                                <label className="text-xs text-gray-500 block mb-1.5 font-medium">ระดับความยาก</label>
+                                <div className="flex gap-2">
+                                    {['ง่าย', 'ปานกลาง', 'ยาก'].map(d => (
+                                        <button key={d} onClick={() => setDifficulty(d)}
+                                            disabled={!selectedCourseId}
+                                            className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                            style={difficulty === d
+                                                ? { background: diffColor[d], color: '#fff' }
+                                                : { background: '#F5F5F5', color: '#555' }}>
+                                            {d} <span className="text-xs opacity-70">(+{BASE_SCORES[d]})</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Topic Preset */}
+                            <div className="mb-4">
+                                <label className="text-xs text-gray-500 block mb-1.5 font-medium">
+                                    หัวข้อ / เรื่องที่ต้องการฝึก
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {presets.map(p => (
+                                        <button key={p}
+                                            onClick={() => { setTopicPreset(p); if (p !== 'อื่นๆ (ระบุเอง)') setTopicCustom(''); }}
+                                            disabled={!selectedCourseId}
+                                            className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
+                                            style={topicPreset === p
+                                                ? { background: '#EC407A', color: '#fff', borderColor: '#EC407A' }
+                                                : { background: '#fff', color: '#555', borderColor: '#E0E0E0' }}>
+                                            {p === 'อื่นๆ (ระบุเอง)' ? '✏️ อื่นๆ (ระบุเอง)' : p}
+                                        </button>
+                                    ))}
+                                </div>
+                                {isCustomTopic && (
+                                    <input
+                                        value={topicCustom}
+                                        onChange={e => setTopicCustom(e.target.value)}
+                                        placeholder="ระบุหัวข้อที่ต้องการ..."
+                                        className="mt-2 w-full px-3 py-2 rounded-xl text-sm outline-none"
+                                        style={{ border: '1.5px solid #EC407A' }}
+                                    />
+                                )}
+                            </div>
+
+                            {/* Hint Description */}
+                            <div className="mb-4">
+                                <label className="text-xs text-gray-500 block mb-1.5 font-medium">
+                                    💬 คำบรรยายเพิ่มเติมสำหรับ AI <span className="text-gray-400">(ไม่บังคับ)</span>
+                                </label>
+                                <textarea
+                                    value={hintDesc}
+                                    onChange={e => setHintDesc(e.target.value)}
+                                    disabled={!selectedCourseId}
+                                    rows="2"
+                                    placeholder="เช่น: ให้ AI คิดโจทย์เกี่ยวกับการคำนวณคะแนนนักเรียน / เหตุการณ์เกี่ยวกับร้านค้า / เกี่ยวกับสัตว์ / ฯลฯ"
+                                    className="w-full px-3 py-2 rounded-xl text-sm outline-none resize-none"
+                                    style={{ border: '1.5px solid #E0E0E0' }}
+                                    onFocus={e => e.target.style.borderColor = '#EC407A'}
+                                    onBlur={e => e.target.style.borderColor = '#E0E0E0'}
+                                />
+                            </div>
+
+                            <button onClick={handleGenerate}
+                                disabled={generating || !selectedCourseId}
+                                className="k-btn-pink px-6 py-2.5 text-sm flex items-center gap-2 disabled:opacity-50">
+                                {generating ? <SpinIcon className="w-4 h-4" /> : '🎲'}
+                                {generating ? 'กำลังสร้างโจทย์...' : 'สร้างโจทย์ด้วย AI'}
+                            </button>
                         </div>
 
                         {/* Problem Display */}
@@ -207,7 +425,7 @@ const SelfPractice = () => {
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <p className="text-xs font-medium text-gray-500 mb-1">ตัวอย่าง Input:</p>
-                                        <pre className="bg-gray-900 text-green-300 p-3 rounded-xl text-xs font-mono overflow-x-auto">{problem.inputExample}</pre>
+                                        <pre className="bg-gray-900 text-green-300 p-3 rounded-xl text-xs font-mono overflow-x-auto">{problem.inputExample || '(ไม่มี input)'}</pre>
                                     </div>
                                     <div>
                                         <p className="text-xs font-medium text-gray-500 mb-1">ตัวอย่าง Output:</p>
@@ -223,7 +441,7 @@ const SelfPractice = () => {
                                 <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: '#F5F5F5' }}>
                                     <span className="text-xs font-bold text-gray-500">✏️ เขียนโค้ดที่นี่</span>
                                     <div className="flex items-center gap-2">
-                                        {selectedLanguage === 'java' && (
+                                        {language === 'java' && (
                                             <span className="text-xs text-yellow-600">⚠️ Java: ใช้ class Main</span>
                                         )}
                                         {submitting ? (
@@ -278,7 +496,9 @@ const SelfPractice = () => {
                                                 {r.passed ? '✓' : '✗'}
                                             </span>
                                             <div className="flex-1 min-w-0">
-                                                <div className="font-medium text-gray-700 text-xs mb-1">Test {i + 1}{r.note ? ` — ${r.note}` : ''}</div>
+                                                <div className="font-medium text-gray-700 text-xs mb-1">
+                                                    Test {i + 1}{r.note ? ` — ${r.note}` : ''}
+                                                </div>
                                                 {!r.passed && (
                                                     <div className="space-y-1 text-xs">
                                                         <div><span className="text-gray-500">คาดหวัง: </span><code className="text-blue-600">{r.expectedOutput || '(ว่าง)'}</code></div>
@@ -303,7 +523,7 @@ const SelfPractice = () => {
                                 )}
                                 <div className="flex gap-3 mt-4">
                                     <button onClick={handleGenerate} disabled={generating}
-                                        className="k-btn-pink px-4 py-2 text-sm flex items-center gap-1">
+                                        className="k-btn-pink px-4 py-2 text-sm flex items-center gap-1 disabled:opacity-50">
                                         🎲 สร้างโจทย์ใหม่
                                     </button>
                                 </div>
@@ -311,7 +531,7 @@ const SelfPractice = () => {
                         )}
                     </div>
 
-                    {/* ── Right: History ──────────────────────────────── */}
+                    {/* ── Right: History ──────────────────────────── */}
                     <div className="space-y-4">
                         <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid #FFD1DC' }}>
                             <h3 className="font-bold mb-4" style={{ color: '#AD1457' }}>📜 ประวัติการฝึก</h3>
@@ -330,7 +550,7 @@ const SelfPractice = () => {
                                         <div className="text-2xl font-bold" style={{ color: '#EC407A' }}>
                                             {history.reduce((s, h) => s + (h.actualScore || 0), 0)}
                                         </div>
-                                        <div className="text-xs text-gray-500">คะแนนรวมทั้งหมด</div>
+                                        <div className="text-xs text-gray-500">คะแนนรวมทั้งหมด ({history.length} โจทย์)</div>
                                     </div>
 
                                     {history.map(h => (
@@ -338,10 +558,14 @@ const SelfPractice = () => {
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="min-w-0">
                                                     <p className="text-sm font-medium text-gray-800 truncate">{h.problemTitle}</p>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-xs" style={{ color: diffColor[h.difficulty] }}>●{h.difficulty}</span>
+                                                    <div className="flex items-center flex-wrap gap-1.5 mt-1">
+                                                        <span className="text-xs" style={{ color: diffColor[h.difficulty] }}>● {h.difficulty}</span>
                                                         <span className="text-xs text-gray-400">{LANGUAGES[h.language]?.name}</span>
-                                                        <span className="text-xs text-gray-400">{h.passedTests}/{h.totalTests} ผ่าน</span>
+                                                        {h.topic && <span className="text-xs text-gray-400">{h.topic}</span>}
+                                                    </div>
+                                                    <div className="text-xs text-gray-400 mt-0.5">
+                                                        {h.passedTests}/{h.totalTests} ผ่าน
+                                                        {h.courseTitle && <> · {h.courseTitle}</>}
                                                     </div>
                                                 </div>
                                                 <div className="text-right shrink-0">
@@ -366,12 +590,12 @@ const SelfPractice = () => {
                                 {[['ง่าย', 50], ['ปานกลาง', 75], ['ยาก', 100]].map(([d, b]) => (
                                     <div key={d} className="flex items-center justify-between p-2 rounded-lg" style={{ background: '#F5F5F5' }}>
                                         <span style={{ color: diffColor[d] }}>● {d}</span>
-                                        <span>คะแนนสูงสุด <strong>{b}</strong> คะแนน</span>
+                                        <span>สูงสุด <strong>{b}</strong> คะแนน</span>
                                     </div>
                                 ))}
-                                <p className="text-gray-400 mt-2">คะแนน = ระดับ × (test ผ่าน / test ทั้งหมด)</p>
+                                <p className="text-gray-400 mt-2">คะแนน = ระดับ × (ผ่าน / ทั้งหมด)</p>
                                 <p className="text-gray-400">Test cases สร้างโดย AI (ซ่อน) ตรวจอัตโนมัติ</p>
-                                <p className="text-gray-400">คะแนนจะถูกส่งให้ครูใช้ประกอบการประเมิน</p>
+                                <p className="text-gray-400">คะแนนส่งไปยังรายวิชาที่เลือก ครูใช้ประกอบการประเมิน</p>
                             </div>
                         </div>
                     </div>
