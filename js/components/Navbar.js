@@ -1,104 +1,158 @@
-// js/components/Navbar.js - Responsive top navigation bar
+// js/components/Navbar.js — K-Minimal Pink Theme
+
+const PLATFORM_SHORT = 'AI Coding Platform';
+const SCHOOL_LOGO = 'https://www.triamudomsouth.ac.th/images/theme/150x150.png';
 
 const Navbar = ({ title, subtitle }) => {
     const { user, userDoc, role, logout } = useAuth();
     const [menuOpen, setMenuOpen] = React.useState(false);
+    const [userDropOpen, setUserDropOpen] = React.useState(false);
 
     const navLinks = {
         student: [
-            { hash: '#/student/dashboard', label: 'แดชบอร์ด', icon: '🏠' },
-            { hash: '#/student/courses', label: 'รายวิชา', icon: '📚' },
-            { hash: '#/student/gradebook', label: 'คะแนน', icon: '📊' },
-            { hash: '#/student/history', label: 'ประวัติ', icon: '📋' },
+            { hash: '#/student/dashboard', label: 'แดชบอร์ด',     icon: '🏠' },
+            { hash: '#/student/courses',   label: 'รายวิชา',       icon: '📚' },
+            { hash: '#/student/gradebook', label: 'คะแนน',         icon: '📊' },
+            { hash: '#/student/history',   label: 'ประวัติ',        icon: '📋' },
         ],
         teacher: [
-            { hash: '#/teacher/dashboard', label: 'แดชบอร์ด', icon: '🏠' },
-            { hash: '#/teacher/courses', label: 'จัดการรายวิชา', icon: '📚' },
+            { hash: '#/teacher/dashboard', label: 'แดชบอร์ด',      icon: '🏠' },
+            { hash: '#/teacher/courses',   label: 'จัดการรายวิชา',  icon: '📚' },
             { hash: '#/teacher/analytics', label: 'วิเคราะห์นักเรียน', icon: '📊' },
         ],
         admin: [
-            { hash: '#/admin/dashboard', label: 'แดชบอร์ด', icon: '🏠' },
-            { hash: '#/admin/users', label: 'จัดการผู้ใช้', icon: '👥' },
-            { hash: '#/admin/settings', label: 'ตั้งค่าระบบ', icon: '⚙️' },
+            { hash: '#/admin/dashboard', label: 'แดชบอร์ด',       icon: '🏠' },
+            { hash: '#/admin/users',     label: 'จัดการผู้ใช้',    icon: '👥' },
+            { hash: '#/admin/settings',  label: 'ตั้งค่าระบบ',     icon: '⚙️' },
         ],
     };
 
     const links = navLinks[role] || [];
     const currentHash = window.location.hash;
 
-    const roleBadge = {
-        student: { label: 'นักเรียน', color: 'bg-blue-100 text-blue-800' },
-        teacher: { label: 'ครูผู้สอน', color: 'bg-green-100 text-green-800' },
-        admin: { label: 'ผู้ดูแลระบบ', color: 'bg-purple-100 text-purple-800' },
+    const roleMeta = {
+        student: { label: 'นักเรียน',     cls: 'k-badge-student' },
+        teacher: { label: 'ครูผู้สอน',    cls: 'k-badge-teacher' },
+        admin:   { label: 'ผู้ดูแลระบบ',  cls: 'k-badge-admin'   },
     };
 
-    return (
-        <header className="bg-white shadow-md sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4">
-                <div className="flex items-center justify-between h-16">
-                    {/* Logo + Title */}
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                            AI
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold text-gray-800 leading-tight">
-                                {title || 'AI-Powered Coding LMS'}
-                            </h1>
-                            {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
-                        </div>
-                    </div>
+    const closeAll = () => { setMenuOpen(false); setUserDropOpen(false); };
 
-                    {/* Desktop nav links */}
-                    <nav className="hidden md:flex items-center space-x-1">
-                        {links.map(link => (
-                            <a
-                                key={link.hash}
-                                href={link.hash}
-                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                                    ${currentHash === link.hash
-                                        ? 'bg-blue-500 text-white'
-                                        : 'text-gray-600 hover:bg-gray-100'}`}
-                            >
-                                {link.icon} {link.label}
-                            </a>
-                        ))}
+    return (
+        <header style={{
+            background: 'white',
+            borderBottom: '1.5px solid #fce7f3',
+            boxShadow: '0 2px 20px rgba(236,72,153,.07)',
+            position: 'sticky', top: 0, zIndex: 50,
+            fontFamily: "'Prompt', sans-serif",
+        }}>
+            <div className="max-w-7xl mx-auto px-4">
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:'64px' }}>
+
+                    {/* ── Logo + Brand ── */}
+                    <a href={role ? `#/${role}/dashboard` : '#/login'}
+                        onClick={closeAll}
+                        style={{ display:'flex', alignItems:'center', gap:'10px', textDecoration:'none' }}>
+                        <img src={SCHOOL_LOGO} alt="โลโก้"
+                            style={{ width:'38px', height:'38px', borderRadius:'50%',
+                                     objectFit:'cover', border:'2px solid #fbcfe8',
+                                     boxShadow:'0 2px 8px rgba(236,72,153,.2)' }} />
+                        <div style={{ lineHeight:'1.2' }}>
+                            <div style={{ fontWeight:700, fontSize:'14px', color:'#be185d', whiteSpace:'nowrap' }}>
+                                {title || PLATFORM_SHORT}
+                            </div>
+                            {subtitle
+                                ? <div style={{ fontSize:'11px', color:'#f472b6' }}>{subtitle}</div>
+                                : <div style={{ fontSize:'10px', color:'#f9a8d4' }}>ระบบฝึกทักษะการเขียนโปรแกรม AI</div>
+                            }
+                        </div>
+                    </a>
+
+                    {/* ── Desktop nav links ── */}
+                    <nav style={{ display:'flex', gap:'4px', alignItems:'center' }} className="hidden md:flex">
+                        {links.map(link => {
+                            const active = currentHash.startsWith(link.hash);
+                            return (
+                                <a key={link.hash} href={link.hash} onClick={closeAll}
+                                    style={{
+                                        padding:'7px 14px', borderRadius:'20px', fontSize:'13px',
+                                        fontWeight: active ? 600 : 400,
+                                        background: active ? 'linear-gradient(135deg,#f472b6,#ec4899)' : 'transparent',
+                                        color: active ? '#fff' : '#9d174d',
+                                        textDecoration:'none',
+                                        transition:'all .2s',
+                                        border: active ? 'none' : '1px solid transparent',
+                                    }}
+                                    onMouseEnter={e => { if(!active){ e.currentTarget.style.background='#fdf2f8'; e.currentTarget.style.borderColor='#fce7f3'; }}}
+                                    onMouseLeave={e => { if(!active){ e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor='transparent'; }}}
+                                >
+                                    {link.icon} {link.label}
+                                </a>
+                            );
+                        })}
                     </nav>
 
-                    {/* User menu */}
-                    <div className="flex items-center space-x-3">
+                    {/* ── Right: role badge + user avatar ── */}
+                    <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
                         {userDoc && (
-                            <span className={`hidden sm:inline text-xs font-medium px-2 py-1 rounded-full ${roleBadge[role]?.color || 'bg-gray-100 text-gray-700'}`}>
-                                {roleBadge[role]?.label}
+                            <span className={`hidden sm:inline ${roleMeta[role]?.cls || ''}`}
+                                style={{ fontSize:'11px', fontWeight:600, padding:'4px 10px', borderRadius:'20px' }}>
+                                {roleMeta[role]?.label}
                             </span>
                         )}
-                        <div className="relative">
+
+                        {/* Avatar + dropdown */}
+                        <div style={{ position:'relative' }}>
                             <button
-                                onClick={() => setMenuOpen(!menuOpen)}
-                                className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                                onClick={() => { setUserDropOpen(p => !p); setMenuOpen(false); }}
+                                style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 8px 4px 4px',
+                                         borderRadius:'24px', border:'1.5px solid #fce7f3', background:'white',
+                                         cursor:'pointer', transition:'box-shadow .2s' }}
+                                onMouseEnter={e => e.currentTarget.style.boxShadow='0 2px 12px rgba(236,72,153,.2)'}
+                                onMouseLeave={e => e.currentTarget.style.boxShadow='none'}
                             >
-                                <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                <div style={{
+                                    width:'30px', height:'30px', borderRadius:'50%',
+                                    background:'linear-gradient(135deg,#f472b6,#ec4899)',
+                                    display:'flex', alignItems:'center', justifyContent:'center',
+                                    color:'white', fontSize:'13px', fontWeight:700, flexShrink:0,
+                                }}>
                                     {userDoc?.displayName?.[0]?.toUpperCase() || 'U'}
                                 </div>
-                                <span className="hidden sm:block text-sm font-medium text-gray-700 max-w-24 truncate">
+                                <span className="hidden sm:block"
+                                    style={{ fontSize:'13px', fontWeight:500, color:'#be185d',
+                                             maxWidth:'100px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                                     {userDoc?.displayName || user?.email}
                                 </span>
+                                <span style={{ color:'#f472b6', fontSize:'10px' }}>▼</span>
                             </button>
 
-                            {menuOpen && (
-                                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
-                                    <div className="px-4 py-2 border-b border-gray-100">
-                                        <p className="text-sm font-semibold text-gray-800 truncate">
+                            {userDropOpen && (
+                                <div style={{
+                                    position:'absolute', right:0, marginTop:'8px', width:'220px',
+                                    background:'white', borderRadius:'16px', border:'1px solid #fce7f3',
+                                    boxShadow:'0 8px 32px rgba(236,72,153,.15)', padding:'8px 0', zIndex:100,
+                                }}>
+                                    <div style={{ padding:'10px 16px 10px', borderBottom:'1px solid #fce7f3' }}>
+                                        <div style={{ fontWeight:600, fontSize:'14px', color:'#4b5563',
+                                                       overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                                             {userDoc?.displayName}
-                                        </p>
-                                        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                                        </div>
+                                        <div style={{ fontSize:'11px', color:'#9ca3af',
+                                                       overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                                            {user?.email}
+                                        </div>
                                     </div>
                                     <button
-                                        onClick={() => { setMenuOpen(false); logout(); }}
-                                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center space-x-2"
+                                        onClick={() => { closeAll(); logout(); }}
+                                        style={{ width:'100%', textAlign:'left', padding:'10px 16px',
+                                                 background:'none', border:'none', cursor:'pointer',
+                                                 fontSize:'13px', color:'#ef4444', fontFamily:"'Prompt',sans-serif",
+                                                 display:'flex', alignItems:'center', gap:'8px' }}
+                                        onMouseEnter={e => e.currentTarget.style.background='#fef2f2'}
+                                        onMouseLeave={e => e.currentTarget.style.background='none'}
                                     >
-                                        <span>🚪</span>
-                                        <span>ออกจากระบบ</span>
+                                        🚪 ออกจากระบบ
                                     </button>
                                 </div>
                             )}
@@ -106,29 +160,45 @@ const Navbar = ({ title, subtitle }) => {
 
                         {/* Mobile hamburger */}
                         <button
-                            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
-                            onClick={() => setMenuOpen(!menuOpen)}
+                            className="md:hidden"
+                            onClick={() => { setMenuOpen(p => !p); setUserDropOpen(false); }}
+                            style={{ padding:'8px', borderRadius:'10px', background:'none', border:'none', cursor:'pointer' }}
                         >
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
+                            <div style={{ width:'20px', display:'flex', flexDirection:'column', gap:'4px' }}>
+                                {[0,1,2].map(i => (
+                                    <span key={i} style={{ display:'block', height:'2px', borderRadius:'2px',
+                                                            background: menuOpen ? '#ec4899' : '#f472b6',
+                                                            transition:'all .2s',
+                                                            transform: menuOpen && i===0 ? 'rotate(45deg) translate(4px,4px)'
+                                                                      : menuOpen && i===2 ? 'rotate(-45deg) translate(4px,-4px)'
+                                                                      : menuOpen && i===1 ? 'scaleX(0)' : 'none' }} />
+                                ))}
+                            </div>
                         </button>
                     </div>
                 </div>
 
-                {/* Mobile nav links */}
+                {/* ── Mobile nav ── */}
                 {menuOpen && (
-                    <div className="md:hidden pb-3 border-t border-gray-100 pt-2">
-                        {links.map(link => (
-                            <a
-                                key={link.hash}
-                                href={link.hash}
-                                onClick={() => setMenuOpen(false)}
-                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"
-                            >
-                                {link.icon} {link.label}
-                            </a>
-                        ))}
+                    <div style={{ borderTop:'1px solid #fce7f3', paddingBottom:'12px', paddingTop:'8px' }}
+                         className="md:hidden">
+                        {links.map(link => {
+                            const active = currentHash.startsWith(link.hash);
+                            return (
+                                <a key={link.hash} href={link.hash} onClick={closeAll}
+                                    style={{
+                                        display:'block', padding:'10px 16px', borderRadius:'12px',
+                                        margin:'3px 0', fontSize:'14px', textDecoration:'none',
+                                        fontWeight: active ? 600 : 400,
+                                        background: active ? '#fdf2f8' : 'transparent',
+                                        color: active ? '#ec4899' : '#6b7280',
+                                        borderLeft: active ? '3px solid #ec4899' : '3px solid transparent',
+                                    }}
+                                >
+                                    {link.icon} {link.label}
+                                </a>
+                            );
+                        })}
                     </div>
                 )}
             </div>
