@@ -17,8 +17,6 @@ const CourseBuilder = () => {
         title: '', description: '', language: 'c', isPublished: false,
         grade: 'ม.4', room: '', semester: '1', academicYear: '2568',
     });
-    const [lessons, setLessons] = React.useState([]);
-    const [newLesson, setNewLesson] = React.useState({ title: '', content: '' });
     const [selectedCourse, setSelectedCourse] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
     const [saving, setSaving] = React.useState(false);
@@ -40,7 +38,7 @@ const CourseBuilder = () => {
         setLoading(false);
     };
 
-    const editCourse = async (course) => {
+    const editCourse = (course) => {
         setSelectedCourse(course);
         setForm({
             title: course.title,
@@ -54,8 +52,6 @@ const CourseBuilder = () => {
         });
         setCreatedClassCode(course.classCode || '');
         setTab('edit');
-        const snap = await db.collection('lessons').where('courseId', '==', course.id).orderBy('order').get();
-        setLessons(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     };
 
     const handleSaveCourse = async (e) => {
@@ -94,25 +90,6 @@ const CourseBuilder = () => {
         }
     };
 
-    const handleAddLesson = async () => {
-        if (!newLesson.title.trim() || !selectedCourse) return;
-        const data = {
-            courseId: selectedCourse.id,
-            title: newLesson.title.trim(),
-            content: newLesson.content.trim(),
-            order: lessons.length + 1,
-            createdAt: serverTimestamp(),
-        };
-        const ref = await db.collection('lessons').add(data);
-        setLessons(l => [...l, { id: ref.id, ...data }]);
-        setNewLesson({ title: '', content: '' });
-    };
-
-    const handleDeleteLesson = async (id) => {
-        await db.collection('lessons').doc(id).delete();
-        setLessons(l => l.filter(x => x.id !== id));
-    };
-
     const handleDuplicate = async (course) => {
         try {
             // Determine new semester/year
@@ -140,19 +117,7 @@ const CourseBuilder = () => {
                 createdAt: serverTimestamp(),
             };
             const newRef = await db.collection('courses').add(newCourseData);
-            // Copy lessons
-            const lessonSnap = await db.collection('lessons').where('courseId', '==', course.id).orderBy('order').get();
-            for (const lDoc of lessonSnap.docs) {
-                const lData = lDoc.data();
-                await db.collection('lessons').add({
-                    courseId: newRef.id,
-                    title: lData.title,
-                    content: lData.content,
-                    order: lData.order,
-                    createdAt: serverTimestamp(),
-                });
-            }
-            await loadCourses();
+                await loadCourses();
             setMsg(`สำเนารายวิชาสำเร็จ! รหัส: ${newClassCode}`);
         } catch (err) {
             setMsg('เกิดข้อผิดพลาด: ' + err.message);
@@ -190,7 +155,6 @@ const CourseBuilder = () => {
                         setTab('edit');
                         setSelectedCourse(null);
                         setForm({ title: '', description: '', language: 'c', isPublished: false, grade: 'ม.4', room: '', semester: '1', academicYear: '2568' });
-                        setLessons([]);
                         setCreatedClassCode('');
                         setMsg('');
                     }}
@@ -209,7 +173,6 @@ const CourseBuilder = () => {
                                 setTab('edit');
                                 setSelectedCourse(null);
                                 setForm({ title: '', description: '', language: 'c', isPublished: false, grade: 'ม.4', room: '', semester: '1', academicYear: '2568' });
-                                setLessons([]);
                                 setCreatedClassCode('');
                                 setMsg('');
                             }}
@@ -258,7 +221,7 @@ const CourseBuilder = () => {
                 )}
 
                 {tab === 'edit' && (
-                    <div className="grid lg:grid-cols-2 gap-6">
+                    <div className="max-w-2xl">
                         {/* Course Form */}
                         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                             <h3 className="font-bold text-gray-800 text-lg mb-4">
@@ -366,43 +329,6 @@ const CourseBuilder = () => {
                             </form>
                         </div>
 
-                        {/* Lessons */}
-                        {selectedCourse && (
-                            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-bold text-gray-800 text-lg">บทเรียน ({lessons.length})</h3>
-                                    <a href={`#/teacher/assignment?course=${selectedCourse.id}`}
-                                        className="text-sm text-purple-500 hover:underline">จัดการโจทย์ →</a>
-                                </div>
-
-                                <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-                                    {lessons.map((l, i) => (
-                                        <div key={l.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                            <div>
-                                                <span className="text-xs text-gray-400 mr-2">{i + 1}.</span>
-                                                <span className="text-sm font-medium text-gray-800">{l.title}</span>
-                                            </div>
-                                            <button onClick={() => handleDeleteLesson(l.id)} className="text-red-400 hover:text-red-600 text-xs">ลบ</button>
-                                        </div>
-                                    ))}
-                                    {lessons.length === 0 && <p className="text-gray-400 text-sm text-center py-4">ยังไม่มีบทเรียน</p>}
-                                </div>
-
-                                <div className="border-t border-gray-100 pt-4 space-y-3">
-                                    <h4 className="text-sm font-medium text-gray-700">เพิ่มบทเรียนใหม่</h4>
-                                    <input value={newLesson.title} onChange={e => setNewLesson(l => ({ ...l, title: e.target.value }))}
-                                        placeholder="ชื่อบทเรียน"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                                    <textarea value={newLesson.content} onChange={e => setNewLesson(l => ({ ...l, content: e.target.value }))}
-                                        placeholder="เนื้อหา (Markdown หรือข้อความ)" rows="3"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-                                    <button onClick={handleAddLesson}
-                                        className="w-full py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">
-                                        + เพิ่มบทเรียน
-                                    </button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 )}
             </main>

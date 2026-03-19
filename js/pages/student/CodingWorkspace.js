@@ -33,8 +33,21 @@ const CodingWorkspace = () => {
     const [chatInput, setChatInput] = React.useState('');
     const [chatLoading, setChatLoading] = React.useState(false);
 
+    // AI Scaffolding state
+    const [scaffoldHint, setScaffoldHint] = React.useState('');
+    const [hintLoading, setHintLoading] = React.useState(false);
+    const [hintLevel, setHintLevel] = React.useState(0); // 0=no hint yet, 1/2/3=level shown
+
+    // Exam Mode state
+    const [examTimeLeft, setExamTimeLeft] = React.useState(null); // seconds
+    const [examStarted, setExamStarted] = React.useState(false);
+    const [tabSwitchCount, setTabSwitchCount] = React.useState(0);
+    const [examFinished, setExamFinished] = React.useState(false);
+
     const [loading, setLoading] = React.useState(true);
     const [view, setView] = React.useState('problems'); // 'problems' | 'grade' | 'ai'
+
+    const isExamMode = currentAssignment?.assignmentType === 'exam';
 
     React.useEffect(() => { if (courseId) loadCourse(); }, [courseId]);
     React.useEffect(() => { if (currentAssignment) loadTestCases(); }, [currentAssignment]);
@@ -45,6 +58,54 @@ const CodingWorkspace = () => {
         const t = setTimeout(() => setCooldown(c => c - 1), 1000);
         return () => clearTimeout(t);
     }, [cooldown]);
+
+    // Exam countdown timer
+    React.useEffect(() => {
+        if (!examStarted || examTimeLeft === null || examTimeLeft <= 0) return;
+        const t = setInterval(() => {
+            setExamTimeLeft(s => {
+                if (s <= 1) {
+                    clearInterval(t);
+                    setExamFinished(true);
+                    handleSubmit();
+                    return 0;
+                }
+                return s - 1;
+            });
+        }, 1000);
+        return () => clearInterval(t);
+    }, [examStarted, examTimeLeft]);
+
+    // Tab-switch detection (exam mode only)
+    React.useEffect(() => {
+        if (!isExamMode || !examStarted || examFinished) return;
+        const handler = () => {
+            if (!document.hidden) return;
+            setTabSwitchCount(prev => {
+                const n = prev + 1;
+                if (n === 1) alert('⚠️ คำเตือนครั้งที่ 1: ตรวจพบการออกจากหน้าจอสอบ กรุณาอยู่ในหน้านี้');
+                else if (n === 2) alert('⚠️ คำเตือนครั้งที่ 2: หากออกอีกครั้งระบบจะส่งงานโดยอัตโนมัติ');
+                else if (n >= 3) { handleSubmit(); }
+                return n;
+            });
+        };
+        document.addEventListener('visibilitychange', handler);
+        return () => document.removeEventListener('visibilitychange', handler);
+    }, [isExamMode, examStarted, examFinished]);
+
+    const startExam = () => {
+        const minutes = currentAssignment?.examDurationMinutes || 30;
+        setExamTimeLeft(minutes * 60);
+        setExamStarted(true);
+        setTabSwitchCount(0);
+        setExamFinished(false);
+    };
+
+    const formatExamTime = (seconds) => {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    };
 
     const loadCourse = async () => {
         setLoading(true);
@@ -80,11 +141,38 @@ const CodingWorkspace = () => {
         }
     };
 
+    const handleHint = async () => {
+        if (!currentAssignment || !gradeResult) return;
+        const nextLevel = Math.min(hintLevel + 1, 3);
+        setHintLevel(nextLevel);
+        setHintLoading(true);
+        setScaffoldHint('');
+        try {
+            const failedTests = gradeResult.testResults.filter(r => !r.passed);
+            const hint = await getScaffoldingHint(
+                code, selectedLanguage,
+                currentAssignment.title, currentAssignment.description,
+                failedTests, nextLevel
+            );
+            setScaffoldHint(hint);
+        } catch (err) {
+            setScaffoldHint('ขออภัย ไม่สามารถขอคำใบ้ได้: ' + err.message);
+        } finally {
+            setHintLoading(false);
+        }
+    };
+
     const selectAssignment = (assign) => {
         setCurrentAssignment(assign);
         setGradeResult(null);
         setSampleResults(null);
         setAiResult(null);
+        setScaffoldHint('');
+        setHintLevel(0);
+        setExamStarted(false);
+        setExamTimeLeft(null);
+        setExamFinished(false);
+        setTabSwitchCount(0);
         setView('problems');
         // Restore draft
         const draft = localStorage.getItem(`draft_${assign.id}`);
@@ -193,9 +281,70 @@ const CodingWorkspace = () => {
         </div>
     );
 
+    // Exam start gate: if exam mode and not started yet
+    if (isExamMode && !examStarted && currentAssignment) {
+        return (
+            <div className="min-h-screen" style={{ background: '#fdf2f8', fontFamily: "'Prompt',sans-serif" }}>
+                <Navbar title={course?.title} subtitle="โหมดสอบ" />
+                <div style={{ maxWidth: '480px', margin: '80px auto', padding: '0 16px' }}>
+                    <div className="k-card p-10 text-center">
+                        <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏆</div>
+                        <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#be185d', marginBottom: '8px' }}>
+                            โหมดสอบ — {currentAssignment.title}
+                        </h2>
+                        <p style={{ color: '#9d174d', marginBottom: '24px' }}>
+                            ⏱ เวลาสอบ {currentAssignment.examDurationMinutes || 30} นาที
+                        </p>
+                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '16px', marginBottom: '24px', textAlign: 'left' }}>
+                            <p style={{ fontWeight: 600, color: '#dc2626', marginBottom: '8px' }}>📋 กฎการสอบ:</p>
+                            <ul style={{ fontSize: '13px', color: '#6b7280', lineHeight: '2', paddingLeft: '16px' }}>
+                                <li>ห้ามสลับหน้าต่างหรือแท็บ (ตรวจจับอัตโนมัติ)</li>
+                                <li>สลับหน้าจอ 2 ครั้งแรก = คำเตือน / ครั้งที่ 3 = ส่งงานอัตโนมัติ</li>
+                                <li>ปิดระบบ AI ช่วยเหลือชั่วคราว</li>
+                                <li>เมื่อหมดเวลาระบบจะส่งงานโดยอัตโนมัติ</li>
+                            </ul>
+                        </div>
+                        <button onClick={startExam} className="k-btn-pink" style={{ width: '100%', padding: '14px', fontSize: '16px' }}>
+                            🚀 เริ่มสอบ
+                        </button>
+                        <a href={`#/student/courses`} style={{ display: 'block', marginTop: '12px', fontSize: '13px', color: '#f472b6', textDecoration: 'none' }}>
+                            ← กลับ ไม่สอบตอนนี้
+                        </a>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navbar title={course?.title || 'Coding Workspace'} subtitle={LANGUAGES[selectedLanguage]?.name} />
+
+            {/* Exam Mode Banner */}
+            {isExamMode && examStarted && (
+                <div style={{
+                    background: examTimeLeft < 300 ? 'linear-gradient(90deg,#dc2626,#ef4444)' : 'linear-gradient(90deg,#9d174d,#ec4899)',
+                    color: 'white', padding: '10px 20px', display: 'flex', alignItems: 'center',
+                    justifyContent: 'space-between', fontFamily: "'Prompt',sans-serif",
+                    animation: examTimeLeft < 60 ? 'lms-spin 1s' : 'none',
+                }}>
+                    <span style={{ fontWeight: 600 }}>🏆 โหมดสอบ — {currentAssignment?.title}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        {tabSwitchCount > 0 && (
+                            <span style={{ background: 'rgba(255,255,255,.2)', borderRadius: '8px', padding: '4px 10px', fontSize: '12px' }}>
+                                ⚠️ สลับหน้าจอ {tabSwitchCount}/3 ครั้ง
+                            </span>
+                        )}
+                        <div style={{
+                            background: 'rgba(255,255,255,.15)', borderRadius: '10px', padding: '6px 16px',
+                            fontWeight: 700, fontSize: '18px', fontFamily: 'monospace',
+                            border: examTimeLeft < 300 ? '2px solid white' : 'none',
+                        }}>
+                            ⏱ {examTimeLeft !== null ? formatExamTime(examTimeLeft) : '--:--'}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Left Sidebar - Assignment list */}
@@ -257,30 +406,36 @@ const CodingWorkspace = () => {
                                 ))}
                             </div>
                             <div className="flex items-center space-x-2">
-                                <button
-                                    onClick={handleRunSample}
-                                    disabled={sampleRunning || !currentAssignment}
-                                    className="px-4 py-1.5 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800 disabled:opacity-50 flex items-center space-x-1"
-                                >
-                                    {sampleRunning ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>▶</span>}
-                                    <span>{sampleRunning ? 'รัน...' : 'ทดสอบตัวอย่าง'}</span>
-                                </button>
+                                {/* Run sample: hidden in exam mode */}
+                                {!isExamMode && (
+                                    <button
+                                        onClick={handleRunSample}
+                                        disabled={sampleRunning || !currentAssignment}
+                                        className="px-4 py-1.5 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800 disabled:opacity-50 flex items-center space-x-1"
+                                    >
+                                        {sampleRunning ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>▶</span>}
+                                        <span>{sampleRunning ? 'รัน...' : 'ทดสอบตัวอย่าง'}</span>
+                                    </button>
+                                )}
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={submitting || cooldown > 0 || !currentAssignment}
+                                    disabled={submitting || cooldown > 0 || !currentAssignment || examFinished}
                                     className="px-4 py-1.5 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 disabled:opacity-50 flex items-center space-x-1"
                                 >
                                     {submitting ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>✓</span>}
-                                    <span>{cooldown > 0 ? `รอ ${cooldown}s` : submitting ? 'กำลังตรวจ...' : 'Submit'}</span>
+                                    <span>{examFinished ? 'ส่งแล้ว' : cooldown > 0 ? `รอ ${cooldown}s` : submitting ? 'กำลังตรวจ...' : 'Submit'}</span>
                                 </button>
-                                <button
-                                    onClick={handleAIAnalysis}
-                                    disabled={aiAnalyzing}
-                                    className="px-4 py-1.5 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600 disabled:opacity-50 flex items-center space-x-1"
-                                >
-                                    {aiAnalyzing ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>🤖</span>}
-                                    <span>{aiAnalyzing ? 'AI กำลังวิเคราะห์...' : 'AI วิเคราะห์'}</span>
-                                </button>
+                                {/* AI buttons: hidden in exam mode */}
+                                {!isExamMode && (
+                                    <button
+                                        onClick={handleAIAnalysis}
+                                        disabled={aiAnalyzing}
+                                        className="px-4 py-1.5 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600 disabled:opacity-50 flex items-center space-x-1"
+                                    >
+                                        {aiAnalyzing ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>🤖</span>}
+                                        <span>{aiAnalyzing ? 'AI กำลังวิเคราะห์...' : 'AI วิเคราะห์'}</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -303,8 +458,10 @@ const CodingWorkspace = () => {
                             {[
                                 { key: 'problems', label: '📋 โจทย์' },
                                 { key: 'grade', label: '✅ ผลตรวจ' },
-                                { key: 'ai', label: '🤖 AI Lab' },
-                                { key: 'chat', label: '💬 แชท' },
+                                ...(!isExamMode ? [
+                                    { key: 'ai',   label: '🤖 AI Lab' },
+                                    { key: 'chat', label: '💬 แชท' },
+                                ] : []),
                             ].map(t => (
                                 <button
                                     key={t.key}
@@ -413,6 +570,7 @@ const CodingWorkspace = () => {
                                         <div>
                                             <div className={`rounded-xl p-4 mb-4 text-center
                                                 ${gradeResult.status === 'accepted' ? 'bg-green-50 border-2 border-green-300' : 'bg-red-50 border-2 border-red-300'}`}>
+
                                                 <div className="text-3xl mb-1">
                                                     {STATUS_LABELS[gradeResult.status]?.icon}
                                                 </div>
@@ -457,6 +615,78 @@ const CodingWorkspace = () => {
                                                     )}
                                                 </div>
                                             ))}
+
+                                            {/* AI Scaffolding Hints — practice mode only, show when failed */}
+                                            {!isExamMode && gradeResult.status !== 'accepted' && (
+                                                <div className="mt-4" style={{ borderTop: '1px solid #fce7f3', paddingTop: '16px' }}>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-sm font-bold" style={{ color: '#be185d' }}>
+                                                            💡 AI Scaffolding (คำใบ้)
+                                                        </span>
+                                                        <span className="text-xs text-gray-400">
+                                                            {hintLevel > 0 ? `ใบ้แล้ว ${hintLevel}/3 ระดับ` : 'ยังไม่ได้ขอใบ้'}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Hint level progress */}
+                                                    <div className="flex gap-2 mb-3">
+                                                        {[
+                                                            { l: 1, label: '🔍 ชี้จุดผิด', desc: 'บอกว่าผิดตรงไหน' },
+                                                            { l: 2, label: '💡 แนวคิด', desc: 'อธิบาย Algorithm' },
+                                                            { l: 3, label: '📝 ตัวอย่าง', desc: 'Code snippet' },
+                                                        ].map(h => (
+                                                            <button key={h.l}
+                                                                onClick={hintLevel < h.l ? handleHint : undefined}
+                                                                disabled={hintLoading || hintLevel >= h.l}
+                                                                title={h.desc}
+                                                                style={{
+                                                                    flex: 1, padding: '8px 4px', borderRadius: '10px', fontSize: '11px',
+                                                                    fontWeight: 600, border: 'none', cursor: hintLevel >= h.l ? 'default' : 'pointer',
+                                                                    background: hintLevel >= h.l ? '#fce7f3' : '#f9fafb',
+                                                                    color: hintLevel >= h.l ? '#be185d' : '#9ca3af',
+                                                                    opacity: hintLoading && hintLevel + 1 === h.l ? 0.6 : 1,
+                                                                }}>
+                                                                {hintLevel >= h.l ? '✓ ' : ''}{h.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
+                                                    {hintLevel === 0 && !hintLoading && (
+                                                        <button onClick={handleHint} className="k-btn-pink"
+                                                            style={{ width: '100%', padding: '10px', fontSize: '13px' }}>
+                                                            💡 ขอคำใบ้ระดับที่ 1
+                                                        </button>
+                                                    )}
+
+                                                    {hintLoading && (
+                                                        <div className="text-center py-4">
+                                                            <Spinner text="AI กำลังสร้างคำใบ้..." />
+                                                        </div>
+                                                    )}
+
+                                                    {scaffoldHint && !hintLoading && (
+                                                        <div style={{
+                                                            background: '#fdf2f8', border: '1px solid #fbcfe8',
+                                                            borderRadius: '12px', padding: '14px', marginTop: '8px',
+                                                        }}>
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <span style={{ background: '#ec4899', color: 'white', fontSize: '10px',
+                                                                               fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>
+                                                                    ระดับ {hintLevel}
+                                                                </span>
+                                                                {hintLevel < 3 && (
+                                                                    <button onClick={handleHint}
+                                                                        style={{ fontSize: '11px', color: '#ec4899', background: 'none',
+                                                                                 border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                                                                        ขอระดับ {hintLevel + 1} →
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{scaffoldHint}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>

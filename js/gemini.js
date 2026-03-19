@@ -159,3 +159,43 @@ Answer clearly and concisely in Thai. If the question is not about programming, 
 Question: "${question}"`;
     return callGeminiApi(prompt);
 };
+
+// ============================================================
+// AI Scaffolding — Tiered hints (level 1→2→3)
+// Level 1: ชี้จุดที่ผิด (point to error, no fix)
+// Level 2: บอกแนวคิด (explain the concept/algorithm needed)
+// Level 3: ยกตัวอย่างโค้ดสั้น (short code snippet, NOT full answer)
+// ============================================================
+const getScaffoldingHint = async (code, language, assignmentTitle, assignmentDesc, failedTests, hintLevel) => {
+    const langInfo = LANGUAGES[language];
+
+    const levelInstructions = {
+        1: `ระดับ 1 (ชี้จุดที่ผิด): บอกเพียงว่า "ส่วนไหน" หรือ "บรรทัดที่เท่าไหร่" ที่น่าจะมีปัญหา อย่าบอกวิธีแก้ เขียน 2-3 ประโยค`,
+        2: `ระดับ 2 (แนวคิด): อธิบายแนวคิดหรือ Algorithm ที่ควรใช้แก้ปัญหานี้ โดยไม่ยกโค้ดตัวอย่าง เขียน 3-4 ประโยค`,
+        3: `ระดับ 3 (ตัวอย่างโค้ด): ยกตัวอย่างโค้ดสั้นๆ ที่แสดงเทคนิคที่ต้องใช้ (แต่ไม่ใช่คำตอบของโจทย์นี้โดยตรง) พร้อมคำอธิบายสั้น`,
+    };
+
+    const failedSummary = failedTests.length > 0
+        ? `Test Cases ที่ไม่ผ่าน:\n${failedTests.slice(0, 3).map((t, i) =>
+            `  Test ${i+1}: ได้รับ "${t.actualOutput || '(ไม่มี output)'}" แต่คาดหวัง "${t.expectedOutput}"`).join('\n')}`
+        : 'ยังไม่มีผลตรวจ';
+
+    const prompt = `คุณเป็นครู AI ที่ช่วยสอนการเขียนโปรแกรมภาษา ${langInfo.name}
+ตอบเป็นภาษาไทย สั้น กระชับ เหมาะสำหรับนักเรียนระดับมัธยมปลาย
+
+โจทย์: "${assignmentTitle}"
+คำอธิบาย: ${assignmentDesc || '(ไม่มี)'}
+
+โค้ดของนักเรียน:
+\`\`\`${language}
+${code}
+\`\`\`
+
+${failedSummary}
+
+${levelInstructions[hintLevel] || levelInstructions[1]}
+
+อย่าให้คำตอบสำเร็จรูป ให้นักเรียนได้คิดและแก้ปัญหาเอง`;
+
+    return callGeminiApi(prompt);
+};

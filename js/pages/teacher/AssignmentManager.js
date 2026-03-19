@@ -10,7 +10,8 @@ const AssignmentManager = () => {
     const [editingAssignment, setEditingAssignment] = React.useState(null);
     const [form, setForm] = React.useState({
         title: '', description: '', language: 'c',
-        difficulty: 'ง่าย', timeLimit: 5000, memoryLimit: 256, isPublished: false,
+        difficulty: 'ง่าย', timeLimit: 5000, memoryLimit: 256,
+        isPublished: false, assignmentType: 'practice', examDurationMinutes: 30,
     });
     const [loading, setLoading] = React.useState(true);
     const [saving, setSaving] = React.useState(false);
@@ -79,13 +80,16 @@ const AssignmentManager = () => {
 
     const startEdit = (a) => {
         setEditingAssignment(a);
-        setForm({ title: a.title, description: a.description, language: a.language, difficulty: a.difficulty, timeLimit: a.timeLimit || 5000, memoryLimit: a.memoryLimit || 256, isPublished: a.isPublished });
+        setForm({ title: a.title, description: a.description, language: a.language, difficulty: a.difficulty,
+            timeLimit: a.timeLimit || 5000, memoryLimit: a.memoryLimit || 256, isPublished: a.isPublished,
+            assignmentType: a.assignmentType || 'practice', examDurationMinutes: a.examDurationMinutes || 30 });
         setTab('edit');
     };
 
     const startNew = () => {
         setEditingAssignment(null);
-        setForm({ title: '', description: '', language: course?.language || 'c', difficulty: 'ง่าย', timeLimit: 5000, memoryLimit: 256, isPublished: false });
+        setForm({ title: '', description: '', language: course?.language || 'c', difficulty: 'ง่าย',
+            timeLimit: 5000, memoryLimit: 256, isPublished: false, assignmentType: 'practice', examDurationMinutes: 30 });
         setTab('edit');
     };
 
@@ -162,6 +166,11 @@ const AssignmentManager = () => {
                                                   'bg-red-100 text-red-700'}`}>
                                                 {a.difficulty}
                                             </span>
+                                            {a.assignmentType === 'exam' && (
+                                                <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
+                                                    🏆 ข้อสอบ {a.examDurationMinutes || 30} นาที
+                                                </span>
+                                            )}
                                         </div>
                                         <p className="text-xs text-gray-500 truncate">{a.description}</p>
                                         <div className="flex space-x-3 text-xs text-gray-400 mt-1">
@@ -250,6 +259,34 @@ const AssignmentManager = () => {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                                 </div>
                             </div>
+
+                            {/* Assignment Type */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">ประเภทโจทย์</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { v:'practice', icon:'📝', label:'แบบฝึกหัด', desc:'AI ช่วยได้ มีการ hint' },
+                                        { v:'exam',     icon:'🏆', label:'ข้อสอบ', desc:'ล็อก AI + จับเวลา' },
+                                    ].map(opt => (
+                                        <button key={opt.v} type="button"
+                                            onClick={() => setForm(f => ({ ...f, assignmentType: opt.v }))}
+                                            className={`p-3 rounded-xl border-2 text-left transition-all ${form.assignmentType === opt.v ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                                            <div className="text-xl mb-0.5">{opt.icon}</div>
+                                            <div className="font-semibold text-sm text-gray-800">{opt.label}</div>
+                                            <div className="text-xs text-gray-500">{opt.desc}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {form.assignmentType === 'exam' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">ระยะเวลาสอบ (นาที)</label>
+                                    <input type="number" min="5" max="180" value={form.examDurationMinutes}
+                                        onChange={e => setForm(f => ({ ...f, examDurationMinutes: parseInt(e.target.value) }))}
+                                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                                </div>
+                            )}
 
                             <div className="flex items-center space-x-2">
                                 <input type="checkbox" id="pub" checked={form.isPublished} onChange={e => setForm(f => ({ ...f, isPublished: e.target.checked }))} />
