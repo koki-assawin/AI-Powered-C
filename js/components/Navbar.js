@@ -12,6 +12,7 @@ const Navbar = ({ title, subtitle }) => {
         student: [
             { hash: '#/student/dashboard', label: 'แดชบอร์ด',     icon: '🏠' },
             { hash: '#/student/courses',   label: 'รายวิชา',       icon: '📚' },
+            { hash: '#/student/practice',  label: 'ฝึกเอง',        icon: '🎯' },
             { hash: '#/student/gradebook', label: 'คะแนน',         icon: '📊' },
             { hash: '#/student/history',   label: 'ประวัติ',        icon: '📋' },
         ],

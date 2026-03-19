@@ -161,6 +161,101 @@ Question: "${question}"`;
 };
 
 // ============================================================
+// Generate test cases for a problem (used by teacher AI mode + student self-practice)
+// Returns: [{ input, expectedOutput, note }]
+// ============================================================
+const generateTestCases = async (language, title, description, count) => {
+    const langInfo = LANGUAGES[language];
+    const prompt = `You are a programming judge creating test cases for a ${langInfo.name} problem.
+
+Problem: "${title}"
+Description: ${description}
+
+Create exactly ${count} diverse test cases. Include simple cases AND edge cases.
+Rules:
+- input: exact stdin string (empty string "" if no input needed)
+- expectedOutput: exact stdout a correct solution would print (trim trailing whitespace)
+- note: short English description of what this test covers
+- Test cases must be varied (small, large, zero, negative, boundary values etc.)
+- Do NOT include code in expectedOutput — only the program's output`;
+
+    const schema = {
+        type: 'ARRAY',
+        items: {
+            type: 'OBJECT',
+            properties: {
+                input:          { type: 'STRING' },
+                expectedOutput: { type: 'STRING' },
+                note:           { type: 'STRING' },
+            },
+            required: ['input', 'expectedOutput', 'note'],
+        },
+    };
+    return callGeminiApi(prompt, schema);
+};
+
+// ============================================================
+// Generate class-level analytics report for teacher
+// ============================================================
+const generateClassReport = async (courseTitle, classData) => {
+    const prompt = `คุณเป็น AI วิเคราะห์ผลการเรียนสำหรับครู ตอบเป็นภาษาไทย
+
+รายวิชา: "${courseTitle}"
+ข้อมูลห้องเรียน:
+${JSON.stringify(classData, null, 2)}
+
+วิเคราะห์และสรุปผลการเรียนของห้องเรียน โดยครอบคลุม:
+1. ภาพรวมผลการเรียน (จุดแข็ง, จุดที่ต้องปรับปรุง)
+2. โจทย์ที่นักเรียนทำได้ดีและโจทย์ที่ติดขัด
+3. นักเรียนที่ควรได้รับความช่วยเหลือเป็นพิเศษ
+4. ข้อเสนอแนะสำหรับครูในการสอนครั้งต่อไป
+5. สรุปภาพรวมคะแนนฝึกเองของนักเรียน`;
+
+    const schema = {
+        type: 'OBJECT',
+        properties: {
+            summary:         { type: 'STRING' },
+            strengths:       { type: 'ARRAY', items: { type: 'STRING' } },
+            challenges:      { type: 'ARRAY', items: { type: 'STRING' } },
+            recommendations: { type: 'ARRAY', items: { type: 'STRING' } },
+            needsHelp:       { type: 'ARRAY', items: { type: 'STRING' } },
+            practiceInsight: { type: 'STRING' },
+        },
+        required: ['summary', 'strengths', 'challenges', 'recommendations'],
+    };
+    return callGeminiApi(prompt, schema);
+};
+
+// ============================================================
+// Generate individual student report for teacher
+// ============================================================
+const generateStudentReport = async (studentName, studentData) => {
+    const prompt = `คุณเป็น AI วิเคราะห์ผลการเรียนรายบุคคล ตอบเป็นภาษาไทย กระชับ ชัดเจน
+
+นักเรียน: "${studentName}"
+ข้อมูล: ${JSON.stringify(studentData, null, 2)}
+
+วิเคราะห์:
+1. จุดแข็งของนักเรียนคนนี้
+2. จุดที่ต้องพัฒนา
+3. รูปแบบการเรียนรู้จากประวัติการส่งงาน
+4. คำแนะนำเฉพาะสำหรับนักเรียนคนนี้`;
+
+    const schema = {
+        type: 'OBJECT',
+        properties: {
+            overview:        { type: 'STRING' },
+            strengths:       { type: 'ARRAY', items: { type: 'STRING' } },
+            improvements:    { type: 'ARRAY', items: { type: 'STRING' } },
+            pattern:         { type: 'STRING' },
+            advice:          { type: 'STRING' },
+        },
+        required: ['overview', 'strengths', 'improvements', 'advice'],
+    };
+    return callGeminiApi(prompt, schema);
+};
+
+// ============================================================
 // AI Scaffolding — Tiered hints (level 1→2→3)
 // Level 1: ชี้จุดที่ผิด (point to error, no fix)
 // Level 2: บอกแนวคิด (explain the concept/algorithm needed)

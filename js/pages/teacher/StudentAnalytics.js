@@ -1,10 +1,11 @@
-// js/pages/teacher/StudentAnalytics.js - Teacher Analytics Dashboard
+// js/pages/teacher/StudentAnalytics.js - Teacher Analytics Dashboard (v4.4)
 
 const StudentAnalytics = () => {
     const { userDoc } = useAuth();
     const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
     const courseId = params.get('course');
 
+    const [activeTab, setActiveTab] = React.useState('overview');
     const [courses, setCourses] = React.useState([]);
     const [selectedCourse, setSelectedCourse] = React.useState(courseId || '');
     const [assignments, setAssignments] = React.useState([]);
@@ -16,12 +17,29 @@ const StudentAnalytics = () => {
     const chartRef = React.useRef(null);
     const chartInstance = React.useRef(null);
 
+    // Tab 2: Individual
+    const [selectedStudentId, setSelectedStudentId] = React.useState('');
+    const [studentSubs, setStudentSubs] = React.useState([]);
+    const [studentReport, setStudentReport] = React.useState(null);
+    const [reportLoading, setReportLoading] = React.useState(false);
+
+    // Tab 3: Self-Practice
+    const [practiceData, setPracticeData] = React.useState([]);
+    const [practiceLoading, setPracticeLoading] = React.useState(false);
+
+    // Tab 4: AI Report
+    const [classReport, setClassReport] = React.useState(null);
+    const [classReportLoading, setClassReportLoading] = React.useState(false);
+
     React.useEffect(() => { loadCourses(); }, [userDoc]);
     React.useEffect(() => { if (selectedCourse) loadAnalytics(); }, [selectedCourse]);
     React.useEffect(() => {
-        if (assignments.length > 0 && submissions.length >= 0) renderChart();
+        if (activeTab === 'overview' && assignments.length > 0) renderChart();
         return () => { if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; } };
-    }, [assignments, submissions]);
+    }, [assignments, submissions, activeTab]);
+    React.useEffect(() => {
+        if (activeTab === 'practice' && selectedCourse) loadPracticeData();
+    }, [activeTab, selectedCourse]);
 
     const loadCourses = async () => {
         const snap = await db.collection('courses').where('teacherId', '==', userDoc.id).get();
@@ -49,29 +67,46 @@ const StudentAnalytics = () => {
         finally { setLoading(false); }
     };
 
+    const loadPracticeData = async () => {
+        if (!selectedCourse) return;
+        setPracticeLoading(true);
+        try {
+            const enrolledIds = enrollments.map(e => e.studentId);
+            if (enrolledIds.length === 0) { setPracticeData([]); return; }
+
+            // Firestore 'in' query limit is 30; batch if needed
+            const chunks = [];
+            for (let i = 0; i < enrolledIds.length; i += 30) chunks.push(enrolledIds.slice(i, i + 30));
+            const allDocs = [];
+            for (const chunk of chunks) {
+                const snap = await db.collection('selfPracticeSubmissions')
+                    .where('studentId', 'in', chunk)
+                    .get();
+                snap.docs.forEach(d => allDocs.push({ id: d.id, ...d.data() }));
+            }
+            setPracticeData(allDocs);
+        } catch (err) { console.error(err); }
+        finally { setPracticeLoading(false); }
+    };
+
     const getAssignmentStats = (assignId) => {
         const subs = submissions.filter(s => s.assignmentId === assignId);
-        if (subs.length === 0) return { attempts: 0, passRate: 0, avgScore: 0, uniqueStudents: 0, studentAttempts: {} };
+        if (subs.length === 0) return { attempts: 0, passRate: 0, avgScore: 0, uniqueStudents: 0 };
         const passed = subs.filter(s => s.status === 'accepted').length;
-        const byStudent = {};
-        subs.forEach(s => { byStudent[s.studentId] = (byStudent[s.studentId] || 0) + 1; });
         return {
             attempts: subs.length,
             passRate: Math.round((passed / subs.length) * 100),
             avgScore: Math.round(subs.reduce((sum, s) => sum + (s.score || 0), 0) / subs.length),
             uniqueStudents: new Set(subs.map(s => s.studentId)).size,
-            studentAttempts: byStudent,
         };
     };
 
     const renderChart = () => {
         if (!chartRef.current || assignments.length === 0) return;
         if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; }
-
         const labels = assignments.map(a => a.title.length > 14 ? a.title.slice(0, 14) + '…' : a.title);
         const passRates = assignments.map(a => getAssignmentStats(a.id).passRate);
         const avgScores = assignments.map(a => getAssignmentStats(a.id).avgScore);
-
         chartInstance.current = new Chart(chartRef.current, {
             type: 'bar',
             data: {
@@ -117,25 +152,153 @@ const StudentAnalytics = () => {
         const byStudent = {};
         subs.forEach(s => {
             if (!byStudent[s.studentId] || s.score > byStudent[s.studentId].score)
-                byStudent[s.studentId] = { ...s, totalAttempts: (byStudent[s.studentId]?.totalAttempts || 0) + 1 };
+                byStudent[s.studentId] = { ...s };
         });
-        // fix attempt count
         Object.keys(byStudent).forEach(sid => {
             byStudent[sid].totalAttempts = subs.filter(s => s.studentId === sid).length;
         });
         return Object.values(byStudent).sort((a, b) => b.score - a.score);
     };
 
-    // Most problematic assignments (pass rate < 50%, sorted asc)
+    // ── Tab 2: Load individual student submissions + AI report ──
+    const loadStudentDetail = async (sid) => {
+        setSelectedStudentId(sid);
+        setStudentReport(null);
+        if (!sid) { setStudentSubs([]); return; }
+        const snap = await db.collection('submissions')
+            .where('studentId', '==', sid)
+            .where('courseId', '==', selectedCourse)
+            .orderBy('submittedAt', 'desc')
+            .get();
+        setStudentSubs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    };
+
+    const handleGenerateStudentReport = async () => {
+        if (!selectedStudentId) return;
+        setReportLoading(true);
+        setStudentReport(null);
+        try {
+            const studentName = students[selectedStudentId]?.displayName || selectedStudentId;
+            const courseTitle = courses.find(c => c.id === selectedCourse)?.title || '';
+            const practiceItems = practiceData.filter(p => p.studentId === selectedStudentId);
+            const data = {
+                course: courseTitle,
+                totalSubmissions: studentSubs.length,
+                avgScore: studentSubs.length ? Math.round(studentSubs.reduce((s, x) => s + (x.score || 0), 0) / studentSubs.length) : 0,
+                passedCount: studentSubs.filter(s => s.status === 'accepted').length,
+                recentSubmissions: studentSubs.slice(0, 5).map(s => ({
+                    assignment: assignments.find(a => a.id === s.assignmentId)?.title || s.assignmentId,
+                    score: s.score,
+                    status: s.status,
+                    passedTests: s.passedTests,
+                    totalTests: s.totalTests,
+                })),
+                selfPractice: {
+                    totalProblems: practiceItems.length,
+                    totalScore: practiceItems.reduce((s, p) => s + (p.actualScore || 0), 0),
+                    byDifficulty: ['ง่าย', 'ปานกลาง', 'ยาก'].map(d => ({
+                        difficulty: d,
+                        count: practiceItems.filter(p => p.difficulty === d).length,
+                        avgScore: (() => {
+                            const items = practiceItems.filter(p => p.difficulty === d);
+                            return items.length ? Math.round(items.reduce((s, p) => s + (p.actualScore || 0), 0) / items.length) : 0;
+                        })(),
+                    })),
+                },
+            };
+            const report = await generateStudentReport(studentName, data);
+            setStudentReport(report);
+        } catch (err) {
+            alert('เกิดข้อผิดพลาด: ' + err.message);
+        } finally {
+            setReportLoading(false);
+        }
+    };
+
+    // ── Tab 4: Class AI Report ──
+    const handleGenerateClassReport = async () => {
+        setClassReportLoading(true);
+        setClassReport(null);
+        try {
+            const courseTitle = courses.find(c => c.id === selectedCourse)?.title || '';
+            const assignStats = assignments.map(a => {
+                const stats = getAssignmentStats(a.id);
+                return { title: a.title, difficulty: a.difficulty, ...stats };
+            });
+            const practiceByStudent = {};
+            practiceData.forEach(p => {
+                if (!practiceByStudent[p.studentId]) practiceByStudent[p.studentId] = { count: 0, totalScore: 0 };
+                practiceByStudent[p.studentId].count++;
+                practiceByStudent[p.studentId].totalScore += (p.actualScore || 0);
+            });
+            const classData = {
+                totalStudents: enrollments.length,
+                totalSubmissions: submissions.length,
+                overallPassRate: submissions.length
+                    ? Math.round(submissions.filter(s => s.status === 'accepted').length / submissions.length * 100) : 0,
+                assignmentStats: assignStats,
+                selfPractice: {
+                    participatingStudents: Object.keys(practiceByStudent).length,
+                    totalProblems: practiceData.length,
+                    avgScore: practiceData.length
+                        ? Math.round(practiceData.reduce((s, p) => s + (p.actualScore || 0), 0) / practiceData.length) : 0,
+                },
+                studentSummaries: Object.entries(students).map(([sid, st]) => {
+                    const subs = submissions.filter(s => s.studentId === sid);
+                    const prac = practiceByStudent[sid] || { count: 0, totalScore: 0 };
+                    return {
+                        name: st.displayName,
+                        submissions: subs.length,
+                        avgScore: subs.length ? Math.round(subs.reduce((s, x) => s + (x.score || 0), 0) / subs.length) : 0,
+                        practiceProblems: prac.count,
+                        practiceTotalScore: prac.totalScore,
+                    };
+                }),
+            };
+            const report = await generateClassReport(courseTitle, classData);
+            setClassReport(report);
+        } catch (err) {
+            alert('เกิดข้อผิดพลาด: ' + err.message);
+        } finally {
+            setClassReportLoading(false);
+        }
+    };
+
+    // ── Derived ──
     const problematicAssignments = assignments
         .map(a => ({ ...a, stats: getAssignmentStats(a.id) }))
         .filter(a => a.stats.attempts > 0 && a.stats.passRate < 50)
         .sort((a, b) => a.stats.passRate - b.stats.passRate)
         .slice(0, 5);
-
     const studentResults = getStudentResults();
     const overallPassRate = submissions.length
         ? Math.round(submissions.filter(s => s.status === 'accepted').length / submissions.length * 100) : 0;
+
+    // Practice scores per student
+    const practiceByStudent = React.useMemo(() => {
+        const map = {};
+        practiceData.forEach(p => {
+            if (!map[p.studentId]) map[p.studentId] = { count: 0, totalScore: 0, items: [] };
+            map[p.studentId].count++;
+            map[p.studentId].totalScore += (p.actualScore || 0);
+            map[p.studentId].items.push(p);
+        });
+        return map;
+    }, [practiceData]);
+
+    const TAB_STYLE = (t) => ({
+        padding: '10px 20px',
+        borderBottom: activeTab === t ? '2.5px solid #EC407A' : '2.5px solid transparent',
+        color: activeTab === t ? '#C2185B' : '#9ca3af',
+        fontWeight: activeTab === t ? 700 : 400,
+        background: 'none',
+        border: 'none',
+        borderBottom: activeTab === t ? '2.5px solid #EC407A' : '2.5px solid transparent',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontFamily: "'Prompt', sans-serif",
+        whiteSpace: 'nowrap',
+    });
 
     return (
         <div className="min-h-screen" style={{ background: '#fdf2f8', fontFamily: "'Prompt', sans-serif" }}>
@@ -148,7 +311,15 @@ const StudentAnalytics = () => {
                 {/* Course Selector */}
                 <div className="k-card p-4 mb-6">
                     <label className="block text-sm font-medium text-gray-600 mb-2">🏫 เลือกรายวิชา:</label>
-                    <select value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)}
+                    <select value={selectedCourse}
+                        onChange={e => {
+                            setSelectedCourse(e.target.value);
+                            setSelectedStudentId('');
+                            setStudentSubs([]);
+                            setStudentReport(null);
+                            setClassReport(null);
+                            setPracticeData([]);
+                        }}
                         className="k-input" style={{ maxWidth: '360px' }}>
                         <option value="">-- เลือกรายวิชา --</option>
                         {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -178,164 +349,541 @@ const StudentAnalytics = () => {
                             ))}
                         </div>
 
-                        {/* Bar Chart */}
-                        {assignments.length > 0 && (
-                            <div className="k-card p-6 mb-6">
-                                <h3 className="font-bold text-gray-700 mb-4">📈 อัตราผ่านและคะแนนเฉลี่ยต่อโจทย์</h3>
-                                <canvas ref={chartRef} height={assignments.length > 8 ? 120 : 90}></canvas>
+                        {/* Tabs */}
+                        <div className="k-card mb-6 overflow-hidden">
+                            <div style={{ display: 'flex', borderBottom: '1px solid #fce7f3', overflowX: 'auto' }}>
+                                {[
+                                    { key: 'overview',  label: '📊 ภาพรวม' },
+                                    { key: 'individual', label: '👤 รายบุคคล' },
+                                    { key: 'practice',  label: '🎯 คะแนนฝึกเอง' },
+                                    { key: 'aireport',  label: '🤖 รายงาน AI' },
+                                ].map(t => (
+                                    <button key={t.key} style={TAB_STYLE(t.key)} onClick={() => setActiveTab(t.key)}>
+                                        {t.label}
+                                    </button>
+                                ))}
                             </div>
-                        )}
 
-                        {/* Problematic Assignments */}
-                        {problematicAssignments.length > 0 && (
-                            <div className="k-card p-6 mb-6" style={{ borderLeft: '4px solid #fca5a5' }}>
-                                <h3 className="font-bold mb-4" style={{ color: '#dc2626' }}>
-                                    ⚠️ โจทย์ที่นักเรียนติดขัดมากที่สุด (ผ่านน้อยกว่า 50%)
-                                </h3>
-                                <div className="space-y-3">
-                                    {problematicAssignments.map(a => (
-                                        <div key={a.id} className="flex items-center justify-between p-3 rounded-xl"
-                                            style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
-                                            <div>
-                                                <div className="font-semibold text-gray-800 text-sm">{a.title}</div>
-                                                <div className="text-xs text-gray-500">
-                                                    {a.stats.uniqueStudents} นักเรียน · {a.stats.attempts} ครั้งที่ส่ง
+                            <div className="p-6">
+
+                                {/* ─── TAB 1: OVERVIEW ─── */}
+                                {activeTab === 'overview' && (
+                                    <>
+                                        {assignments.length > 0 && (
+                                            <div className="mb-6">
+                                                <h3 className="font-bold text-gray-700 mb-4">📈 อัตราผ่านและคะแนนเฉลี่ยต่อโจทย์</h3>
+                                                <canvas ref={chartRef} height={assignments.length > 8 ? 120 : 90}></canvas>
+                                            </div>
+                                        )}
+
+                                        {problematicAssignments.length > 0 && (
+                                            <div className="mb-6" style={{ borderLeft: '4px solid #fca5a5', paddingLeft: '16px' }}>
+                                                <h3 className="font-bold mb-4" style={{ color: '#dc2626' }}>
+                                                    ⚠️ โจทย์ที่นักเรียนติดขัดมากที่สุด (ผ่านน้อยกว่า 50%)
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {problematicAssignments.map(a => (
+                                                        <div key={a.id} className="flex items-center justify-between p-3 rounded-xl"
+                                                            style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+                                                            <div>
+                                                                <div className="font-semibold text-gray-800 text-sm">{a.title}</div>
+                                                                <div className="text-xs text-gray-500">
+                                                                    {a.stats.uniqueStudents} นักเรียน · {a.stats.attempts} ครั้งที่ส่ง
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="text-lg font-bold text-red-600">{a.stats.passRate}%</div>
+                                                                <div className="text-xs text-gray-400">อัตราผ่าน</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="text-lg font-bold text-red-600">{a.stats.passRate}%</div>
-                                                <div className="text-xs text-gray-400">อัตราผ่าน</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                        )}
 
-                        {/* Assignment Table */}
-                        <div className="k-card p-6 mb-6">
-                            <h3 className="font-bold text-gray-700 mb-4">📝 สถิติแต่ละโจทย์</h3>
-                            {assignments.length === 0 ? (
-                                <p className="text-gray-400 text-sm text-center py-6">ยังไม่มีโจทย์ในรายวิชานี้</p>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr style={{ borderBottom: '2px solid #fce7f3' }}>
-                                                {['โจทย์', 'ประเภท', 'นักเรียนที่ลอง', 'ครั้งส่ง', 'อัตราผ่าน', 'คะแนนเฉลี่ย', ''].map(h => (
-                                                    <th key={h} className="text-left py-3 px-2 text-xs font-semibold text-gray-500 uppercase">{h}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {assignments.map(a => {
-                                                const stats = getAssignmentStats(a.id);
-                                                return (
-                                                    <tr key={a.id} style={{ borderBottom: '1px solid #fce7f3' }}
-                                                        className="hover:bg-pink-50 transition-colors">
-                                                        <td className="py-3 px-2">
-                                                            <div className="font-medium text-gray-800">{a.title}</div>
-                                                            <div className="text-xs text-gray-400">{a.difficulty}</div>
-                                                        </td>
-                                                        <td className="py-3 px-2">
-                                                            {a.assignmentType === 'exam'
-                                                                ? <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">🏆 ข้อสอบ</span>
-                                                                : <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">📝 ฝึกหัด</span>}
-                                                        </td>
-                                                        <td className="py-3 px-2 text-center text-gray-600">{stats.uniqueStudents}</td>
-                                                        <td className="py-3 px-2 text-center text-gray-600">{stats.attempts}</td>
-                                                        <td className="py-3 px-2 text-center">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <div style={{
-                                                                    width: `${stats.passRate}%`, height: '6px', borderRadius: '3px', minWidth: '4px',
-                                                                    background: stats.passRate >= 70 ? '#22c55e' : stats.passRate >= 40 ? '#eab308' : '#ef4444',
-                                                                    maxWidth: '60px',
-                                                                }} />
-                                                                <span className={`font-bold text-sm ${stats.passRate >= 70 ? 'text-green-600' : stats.passRate >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                                                    {stats.passRate}%
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="py-3 px-2 text-center font-bold"
-                                                            style={{ color: stats.avgScore >= 70 ? '#16a34a' : stats.avgScore >= 40 ? '#d97706' : '#dc2626' }}>
-                                                            {stats.avgScore}%
-                                                        </td>
-                                                        <td className="py-3 px-2">
-                                                            <button onClick={() => setSelectedAssignment(a.id === selectedAssignment ? '' : a.id)}
-                                                                className="text-xs px-3 py-1 rounded-lg font-medium transition-all"
-                                                                style={{ background: a.id === selectedAssignment ? '#ec4899' : '#fce7f3', color: a.id === selectedAssignment ? 'white' : '#be185d' }}>
-                                                                {a.id === selectedAssignment ? 'ปิด' : 'ดูนักเรียน'}
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Per-student detail */}
-                        {selectedAssignment && (
-                            <div className="k-card p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-bold text-gray-700">
-                                        👥 ผลนักเรียน: {assignments.find(a => a.id === selectedAssignment)?.title}
-                                    </h3>
-                                    <button onClick={() => setSelectedAssignment('')}
-                                        className="text-gray-400 hover:text-gray-600 text-sm px-3 py-1 rounded-lg hover:bg-gray-100">✕ ปิด</button>
-                                </div>
-                                {studentResults.length === 0 ? (
-                                    <p className="text-gray-400 text-sm text-center py-6">ยังไม่มีนักเรียนส่งงานนี้</p>
-                                ) : (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                            <thead>
-                                                <tr style={{ borderBottom: '2px solid #fce7f3' }}>
-                                                    {['#', 'นักเรียน', 'สถานะ', 'ผ่าน Test', 'คะแนนสูงสุด', 'จำนวนครั้ง', 'AI Score'].map(h => (
-                                                        <th key={h} className="text-left py-3 px-2 text-xs font-semibold text-gray-500 uppercase">{h}</th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {studentResults.map((sub, idx) => {
-                                                    const student = students[sub.studentId];
-                                                    const info = STATUS_LABELS[sub.status] || STATUS_LABELS.pending;
-                                                    return (
-                                                        <tr key={sub.id} style={{ borderBottom: '1px solid #fce7f3' }} className="hover:bg-pink-50">
-                                                            <td className="py-2 px-2 text-gray-400 text-xs">{idx + 1}</td>
-                                                            <td className="py-2 px-2 font-medium text-gray-800">
-                                                                {student?.displayName || sub.studentId.slice(0, 8)}
-                                                            </td>
-                                                            <td className="py-2 px-2">
-                                                                <span className="text-xs">{info.icon} {info.text}</span>
-                                                            </td>
-                                                            <td className="py-2 px-2 text-center text-gray-600">
-                                                                {sub.passedTests}/{sub.totalTests}
-                                                            </td>
-                                                            <td className="py-2 px-2 text-center font-bold" style={{
-                                                                color: sub.score >= 80 ? '#16a34a' : sub.score >= 50 ? '#d97706' : '#dc2626'
-                                                            }}>
-                                                                {sub.score}%
-                                                            </td>
-                                                            <td className="py-2 px-2 text-center">
-                                                                <span className={`text-xs px-2 py-0.5 rounded-full ${sub.totalAttempts >= 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                                    {sub.totalAttempts} ครั้ง
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-2 px-2 text-center" style={{ color: '#ec4899' }}>
-                                                                {sub.aiScore != null ? `${sub.aiScore}%` : '-'}
-                                                            </td>
+                                        <h3 className="font-bold text-gray-700 mb-4">📝 สถิติแต่ละโจทย์</h3>
+                                        {assignments.length === 0 ? (
+                                            <p className="text-gray-400 text-sm text-center py-6">ยังไม่มีโจทย์ในรายวิชานี้</p>
+                                        ) : (
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm">
+                                                    <thead>
+                                                        <tr style={{ borderBottom: '2px solid #fce7f3' }}>
+                                                            {['โจทย์', 'ประเภท', 'นักเรียนที่ลอง', 'ครั้งส่ง', 'อัตราผ่าน', 'คะแนนเฉลี่ย', ''].map(h => (
+                                                                <th key={h} className="text-left py-3 px-2 text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                                                            ))}
                                                         </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        {assignments.map(a => {
+                                                            const stats = getAssignmentStats(a.id);
+                                                            return (
+                                                                <tr key={a.id} style={{ borderBottom: '1px solid #fce7f3' }}
+                                                                    className="hover:bg-pink-50 transition-colors">
+                                                                    <td className="py-3 px-2">
+                                                                        <div className="font-medium text-gray-800">{a.title}</div>
+                                                                        <div className="text-xs text-gray-400">{a.difficulty}</div>
+                                                                    </td>
+                                                                    <td className="py-3 px-2">
+                                                                        {a.assignmentType === 'exam'
+                                                                            ? <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">🏆 ข้อสอบ</span>
+                                                                            : <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">📝 ฝึกหัด</span>}
+                                                                    </td>
+                                                                    <td className="py-3 px-2 text-center text-gray-600">{stats.uniqueStudents}</td>
+                                                                    <td className="py-3 px-2 text-center text-gray-600">{stats.attempts}</td>
+                                                                    <td className="py-3 px-2 text-center">
+                                                                        <div className="flex items-center justify-center gap-2">
+                                                                            <div style={{
+                                                                                width: `${stats.passRate}%`, height: '6px', borderRadius: '3px', minWidth: '4px',
+                                                                                background: stats.passRate >= 70 ? '#22c55e' : stats.passRate >= 40 ? '#eab308' : '#ef4444',
+                                                                                maxWidth: '60px',
+                                                                            }} />
+                                                                            <span className={`font-bold text-sm ${stats.passRate >= 70 ? 'text-green-600' : stats.passRate >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                                                {stats.passRate}%
+                                                                            </span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="py-3 px-2 text-center font-bold"
+                                                                        style={{ color: stats.avgScore >= 70 ? '#16a34a' : stats.avgScore >= 40 ? '#d97706' : '#dc2626' }}>
+                                                                        {stats.avgScore}%
+                                                                    </td>
+                                                                    <td className="py-3 px-2">
+                                                                        <button onClick={() => setSelectedAssignment(a.id === selectedAssignment ? '' : a.id)}
+                                                                            className="text-xs px-3 py-1 rounded-lg font-medium transition-all"
+                                                                            style={{ background: a.id === selectedAssignment ? '#ec4899' : '#fce7f3', color: a.id === selectedAssignment ? 'white' : '#be185d' }}>
+                                                                            {a.id === selectedAssignment ? 'ปิด' : 'ดูนักเรียน'}
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+
+                                        {selectedAssignment && (
+                                            <div className="mt-6 pt-6" style={{ borderTop: '1px solid #fce7f3' }}>
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="font-bold text-gray-700">
+                                                        👥 ผลนักเรียน: {assignments.find(a => a.id === selectedAssignment)?.title}
+                                                    </h3>
+                                                    <button onClick={() => setSelectedAssignment('')}
+                                                        className="text-gray-400 hover:text-gray-600 text-sm px-3 py-1 rounded-lg hover:bg-gray-100">✕ ปิด</button>
+                                                </div>
+                                                {studentResults.length === 0 ? (
+                                                    <p className="text-gray-400 text-sm text-center py-6">ยังไม่มีนักเรียนส่งงานนี้</p>
+                                                ) : (
+                                                    <div className="overflow-x-auto">
+                                                        <table className="w-full text-sm">
+                                                            <thead>
+                                                                <tr style={{ borderBottom: '2px solid #fce7f3' }}>
+                                                                    {['#', 'นักเรียน', 'สถานะ', 'ผ่าน Test', 'คะแนนสูงสุด', 'จำนวนครั้ง', 'AI Score'].map(h => (
+                                                                        <th key={h} className="text-left py-3 px-2 text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                                                                    ))}
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {studentResults.map((sub, idx) => {
+                                                                    const student = students[sub.studentId];
+                                                                    const info = STATUS_LABELS[sub.status] || STATUS_LABELS.pending;
+                                                                    return (
+                                                                        <tr key={sub.id} style={{ borderBottom: '1px solid #fce7f3' }} className="hover:bg-pink-50">
+                                                                            <td className="py-2 px-2 text-gray-400 text-xs">{idx + 1}</td>
+                                                                            <td className="py-2 px-2 font-medium text-gray-800">
+                                                                                {student?.displayName || sub.studentId.slice(0, 8)}
+                                                                            </td>
+                                                                            <td className="py-2 px-2"><span className="text-xs">{info.icon} {info.text}</span></td>
+                                                                            <td className="py-2 px-2 text-center text-gray-600">{sub.passedTests}/{sub.totalTests}</td>
+                                                                            <td className="py-2 px-2 text-center font-bold" style={{
+                                                                                color: sub.score >= 80 ? '#16a34a' : sub.score >= 50 ? '#d97706' : '#dc2626'
+                                                                            }}>{sub.score}%</td>
+                                                                            <td className="py-2 px-2 text-center">
+                                                                                <span className={`text-xs px-2 py-0.5 rounded-full ${sub.totalAttempts >= 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                                                    {sub.totalAttempts} ครั้ง
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="py-2 px-2 text-center" style={{ color: '#ec4899' }}>
+                                                                                {sub.aiScore != null ? `${sub.aiScore}%` : '-'}
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+
+                                {/* ─── TAB 2: INDIVIDUAL ─── */}
+                                {activeTab === 'individual' && (
+                                    <div>
+                                        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                                            <div className="flex-1">
+                                                <label className="block text-sm font-medium text-gray-600 mb-2">👤 เลือกนักเรียน:</label>
+                                                <select value={selectedStudentId}
+                                                    onChange={e => loadStudentDetail(e.target.value)}
+                                                    className="k-input">
+                                                    <option value="">-- เลือกนักเรียน --</option>
+                                                    {Object.entries(students).map(([sid, st]) => (
+                                                        <option key={sid} value={sid}>{st.displayName}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            {selectedStudentId && (
+                                                <div className="flex items-end">
+                                                    <button onClick={handleGenerateStudentReport}
+                                                        disabled={reportLoading}
+                                                        className="k-btn-pink px-6 py-2 text-sm disabled:opacity-50">
+                                                        {reportLoading ? '⏳ กำลังวิเคราะห์...' : '🤖 วิเคราะห์ด้วย AI'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {selectedStudentId && (
+                                            <>
+                                                {/* Student submission history */}
+                                                <div className="mb-6">
+                                                    <h3 className="font-bold text-gray-700 mb-3">📋 ประวัติการส่งงาน ({studentSubs.length} รายการ)</h3>
+                                                    {studentSubs.length === 0 ? (
+                                                        <p className="text-gray-400 text-sm text-center py-6">ยังไม่มีการส่งงาน</p>
+                                                    ) : (
+                                                        <div className="overflow-x-auto">
+                                                            <table className="w-full text-sm">
+                                                                <thead>
+                                                                    <tr style={{ borderBottom: '2px solid #fce7f3' }}>
+                                                                        {['โจทย์', 'สถานะ', 'ผ่าน', 'คะแนน', 'วันที่'].map(h => (
+                                                                            <th key={h} className="text-left py-2 px-2 text-xs font-semibold text-gray-500">{h}</th>
+                                                                        ))}
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {studentSubs.map(sub => {
+                                                                        const assign = assignments.find(a => a.id === sub.assignmentId);
+                                                                        const info = STATUS_LABELS[sub.status] || STATUS_LABELS.pending;
+                                                                        return (
+                                                                            <tr key={sub.id} style={{ borderBottom: '1px solid #fce7f3' }} className="hover:bg-pink-50">
+                                                                                <td className="py-2 px-2 font-medium text-gray-800">{assign?.title || sub.assignmentId?.slice(0, 10)}</td>
+                                                                                <td className="py-2 px-2 text-xs">{info.icon} {info.text}</td>
+                                                                                <td className="py-2 px-2 text-center text-gray-600">{sub.passedTests}/{sub.totalTests}</td>
+                                                                                <td className="py-2 px-2 text-center font-bold"
+                                                                                    style={{ color: sub.score >= 80 ? '#16a34a' : sub.score >= 50 ? '#d97706' : '#dc2626' }}>
+                                                                                    {sub.score}%
+                                                                                </td>
+                                                                                <td className="py-2 px-2 text-xs text-gray-400">
+                                                                                    {sub.submittedAt?.toDate ? sub.submittedAt.toDate().toLocaleDateString('th-TH') : '-'}
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* AI Report Card */}
+                                                {reportLoading && (
+                                                    <div className="text-center py-10 text-gray-400">
+                                                        <div className="text-4xl mb-3 animate-pulse">🤖</div>
+                                                        <p>AI กำลังวิเคราะห์นักเรียน...</p>
+                                                    </div>
+                                                )}
+                                                {studentReport && (
+                                                    <div className="space-y-4">
+                                                        <h3 className="font-bold text-gray-700">🤖 รายงาน AI: {students[selectedStudentId]?.displayName}</h3>
+
+                                                        <div className="rounded-2xl p-5" style={{ background: 'linear-gradient(135deg,#FFF0F5,#FFD1DC)', border: '1px solid #FFB6C8' }}>
+                                                            <div className="text-sm font-semibold mb-1" style={{ color: '#AD1457' }}>ภาพรวม</div>
+                                                            <p className="text-gray-700 text-sm leading-relaxed">{studentReport.overview}</p>
+                                                        </div>
+
+                                                        <div className="grid sm:grid-cols-2 gap-4">
+                                                            <div className="rounded-2xl p-5 bg-green-50 border border-green-100">
+                                                                <div className="font-semibold text-green-700 mb-2 text-sm">✅ จุดแข็ง</div>
+                                                                <ul className="space-y-1">
+                                                                    {(studentReport.strengths || []).map((s, i) => (
+                                                                        <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-green-500">•</span>{s}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                            <div className="rounded-2xl p-5 bg-orange-50 border border-orange-100">
+                                                                <div className="font-semibold text-orange-700 mb-2 text-sm">📈 จุดที่ต้องพัฒนา</div>
+                                                                <ul className="space-y-1">
+                                                                    {(studentReport.improvements || []).map((s, i) => (
+                                                                        <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-orange-500">•</span>{s}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+
+                                                        {studentReport.pattern && (
+                                                            <div className="rounded-2xl p-5 bg-blue-50 border border-blue-100">
+                                                                <div className="font-semibold text-blue-700 mb-1 text-sm">🔍 รูปแบบการเรียนรู้</div>
+                                                                <p className="text-sm text-gray-700">{studentReport.pattern}</p>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="rounded-2xl p-5" style={{ background: '#fdf2f8', border: '1px solid #fce7f3' }}>
+                                                            <div className="font-semibold mb-1 text-sm" style={{ color: '#be185d' }}>💡 คำแนะนำสำหรับนักเรียนคนนี้</div>
+                                                            <p className="text-sm text-gray-700">{studentReport.advice}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {!selectedStudentId && (
+                                            <div className="text-center py-16 text-gray-400">
+                                                <div className="text-5xl mb-3">👤</div>
+                                                <p>เลือกนักเรียนเพื่อดูรายละเอียด</p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
+
+                                {/* ─── TAB 3: SELF-PRACTICE SCORES ─── */}
+                                {activeTab === 'practice' && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="font-bold text-gray-700">🎯 คะแนนการฝึกทำโจทย์ตามความสนใจ</h3>
+                                            <button onClick={loadPracticeData} disabled={practiceLoading}
+                                                className="text-sm px-4 py-2 rounded-xl font-medium disabled:opacity-50"
+                                                style={{ background: '#fce7f3', color: '#be185d' }}>
+                                                {practiceLoading ? '⏳ โหลด...' : '🔄 รีเฟรช'}
+                                            </button>
+                                        </div>
+
+                                        {practiceLoading ? <Spinner /> : (
+                                            <>
+                                                {/* Summary stats */}
+                                                <div className="grid grid-cols-3 gap-4 mb-6">
+                                                    {[
+                                                        { label: 'นักเรียนที่ฝึก', value: Object.keys(practiceByStudent).length, icon: '👥' },
+                                                        { label: 'โจทย์ที่ฝึกรวม', value: practiceData.length, icon: '📝' },
+                                                        { label: 'คะแนนรวมทั้งหมด', value: practiceData.reduce((s, p) => s + (p.actualScore || 0), 0), icon: '⭐' },
+                                                    ].map(s => (
+                                                        <div key={s.label} className="rounded-xl p-4 text-center" style={{ background: '#fdf2f8', border: '1px solid #fce7f3' }}>
+                                                            <div className="text-2xl mb-1">{s.icon}</div>
+                                                            <div className="text-xl font-bold" style={{ color: '#be185d' }}>{s.value}</div>
+                                                            <div className="text-xs text-gray-500">{s.label}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Per-student table */}
+                                                {enrollments.length === 0 ? (
+                                                    <p className="text-gray-400 text-sm text-center py-6">ยังไม่มีนักเรียนลงทะเบียน</p>
+                                                ) : (
+                                                    <div className="overflow-x-auto">
+                                                        <table className="w-full text-sm">
+                                                            <thead>
+                                                                <tr style={{ borderBottom: '2px solid #fce7f3' }}>
+                                                                    {['#', 'นักเรียน', 'โจทย์ที่ฝึก', 'คะแนนรวม', 'ง่าย', 'ปานกลาง', 'ยาก', 'คะแนนเฉลี่ย'].map(h => (
+                                                                        <th key={h} className="text-left py-3 px-2 text-xs font-semibold text-gray-500">{h}</th>
+                                                                    ))}
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {enrollments.map((enroll, idx) => {
+                                                                    const sid = enroll.studentId;
+                                                                    const student = students[sid];
+                                                                    const prac = practiceByStudent[sid] || { count: 0, totalScore: 0, items: [] };
+                                                                    const byDiff = (d) => prac.items.filter(p => p.difficulty === d);
+                                                                    return (
+                                                                        <tr key={sid} style={{ borderBottom: '1px solid #fce7f3' }} className="hover:bg-pink-50">
+                                                                            <td className="py-2 px-2 text-gray-400 text-xs">{idx + 1}</td>
+                                                                            <td className="py-2 px-2 font-medium text-gray-800">
+                                                                                {student?.displayName || sid.slice(0, 8)}
+                                                                            </td>
+                                                                            <td className="py-2 px-2 text-center">
+                                                                                <span className={`text-xs px-2 py-0.5 rounded-full ${prac.count > 0 ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-400'}`}>
+                                                                                    {prac.count} โจทย์
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="py-2 px-2 text-center font-bold" style={{ color: prac.totalScore > 0 ? '#be185d' : '#9ca3af' }}>
+                                                                                {prac.totalScore} คะแนน
+                                                                            </td>
+                                                                            {['ง่าย', 'ปานกลาง', 'ยาก'].map(d => (
+                                                                                <td key={d} className="py-2 px-2 text-center text-xs text-gray-600">
+                                                                                    {byDiff(d).length > 0 ? `${byDiff(d).length} โจทย์` : <span className="text-gray-300">-</span>}
+                                                                                </td>
+                                                                            ))}
+                                                                            <td className="py-2 px-2 text-center text-xs" style={{ color: '#ec4899' }}>
+                                                                                {prac.count > 0 ? Math.round(prac.totalScore / prac.count) : '-'}
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+
+                                                {/* Recent practice submissions */}
+                                                {practiceData.length > 0 && (
+                                                    <div className="mt-8">
+                                                        <h3 className="font-bold text-gray-700 mb-3">📜 ประวัติการฝึกล่าสุด (20 รายการ)</h3>
+                                                        <div className="space-y-2">
+                                                            {practiceData
+                                                                .sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0))
+                                                                .slice(0, 20)
+                                                                .map(p => {
+                                                                    const diffColor = p.difficulty === 'ยาก' ? '#dc2626' : p.difficulty === 'ปานกลาง' ? '#d97706' : '#16a34a';
+                                                                    return (
+                                                                        <div key={p.id} className="flex items-center justify-between p-3 rounded-xl"
+                                                                            style={{ background: '#fdf2f8', border: '1px solid #fce7f3' }}>
+                                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                                <span className="text-xs px-2 py-0.5 rounded-full font-semibold shrink-0"
+                                                                                    style={{ background: diffColor + '20', color: diffColor }}>
+                                                                                    {p.difficulty}
+                                                                                </span>
+                                                                                <div className="min-w-0">
+                                                                                    <div className="font-medium text-gray-800 text-sm truncate">{p.problemTitle}</div>
+                                                                                    <div className="text-xs text-gray-400">
+                                                                                        {students[p.studentId]?.displayName || p.displayName} · {p.passedTests}/{p.totalTests} ผ่าน
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="text-right shrink-0 ml-3">
+                                                                                <div className="font-bold text-sm" style={{ color: '#be185d' }}>{p.actualScore} คะแนน</div>
+                                                                                <div className="text-xs text-gray-400">
+                                                                                    {p.submittedAt?.toDate ? p.submittedAt.toDate().toLocaleDateString('th-TH') : '-'}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* ─── TAB 4: AI CLASS REPORT ─── */}
+                                {activeTab === 'aireport' && (
+                                    <div>
+                                        <div className="text-center mb-8">
+                                            <div className="text-5xl mb-3">🤖</div>
+                                            <h3 className="text-lg font-bold text-gray-700 mb-1">รายงาน AI วิเคราะห์ห้องเรียน</h3>
+                                            <p className="text-sm text-gray-500 mb-5">AI จะวิเคราะห์ข้อมูลทั้งหมดและสรุปเป็นรายงาน</p>
+                                            <button onClick={handleGenerateClassReport}
+                                                disabled={classReportLoading}
+                                                className="k-btn-pink px-8 py-3 text-sm disabled:opacity-50">
+                                                {classReportLoading ? '⏳ AI กำลังวิเคราะห์ห้องเรียน...' : '✨ สร้างรายงาน AI'}
+                                            </button>
+                                        </div>
+
+                                        {classReportLoading && (
+                                            <div className="text-center py-10 text-gray-400">
+                                                <div className="text-4xl mb-3" style={{ animation: 'lms-spin 2s linear infinite', display: 'inline-block' }}>⚙️</div>
+                                                <p>กำลังวิเคราะห์ข้อมูลห้องเรียน...</p>
+                                            </div>
+                                        )}
+
+                                        {classReport && (
+                                            <div className="space-y-6">
+                                                {/* Summary banner */}
+                                                <div className="rounded-2xl p-6" style={{
+                                                    background: 'linear-gradient(135deg, #FFF0F5 0%, #FFD1DC 100%)',
+                                                    border: '1px solid #FFB6C8',
+                                                }}>
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <span className="text-3xl">📋</span>
+                                                        <div>
+                                                            <div className="font-bold text-lg" style={{ color: '#AD1457' }}>สรุปภาพรวมห้องเรียน</div>
+                                                            <div className="text-xs text-pink-400">{courses.find(c => c.id === selectedCourse)?.title}</div>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-gray-700 leading-relaxed">{classReport.summary}</p>
+                                                </div>
+
+                                                {/* Strengths + Challenges */}
+                                                <div className="grid sm:grid-cols-2 gap-4">
+                                                    <div className="rounded-2xl p-5 bg-green-50 border border-green-100">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <span className="text-xl">💪</span>
+                                                            <span className="font-bold text-green-700">จุดแข็งของห้องเรียน</span>
+                                                        </div>
+                                                        <ul className="space-y-2">
+                                                            {(classReport.strengths || []).map((s, i) => (
+                                                                <li key={i} className="flex gap-2 text-sm text-gray-700">
+                                                                    <span className="text-green-500 font-bold shrink-0">✓</span>
+                                                                    <span>{s}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    <div className="rounded-2xl p-5 bg-orange-50 border border-orange-100">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <span className="text-xl">⚠️</span>
+                                                            <span className="font-bold text-orange-700">ความท้าทาย</span>
+                                                        </div>
+                                                        <ul className="space-y-2">
+                                                            {(classReport.challenges || []).map((c, i) => (
+                                                                <li key={i} className="flex gap-2 text-sm text-gray-700">
+                                                                    <span className="text-orange-500 font-bold shrink-0">!</span>
+                                                                    <span>{c}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+
+                                                {/* Needs Help */}
+                                                {classReport.needsHelp && classReport.needsHelp.length > 0 && (
+                                                    <div className="rounded-2xl p-5 bg-red-50 border border-red-100">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <span className="text-xl">🆘</span>
+                                                            <span className="font-bold text-red-700">นักเรียนที่ควรได้รับความช่วยเหลือเพิ่มเติม</span>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {classReport.needsHelp.map((name, i) => (
+                                                                <span key={i} className="text-xs px-3 py-1 rounded-full bg-red-100 text-red-700 font-medium">{name}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Self-Practice Insight */}
+                                                {classReport.practiceInsight && (
+                                                    <div className="rounded-2xl p-5" style={{ background: '#fdf2f8', border: '1px solid #fce7f3' }}>
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <span className="text-xl">🎯</span>
+                                                            <span className="font-bold" style={{ color: '#be185d' }}>ภาพรวมการฝึกเอง</span>
+                                                        </div>
+                                                        <p className="text-sm text-gray-700 leading-relaxed">{classReport.practiceInsight}</p>
+                                                    </div>
+                                                )}
+
+                                                {/* Recommendations */}
+                                                <div className="rounded-2xl p-5 bg-blue-50 border border-blue-100">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <span className="text-xl">💡</span>
+                                                        <span className="font-bold text-blue-700">ข้อเสนอแนะสำหรับครู</span>
+                                                    </div>
+                                                    <ol className="space-y-2">
+                                                        {(classReport.recommendations || []).map((r, i) => (
+                                                            <li key={i} className="flex gap-3 text-sm text-gray-700">
+                                                                <span className="font-bold text-blue-500 shrink-0">{i + 1}.</span>
+                                                                <span>{r}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                             </div>
-                        )}
+                        </div>
                     </>
                 )}
             </main>

@@ -34,6 +34,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(Gradebook));
         if (route === '#/student/history')
             return guard(React.createElement(SubmissionHistory));
+        if (route === '#/student/practice')
+            return guard(React.createElement(SelfPractice));
 
         // Default student route
         return guard(React.createElement(StudentDashboard));
