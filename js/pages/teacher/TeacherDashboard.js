@@ -11,10 +11,15 @@ const TeacherDashboard = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const snap = await db.collection('courses')
-                .where('teacherId', '==', userDoc.id)
-                .get();
-            const courseList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const [ownSnap, coSnap] = await Promise.all([
+                db.collection('courses').where('teacherId', '==', userDoc.id).get(),
+                db.collection('courses').where('coTeacherIds', 'array-contains', userDoc.id).get(),
+            ]);
+            const seen = new Set();
+            const courseList = [];
+            [...ownSnap.docs, ...coSnap.docs].forEach(d => {
+                if (!seen.has(d.id)) { seen.add(d.id); courseList.push({ id: d.id, ...d.data() }); }
+            });
             setCourses(courseList);
 
             const courseIds = courseList.map(c => c.id);
@@ -66,7 +71,7 @@ const TeacherDashboard = () => {
                     <>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                             {[
-                                { label: 'รายวิชาของฉัน', value: courses.length, icon: '📚' },
+                                { label: 'รายวิชาทั้งหมด', value: courses.length, icon: '📚' },
                                 { label: 'นักเรียนทั้งหมด', value: stats.totalStudents, icon: '👥' },
                                 { label: 'การส่งงานทั้งหมด', value: stats.totalSubmissions, icon: '📋' },
                                 { label: 'คะแนนเฉลี่ย', value: `${stats.avgScore}%`, icon: '📊' },
@@ -80,7 +85,7 @@ const TeacherDashboard = () => {
                         </div>
 
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-gray-800">📚 รายวิชาของฉัน</h3>
+                            <h3 className="text-lg font-bold text-gray-800">📚 รายวิชาทั้งหมด</h3>
                             <a href="#/teacher/courses"
                                 className="k-btn-pink px-4 py-2 text-sm flex items-center space-x-2" style={{ textDecoration: 'none' }}>
                                 <span>+</span><span>สร้างรายวิชาใหม่</span>
@@ -103,9 +108,14 @@ const TeacherDashboard = () => {
                                         <div className="p-5">
                                             <div className="flex items-start justify-between mb-3">
                                                 <div className="text-2xl">{LANGUAGES[course.language]?.icon || '📚'}</div>
-                                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${course.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                    {course.isPublished ? 'เปิดสอน' : 'ฉบับร่าง'}
-                                                </span>
+                                                <div className="flex gap-1.5 flex-wrap justify-end">
+                                                    {course.teacherId !== userDoc.id && (
+                                                        <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700">👨‍🏫 ร่วมสอน</span>
+                                                    )}
+                                                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${course.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                        {course.isPublished ? 'เปิดสอน' : 'ฉบับร่าง'}
+                                                    </span>
+                                                </div>
                                             </div>
                                             <h4 className="font-bold text-gray-800 mb-1">{course.title}</h4>
                                             <p className="text-xs text-gray-400 mb-4 line-clamp-2">{course.description}</p>
