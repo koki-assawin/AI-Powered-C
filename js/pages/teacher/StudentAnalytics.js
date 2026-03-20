@@ -23,6 +23,11 @@ const StudentAnalytics = () => {
     const [studentReport, setStudentReport] = React.useState(null);
     const [reportLoading, setReportLoading] = React.useState(false);
 
+    // Tab 2: Bulk analysis
+    const [bulkReports, setBulkReports] = React.useState({});       // { studentId: reportText }
+    const [bulkLoading, setBulkLoading] = React.useState(false);
+    const [bulkProgress, setBulkProgress] = React.useState({ current: 0, total: 0 });
+
     // Tab 3: Self-Practice
     const [practiceData, setPracticeData] = React.useState([]);
     const [practiceLoading, setPracticeLoading] = React.useState(false);
@@ -62,15 +67,27 @@ const StudentAnalytics = () => {
                 db.collection('submissions').where('courseId', '==', selectedCourse).get(),
                 db.collection('enrollments').where('courseId', '==', selectedCourse).get(),
             ]);
-            const assigns = assignSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            setAssignments(assigns);
+            setAssignments(assignSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-            setEnrollments(enrollSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-            const studentIds = [...new Set(enrollSnap.docs.map(d => d.data().studentId))];
-            const snaps = await Promise.all(studentIds.map(id => db.collection('users').doc(id).get()));
-            const map = {};
-            snaps.forEach(s => { if (s.exists) map[s.id] = s.data(); });
-            setStudents(map);
+
+            // De-duplicate enrollments by studentId (prevents double-count from duplicate docs)
+            const seenEnroll = new Set();
+            const dedupedEnrollments = [];
+            enrollSnap.docs.forEach(d => {
+                const sid = d.data().studentId;
+                if (!seenEnroll.has(sid)) { seenEnroll.add(sid); dedupedEnrollments.push({ id: d.id, ...d.data() }); }
+            });
+            setEnrollments(dedupedEnrollments);
+
+            const studentIds = [...seenEnroll];
+            if (studentIds.length > 0) {
+                const snaps = await Promise.all(studentIds.map(id => db.collection('users').doc(id).get()));
+                const map = {};
+                snaps.forEach(s => { if (s.exists) map[s.id] = s.data(); });
+                setStudents(map);
+            } else {
+                setStudents({});
+            }
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
     };
@@ -172,13 +189,21 @@ const StudentAnalytics = () => {
     const loadStudentDetail = async (sid) => {
         setSelectedStudentId(sid);
         setStudentReport(null);
+        setBulkReports({});
         if (!sid) { setStudentSubs([]); return; }
-        const snap = await db.collection('submissions')
-            .where('studentId', '==', sid)
-            .where('courseId', '==', selectedCourse)
-            .orderBy('submittedAt', 'desc')
-            .get();
-        setStudentSubs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        try {
+            // Remove orderBy to avoid requiring composite index — sort client-side instead
+            const snap = await db.collection('submissions')
+                .where('studentId', '==', sid)
+                .where('courseId', '==', selectedCourse)
+                .get();
+            const subs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
+            setStudentSubs(subs);
+        } catch (err) {
+            console.error('loadStudentDetail error:', err);
+            setStudentSubs([]);
+        }
     };
 
     const handleGenerateStudentReport = async () => {
@@ -221,6 +246,61 @@ const StudentAnalytics = () => {
         } finally {
             setReportLoading(false);
         }
+    };
+
+    // ── Tab 2: Bulk individual AI reports for all students ──
+    const handleBulkReport = async () => {
+        const studentIds = Object.keys(students);
+        if (studentIds.length === 0) return;
+        if (!confirm(`วิเคราะห์นักเรียนทั้งหมด ${studentIds.length} คน ด้วย AI?\nอาจใช้เวลาสักครู่`)) return;
+        setBulkLoading(true);
+        setBulkReports({});
+        setBulkProgress({ current: 0, total: studentIds.length });
+        const courseTitle = courses.find(c => c.id === selectedCourse)?.title || '';
+
+        for (let i = 0; i < studentIds.length; i++) {
+            const sid = studentIds[i];
+            setBulkProgress({ current: i + 1, total: studentIds.length });
+            try {
+                // Load submissions for this student
+                const snap = await db.collection('submissions')
+                    .where('studentId', '==', sid)
+                    .where('courseId', '==', selectedCourse)
+                    .get();
+                const subs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                    .sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
+
+                const practiceItems = practiceData.filter(p => p.studentId === sid);
+                const data = {
+                    course: courseTitle,
+                    totalSubmissions: subs.length,
+                    avgScore: subs.length ? Math.round(subs.reduce((s, x) => s + (x.score || 0), 0) / subs.length) : 0,
+                    passedCount: subs.filter(s => s.status === 'accepted').length,
+                    recentSubmissions: subs.slice(0, 5).map(s => ({
+                        assignment: assignments.find(a => a.id === s.assignmentId)?.title || s.assignmentId,
+                        score: s.score, status: s.status,
+                        passedTests: s.passedTests, totalTests: s.totalTests,
+                    })),
+                    selfPractice: {
+                        totalProblems: practiceItems.length,
+                        totalScore: practiceItems.reduce((s, p) => s + (p.actualScore || 0), 0),
+                        byDifficulty: ['ง่าย', 'ปานกลาง', 'ยาก'].map(d => ({
+                            difficulty: d,
+                            count: practiceItems.filter(p => p.difficulty === d).length,
+                            avgScore: (() => {
+                                const items = practiceItems.filter(p => p.difficulty === d);
+                                return items.length ? Math.round(items.reduce((s, p) => s + (p.actualScore || 0), 0) / items.length) : 0;
+                            })(),
+                        })),
+                    },
+                };
+                const report = await generateStudentReport(students[sid]?.displayName || sid, data);
+                setBulkReports(prev => ({ ...prev, [sid]: report }));
+            } catch (err) {
+                setBulkReports(prev => ({ ...prev, [sid]: `❌ วิเคราะห์ไม่สำเร็จ: ${err.message}` }));
+            }
+        }
+        setBulkLoading(false);
     };
 
     // ── Tab 4: Class AI Report ──
@@ -529,11 +609,12 @@ const StudentAnalytics = () => {
                                 {/* ─── TAB 2: INDIVIDUAL ─── */}
                                 {activeTab === 'individual' && (
                                     <div>
-                                        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                                            <div className="flex-1">
+                                        {/* Controls row */}
+                                        <div className="flex flex-col sm:flex-row gap-3 mb-6 items-end flex-wrap">
+                                            <div className="flex-1 min-w-0">
                                                 <label className="block text-sm font-medium text-gray-600 mb-2">👤 เลือกนักเรียน:</label>
                                                 <select value={selectedStudentId}
-                                                    onChange={e => loadStudentDetail(e.target.value)}
+                                                    onChange={e => { loadStudentDetail(e.target.value); setBulkReports({}); }}
                                                     className="k-input">
                                                     <option value="">-- เลือกนักเรียน --</option>
                                                     {Object.entries(students).map(([sid, st]) => (
@@ -542,15 +623,53 @@ const StudentAnalytics = () => {
                                                 </select>
                                             </div>
                                             {selectedStudentId && (
-                                                <div className="flex items-end">
-                                                    <button onClick={handleGenerateStudentReport}
-                                                        disabled={reportLoading}
-                                                        className="k-btn-pink px-6 py-2 text-sm disabled:opacity-50">
-                                                        {reportLoading ? '⏳ กำลังวิเคราะห์...' : '🤖 วิเคราะห์ด้วย AI'}
-                                                    </button>
-                                                </div>
+                                                <button onClick={handleGenerateStudentReport}
+                                                    disabled={reportLoading || bulkLoading}
+                                                    className="k-btn-pink px-4 py-2 text-sm disabled:opacity-50 shrink-0">
+                                                    {reportLoading ? '⏳ กำลังวิเคราะห์...' : '🤖 วิเคราะห์คนนี้'}
+                                                </button>
+                                            )}
+                                            {Object.keys(students).length > 0 && (
+                                                <button onClick={() => { setSelectedStudentId(''); setStudentSubs([]); setStudentReport(null); handleBulkReport(); }}
+                                                    disabled={bulkLoading || reportLoading}
+                                                    className="px-4 py-2 text-sm font-bold rounded-xl disabled:opacity-50 shrink-0"
+                                                    style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'white', border:'none' }}>
+                                                    {bulkLoading
+                                                        ? `⏳ กำลังวิเคราะห์ ${bulkProgress.current}/${bulkProgress.total}...`
+                                                        : `🤖 วิเคราะห์ทั้งห้อง (${Object.keys(students).length} คน)`}
+                                                </button>
                                             )}
                                         </div>
+
+                                        {/* Bulk report progress */}
+                                        {bulkLoading && (
+                                            <div className="mb-4 p-3 rounded-xl" style={{ background:'#F5F3FF', border:'1px solid #DDD6FE' }}>
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className="text-sm font-medium text-purple-700">
+                                                        🤖 กำลังวิเคราะห์ {bulkProgress.current}/{bulkProgress.total} คน...
+                                                    </div>
+                                                </div>
+                                                <div className="w-full bg-purple-100 rounded-full h-2">
+                                                    <div className="h-2 rounded-full transition-all"
+                                                        style={{ background:'#7C3AED', width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }} />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Bulk reports result */}
+                                        {!bulkLoading && Object.keys(bulkReports).length > 0 && !selectedStudentId && (
+                                            <div className="space-y-4 mb-6">
+                                                <h3 className="font-bold text-gray-700">🤖 รายงาน AI รายบุคคลทั้งห้อง ({Object.keys(bulkReports).length} คน)</h3>
+                                                {Object.entries(bulkReports).map(([sid, report]) => (
+                                                    <div key={sid} className="rounded-2xl p-4" style={{ background:'#F5F3FF', border:'1px solid #DDD6FE' }}>
+                                                        <div className="font-bold text-purple-800 mb-2 text-sm">
+                                                            👤 {students[sid]?.displayName || sid}
+                                                        </div>
+                                                        <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{report}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
 
                                         {selectedStudentId && (
                                             <>
