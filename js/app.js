@@ -26,7 +26,7 @@ const renderRoute = (route, role) => {
 
         if (route === '#/student/dashboard')
             return guard(React.createElement(StudentDashboard));
-        if (route === '#/student/courses')
+        if (route.startsWith('#/student/courses'))
             return guard(React.createElement(CourseViewer));
         if (route.startsWith('#/student/workspace'))
             return guard(React.createElement(CodingWorkspace));
@@ -50,13 +50,13 @@ const renderRoute = (route, role) => {
 
         if (route === '#/teacher/dashboard')
             return guard(React.createElement(TeacherDashboard));
-        if (route === '#/teacher/courses')
+        if (route.startsWith('#/teacher/courses'))
             return guard(React.createElement(CourseBuilder));
         if (route.startsWith('#/teacher/assignment'))
             return guard(React.createElement(AssignmentManager));
         if (route.startsWith('#/teacher/testcases'))
             return guard(React.createElement(TestCaseEditor));
-        if (route === '#/teacher/analytics')
+        if (route.startsWith('#/teacher/analytics'))
             return guard(React.createElement(StudentAnalytics));
         if (route.startsWith('#/teacher/students'))
             return guard(React.createElement(StudentManagement));
