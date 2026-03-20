@@ -118,7 +118,12 @@ const TeacherDashboard = () => {
                                                 </div>
                                             </div>
                                             <h4 className="font-bold text-gray-800 mb-1">{course.title}</h4>
-                                            <p className="text-xs text-gray-400 mb-4 line-clamp-2">{course.description}</p>
+                                            <div className="flex flex-wrap gap-1 mb-2">
+                                                {course.grade && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background:'#FFF0F5', color:'#AD1457' }}>{course.grade}</span>}
+                                                {course.room  && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">ห้อง {course.room}</span>}
+                                                {course.semester && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">เทอม {course.semester}/{course.academicYear || ''}</span>}
+                                            </div>
+                                            <p className="text-xs text-gray-400 mb-3 line-clamp-2">{course.description}</p>
                                             <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
                                                 <span>👥 {course.enrollmentCount || 0} นักเรียน</span>
                                                 <span>{LANGUAGES[course.language]?.name}</span>

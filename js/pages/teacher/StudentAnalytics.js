@@ -42,8 +42,16 @@ const StudentAnalytics = () => {
     }, [activeTab, selectedCourse]);
 
     const loadCourses = async () => {
-        const snap = await db.collection('courses').where('teacherId', '==', userDoc.id).get();
-        setCourses(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const [ownSnap, coSnap] = await Promise.all([
+            db.collection('courses').where('teacherId', '==', userDoc.id).get(),
+            db.collection('courses').where('coTeacherIds', 'array-contains', userDoc.id).get(),
+        ]);
+        const seen = new Set();
+        const list = [];
+        [...ownSnap.docs, ...coSnap.docs].forEach(d => {
+            if (!seen.has(d.id)) { seen.add(d.id); list.push({ id: d.id, ...d.data() }); }
+        });
+        setCourses(list);
     };
 
     const loadAnalytics = async () => {
@@ -322,7 +330,7 @@ const StudentAnalytics = () => {
                         }}
                         className="k-input" style={{ maxWidth: '360px' }}>
                         <option value="">-- เลือกรายวิชา --</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}{c.grade ? ` · ${c.grade}` : ''}{c.room ? ` ห้อง ${c.room}` : ''}{c.semester ? ` เทอม ${c.semester}/${c.academicYear || ''}` : ''}</option>)}
                     </select>
                 </div>
 

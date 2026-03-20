@@ -190,7 +190,7 @@ const StudentManagement = () => {
                     <select value={selectedCourseId} onChange={e => { setSelectedCourseId(e.target.value); setSearch(''); setSearchResults([]); }}
                         className="k-input" style={{ maxWidth: '380px' }}>
                         <option value="">-- เลือกรายวิชา --</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}{c.grade ? ` · ${c.grade}` : ''}{c.room ? ` ห้อง ${c.room}` : ''}{c.semester ? ` เทอม ${c.semester}/${c.academicYear || ''}` : ''}</option>)}
                     </select>
                 </div>
 
