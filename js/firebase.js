@@ -3,18 +3,15 @@
 // This file MUST be loaded first (before all other js/ files)
 // ============================================================
 
-// ⚠️ ADMIN SETUP REQUIRED:
-// Replace the placeholder values below with your actual Firebase
-// Web App configuration from Firebase Console > Project Settings > Your apps
-// The PathoVetAssist project's databaseURL is pre-filled.
+// ai-powered-coding Firebase project (dedicated project for this LMS)
 const firebaseConfig = {
-    apiKey: "AIzaSyCu21yPXCeRDYxcVsB_9MLTiPCaa1OgCcM",         // ← Replace this
-    authDomain: "pathovetassist.firebaseapp.com", // ← Replace this
-    databaseURL: "https://pathovetassist-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "pathovetassist",                 // ← Replace this
-    storageBucket: "pathovetassist.firebasestorage.app", // ← Replace this
-    messagingSenderId: "17025284854",          // ← Replace this
-    appId: "1:17025284854:web:13adce1651d17e103b0ad7"                          // ← Replace this
+    apiKey: "AIzaSyD_8EGyQoll3B4fgpw-j0cT5o9n42zlGpw",
+    authDomain: "ai-powered-coding-596ed.firebaseapp.com",
+    databaseURL: "https://ai-powered-coding-596ed-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ai-powered-coding-596ed",
+    storageBucket: "ai-powered-coding-596ed.firebasestorage.app",
+    messagingSenderId: "518916777393",
+    appId: "1:518916777393:web:e63d5e780051a1baca4990"
 };
 
 // Initialize Firebase (guard against duplicate init during hot-reload)
