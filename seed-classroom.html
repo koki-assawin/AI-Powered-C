@@ -510,8 +510,7 @@ const SP_SCENARIOS = [
    title:'ฟังก์ชันคำนวณค่าครองชีพรายเดือน',
    desc:'เขียนฟังก์ชัน totalBudget(expenses[], n) รวมรายจ่าย และ savings(income, expenses[], n) คืนเงินคงเหลือ รับข้อมูลจาก main() แสดงผล',
    code:`#include <stdio.h>\ndouble totalBudget(double a[],int n){double s=0;for(int i=0;i<n;i++)s+=a[i];return s;}\ndouble savings(double inc,double a[],int n){return inc-totalBudget(a,n);}\nint main(){int n;scanf("%d",&n);double a[100],inc;scanf("%lf",&inc);for(int i=0;i<n;i++)scanf("%lf",&a[i]);printf("รายจ่ายรวม: %.2f\\nเงินคงเหลือ: %.2f\\n",totalBudget(a,n),savings(inc,a,n));return 0;}`,pass:4,total:5},
-  // ── PLACEHOLDER: ทำให้ไม่มีสถานการณ์เก่าเหลือ ──
-]];
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utilities
