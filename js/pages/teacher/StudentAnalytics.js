@@ -443,6 +443,7 @@ const StudentAnalytics = () => {
                                 {[
                                     { key: 'overview',  label: '📊 ภาพรวม' },
                                     { key: 'individual', label: '👤 รายบุคคล' },
+                                    { key: 'summary',   label: '📋 สรุปคะแนนทุกคน' },
                                     { key: 'practice',  label: '🎯 คะแนนฝึกเอง' },
                                     { key: 'aireport',  label: '🤖 รายงาน AI' },
                                 ].map(t => (
@@ -497,7 +498,7 @@ const StudentAnalytics = () => {
                                                 <table className="w-full text-sm">
                                                     <thead>
                                                         <tr style={{ borderBottom: '2px solid #fce7f3' }}>
-                                                            {['โจทย์', 'ประเภท', 'นักเรียนที่ลอง', 'ครั้งส่ง', 'อัตราผ่าน', 'คะแนนเฉลี่ย', ''].map(h => (
+                                                            {['โจทย์', 'คะแนนดิบ', 'ประเภท', 'นักเรียนที่ลอง', 'ครั้งส่ง', 'อัตราผ่าน', 'คะแนนเฉลี่ย', ''].map(h => (
                                                                 <th key={h} className="text-left py-3 px-2 text-xs font-semibold text-gray-500 uppercase">{h}</th>
                                                             ))}
                                                         </tr>
@@ -511,6 +512,11 @@ const StudentAnalytics = () => {
                                                                     <td className="py-3 px-2">
                                                                         <div className="font-medium text-gray-800">{a.title}</div>
                                                                         <div className="text-xs text-gray-400">{a.difficulty}</div>
+                                                                    </td>
+                                                                    <td className="py-3 px-2 text-center">
+                                                                        {a.rawScore > 0
+                                                                            ? <span className="text-sm font-bold" style={{ color: '#be185d' }}>{a.rawScore}</span>
+                                                                            : <span className="text-gray-300 text-xs">-</span>}
                                                                     </td>
                                                                     <td className="py-3 px-2">
                                                                         {a.assignmentType === 'exam'
@@ -531,9 +537,15 @@ const StudentAnalytics = () => {
                                                                             </span>
                                                                         </div>
                                                                     </td>
-                                                                    <td className="py-3 px-2 text-center font-bold"
-                                                                        style={{ color: stats.avgScore >= 70 ? '#16a34a' : stats.avgScore >= 40 ? '#d97706' : '#dc2626' }}>
-                                                                        {stats.avgScore}%
+                                                                    <td className="py-3 px-2 text-center">
+                                                                        <div className="font-bold text-sm" style={{ color: stats.avgScore >= 70 ? '#16a34a' : stats.avgScore >= 40 ? '#d97706' : '#dc2626' }}>
+                                                                            {stats.avgScore}%
+                                                                        </div>
+                                                                        {a.rawScore > 0 && (
+                                                                            <div className="text-xs text-gray-400">
+                                                                                ≈ {(stats.avgScore * a.rawScore / 100).toFixed(1)}/{a.rawScore}
+                                                                            </div>
+                                                                        )}
                                                                     </td>
                                                                     <td className="py-3 px-2">
                                                                         <button onClick={() => setSelectedAssignment(a.id === selectedAssignment ? '' : a.id)}
@@ -683,7 +695,7 @@ const StudentAnalytics = () => {
                                                             <table className="w-full text-sm">
                                                                 <thead>
                                                                     <tr style={{ borderBottom: '2px solid #fce7f3' }}>
-                                                                        {['โจทย์', 'สถานะ', 'ผ่าน', 'คะแนน', 'วันที่'].map(h => (
+                                                                        {['โจทย์', 'สถานะ', 'ผ่าน', 'คะแนน%', 'คะแนนดิบ', 'วันที่'].map(h => (
                                                                             <th key={h} className="text-left py-2 px-2 text-xs font-semibold text-gray-500">{h}</th>
                                                                         ))}
                                                                     </tr>
@@ -692,6 +704,7 @@ const StudentAnalytics = () => {
                                                                     {studentSubs.map(sub => {
                                                                         const assign = assignments.find(a => a.id === sub.assignmentId);
                                                                         const info = STATUS_LABELS[sub.status] || STATUS_LABELS.pending;
+                                                                        const earned = assign?.rawScore > 0 ? Math.round((sub.score || 0) * assign.rawScore / 100) : null;
                                                                         return (
                                                                             <tr key={sub.id} style={{ borderBottom: '1px solid #fce7f3' }} className="hover:bg-pink-50">
                                                                                 <td className="py-2 px-2 font-medium text-gray-800">{assign?.title || sub.assignmentId?.slice(0, 10)}</td>
@@ -700,6 +713,9 @@ const StudentAnalytics = () => {
                                                                                 <td className="py-2 px-2 text-center font-bold"
                                                                                     style={{ color: sub.score >= 80 ? '#16a34a' : sub.score >= 50 ? '#d97706' : '#dc2626' }}>
                                                                                     {sub.score}%
+                                                                                </td>
+                                                                                <td className="py-2 px-2 text-center font-bold" style={{ color: '#be185d' }}>
+                                                                                    {earned !== null ? `${earned}/${assign.rawScore}` : <span className="text-gray-300">-</span>}
                                                                                 </td>
                                                                                 <td className="py-2 px-2 text-xs text-gray-400">
                                                                                     {sub.submittedAt?.toDate ? sub.submittedAt.toDate().toLocaleDateString('th-TH') : '-'}
@@ -773,7 +789,221 @@ const StudentAnalytics = () => {
                                     </div>
                                 )}
 
-                                {/* ─── TAB 3: SELF-PRACTICE SCORES ─── */}
+                                {/* ─── TAB 3: SUMMARY SCORES ─── */}
+                                {activeTab === 'summary' && (() => {
+                                    // Group assignments by unitName (preserve insertion order)
+                                    const unitNames = [];
+                                    const unitMap = {};
+                                    assignments.forEach(a => {
+                                        const u = a.unitName || 'ไม่ระบุหน่วย';
+                                        if (!unitMap[u]) { unitMap[u] = []; unitNames.push(u); }
+                                        unitMap[u].push(a);
+                                    });
+
+                                    // Best score per student per assignment
+                                    const bestScore = {}; // { studentId: { assignmentId: score% } }
+                                    submissions.forEach(sub => {
+                                        if (!bestScore[sub.studentId]) bestScore[sub.studentId] = {};
+                                        const cur = bestScore[sub.studentId][sub.assignmentId] || 0;
+                                        if ((sub.score || 0) > cur) bestScore[sub.studentId][sub.assignmentId] = sub.score || 0;
+                                    });
+
+                                    const hasRawScore = assignments.some(a => a.rawScore > 0);
+                                    const totalRaw = assignments.reduce((s, a) => s + (a.rawScore || 0), 0);
+
+                                    // Export CSV
+                                    const exportCSV = () => {
+                                        const header = ['#', 'รหัส', 'ชื่อ-สกุล',
+                                            ...unitNames.flatMap(u => [
+                                                ...unitMap[u].map(a => `${a.title} (/${a.rawScore||'?'})`),
+                                                `รวม ${u} (/${unitMap[u].reduce((s,a)=>s+(a.rawScore||0),0)})`
+                                            ]),
+                                            `รวมทั้งหมด (/${totalRaw})`, 'ร้อยละ'
+                                        ];
+                                        const rows = enrollments.map((enroll, idx) => {
+                                            const sid = enroll.studentId;
+                                            const st = students[sid];
+                                            const code = st?.studentCode || st?.email?.split('@')[0] || '';
+                                            let grandTotal = 0;
+                                            const unitCols = unitNames.flatMap(u => {
+                                                let unitTotal = 0;
+                                                const cols = unitMap[u].map(a => {
+                                                    const pct = bestScore[sid]?.[a.id] || 0;
+                                                    const earned = a.rawScore > 0 ? Math.round(pct * a.rawScore / 100) : '';
+                                                    if (typeof earned === 'number') { unitTotal += earned; grandTotal += earned; }
+                                                    return earned;
+                                                });
+                                                return [...cols, unitTotal];
+                                            });
+                                            const pct = totalRaw > 0 ? (grandTotal / totalRaw * 100).toFixed(2) : '';
+                                            return [idx+1, code, st?.displayName || sid, ...unitCols, grandTotal, pct];
+                                        });
+                                        const csv = [header, ...rows].map(r => r.join(',')).join('\n');
+                                        const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a'); a.href=url; a.download='E1_scores.csv'; a.click();
+                                        URL.revokeObjectURL(url);
+                                    };
+
+                                    return (
+                                        <div>
+                                            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                                                <div>
+                                                    <h3 className="font-bold text-gray-700">📋 สรุปคะแนนดิบทุกคน (E1)</h3>
+                                                    {hasRawScore
+                                                        ? <p className="text-xs text-gray-400 mt-0.5">คะแนนเต็มรวม {totalRaw} คะแนน · {enrollments.length} คน · {assignments.length} โจทย์</p>
+                                                        : <p className="text-xs text-orange-500 mt-0.5">⚠️ ยังไม่มีข้อมูลคะแนนดิบ — กรุณาตั้งค่า "คะแนนดิบ" ในแต่ละโจทย์ หรือรัน Update rawScore ใน seed-classroom.html</p>
+                                                    }
+                                                </div>
+                                                <button onClick={exportCSV}
+                                                    className="text-sm px-4 py-2 rounded-xl font-medium"
+                                                    style={{ background: '#fce7f3', color: '#be185d' }}>
+                                                    📥 Export CSV
+                                                </button>
+                                            </div>
+
+                                            <div className="overflow-x-auto">
+                                                <table className="text-xs border-collapse" style={{ minWidth: '100%' }}>
+                                                    <thead>
+                                                        {/* Unit group header */}
+                                                        <tr style={{ background: '#FFF0F5' }}>
+                                                            <th className="py-2 px-2 border border-pink-100 text-left sticky left-0 bg-pink-50" rowSpan={2}>#</th>
+                                                            <th className="py-2 px-2 border border-pink-100 text-left sticky left-6 bg-pink-50 whitespace-nowrap" rowSpan={2}>ชื่อ-สกุล</th>
+                                                            {unitNames.map(u => (
+                                                                <th key={u} className="py-2 px-2 border border-pink-100 text-center font-bold whitespace-nowrap"
+                                                                    colSpan={unitMap[u].length + 1}
+                                                                    style={{ color: '#AD1457', background: '#FFF0F5' }}>
+                                                                    {u}
+                                                                    <span className="text-gray-400 font-normal ml-1">
+                                                                        (/{unitMap[u].reduce((s,a)=>s+(a.rawScore||0),0)})
+                                                                    </span>
+                                                                </th>
+                                                            ))}
+                                                            <th className="py-2 px-2 border border-pink-100 text-center font-bold whitespace-nowrap" rowSpan={2}
+                                                                style={{ color: '#be185d', background: '#FFE4EE' }}>
+                                                                รวม<br/>/{totalRaw}
+                                                            </th>
+                                                            <th className="py-2 px-2 border border-pink-100 text-center font-bold whitespace-nowrap" rowSpan={2}
+                                                                style={{ color: '#be185d', background: '#FFE4EE' }}>
+                                                                ร้อยละ
+                                                            </th>
+                                                        </tr>
+                                                        {/* Assignment names header */}
+                                                        <tr style={{ background: '#FFF5F7' }}>
+                                                            {unitNames.flatMap(u => [
+                                                                ...unitMap[u].map(a => (
+                                                                    <th key={a.id} className="py-1 px-1 border border-pink-100 text-center font-medium whitespace-nowrap"
+                                                                        style={{ color: '#C2185B', maxWidth: '80px' }}>
+                                                                        <div style={{ overflow:'hidden', textOverflow:'ellipsis', maxWidth:'80px', whiteSpace:'nowrap' }}
+                                                                            title={a.title}>
+                                                                            {a.title.length > 12 ? a.title.slice(0,12)+'…' : a.title}
+                                                                        </div>
+                                                                        <div className="text-gray-400 font-normal">/{a.rawScore||'?'}</div>
+                                                                    </th>
+                                                                )),
+                                                                <th key={`${u}_sub`} className="py-1 px-2 border border-pink-100 text-center font-bold whitespace-nowrap"
+                                                                    style={{ color: '#AD1457', background: '#FFF0F5' }}>
+                                                                    รวม
+                                                                </th>
+                                                            ])}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {enrollments.map((enroll, idx) => {
+                                                            const sid = enroll.studentId;
+                                                            const st = students[sid];
+                                                            let grandTotal = 0;
+                                                            const cells = unitNames.flatMap(u => {
+                                                                let unitTotal = 0;
+                                                                const asnCells = unitMap[u].map(a => {
+                                                                    const pct = bestScore[sid]?.[a.id] || 0;
+                                                                    const earned = a.rawScore > 0 ? Math.round(pct * a.rawScore / 100) : null;
+                                                                    if (earned !== null) { unitTotal += earned; grandTotal += earned; }
+                                                                    const color = earned === null ? '#9ca3af' : earned >= a.rawScore * 0.8 ? '#16a34a' : earned >= a.rawScore * 0.5 ? '#d97706' : '#dc2626';
+                                                                    return (
+                                                                        <td key={a.id} className="py-1 px-1 text-center border border-pink-50"
+                                                                            style={{ color }}>
+                                                                            {earned !== null ? earned : <span className="text-gray-200">-</span>}
+                                                                        </td>
+                                                                    );
+                                                                });
+                                                                return [
+                                                                    ...asnCells,
+                                                                    <td key={`${u}_sub`} className="py-1 px-2 text-center font-bold border border-pink-100"
+                                                                        style={{ background: '#FFF5F7', color: '#be185d' }}>
+                                                                        {unitTotal}
+                                                                    </td>
+                                                                ];
+                                                            });
+                                                            const pct = totalRaw > 0 ? (grandTotal / totalRaw * 100).toFixed(1) : '-';
+                                                            const grandColor = grandTotal / totalRaw >= 0.8 ? '#16a34a' : grandTotal / totalRaw >= 0.5 ? '#d97706' : '#dc2626';
+                                                            return (
+                                                                <tr key={sid} className="hover:bg-pink-50"
+                                                                    style={{ borderBottom: '1px solid #fce7f3' }}>
+                                                                    <td className="py-1 px-2 text-gray-400 sticky left-0 bg-white">{idx + 1}</td>
+                                                                    <td className="py-1 px-2 font-medium text-gray-800 sticky whitespace-nowrap"
+                                                                        style={{ left: '24px', background: 'white', minWidth: '130px' }}>
+                                                                        {st?.displayName || sid.slice(0,8)}
+                                                                    </td>
+                                                                    {cells}
+                                                                    <td className="py-1 px-2 text-center font-bold border border-pink-100"
+                                                                        style={{ background: '#FFE4EE', color: grandColor, fontSize: '13px' }}>
+                                                                        {grandTotal}
+                                                                    </td>
+                                                                    <td className="py-1 px-2 text-center font-bold border border-pink-100"
+                                                                        style={{ background: '#FFE4EE', color: grandColor }}>
+                                                                        {pct}%
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                        {/* Average row */}
+                                                        {enrollments.length > 0 && (() => {
+                                                            const totals = {};
+                                                            assignments.forEach(a => { totals[a.id] = 0; });
+                                                            let grandSum = 0;
+                                                            enrollments.forEach(e => {
+                                                                assignments.forEach(a => {
+                                                                    const pct = bestScore[e.studentId]?.[a.id] || 0;
+                                                                    const earned = a.rawScore > 0 ? Math.round(pct * a.rawScore / 100) : 0;
+                                                                    totals[a.id] += earned;
+                                                                    grandSum += earned;
+                                                                });
+                                                            });
+                                                            const n = enrollments.length;
+                                                            return (
+                                                                <tr style={{ background: '#FFF0F5', fontWeight: 600, borderTop: '2px solid #fce7f3' }}>
+                                                                    <td className="py-2 px-2 sticky left-0" style={{ background:'#FFF0F5' }}></td>
+                                                                    <td className="py-2 px-2 sticky whitespace-nowrap" style={{ left:'24px', background:'#FFF0F5', color:'#AD1457' }}>
+                                                                        ค่าเฉลี่ย (x̄)
+                                                                    </td>
+                                                                    {unitNames.flatMap(u => [
+                                                                        ...unitMap[u].map(a => (
+                                                                            <td key={a.id} className="py-2 px-1 text-center border border-pink-100" style={{ color:'#C2185B' }}>
+                                                                                {(totals[a.id] / n).toFixed(1)}
+                                                                            </td>
+                                                                        )),
+                                                                        <td key={`${u}_avg`} className="py-2 px-2 text-center border border-pink-100" style={{ color:'#AD1457', background:'#FFF0F5' }}>
+                                                                            {(unitMap[u].reduce((s,a) => s + totals[a.id], 0) / n).toFixed(1)}
+                                                                        </td>
+                                                                    ])}
+                                                                    <td className="py-2 px-2 text-center border border-pink-100" style={{ background:'#FFE4EE', color:'#be185d' }}>
+                                                                        {(grandSum / n).toFixed(1)}
+                                                                    </td>
+                                                                    <td className="py-2 px-2 text-center border border-pink-100" style={{ background:'#FFE4EE', color:'#be185d' }}>
+                                                                        {totalRaw > 0 ? (grandSum / n / totalRaw * 100).toFixed(1) + '%' : '-'}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })()}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* ─── TAB 4: SELF-PRACTICE SCORES ─── */}
                                 {activeTab === 'practice' && (
                                     <div>
                                         <div className="flex items-center justify-between mb-4">
@@ -893,7 +1123,7 @@ const StudentAnalytics = () => {
                                     </div>
                                 )}
 
-                                {/* ─── TAB 4: AI CLASS REPORT ─── */}
+                                {/* ─── TAB 5: AI CLASS REPORT ─── */}
                                 {activeTab === 'aireport' && (
                                     <div>
                                         <div className="text-center mb-8">

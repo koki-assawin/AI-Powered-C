@@ -1,5 +1,23 @@
 {
   "firestore": {
     "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "migrate-firestore.js",
+      "node_modules/**",
+      ".git/**",
+      "**/*.md",
+      "คำแนะนำจากผู้เชี่ยวชาญด้านการทำผลงา.txt"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }

@@ -62,7 +62,7 @@ const AssignmentManager = () => {
         title: '', description: '', language: 'c',
         difficulty: 'ง่าย', timeLimit: 5000, memoryLimit: 256,
         isPublished: false, assignmentType: 'practice', examDurationMinutes: 30,
-        unitName: '', topicName: '',
+        unitName: '', topicName: '', rawScore: 0,
     });
 
     // AI-assist fields (separate from form — don't save to Firestore)
@@ -230,6 +230,7 @@ const AssignmentManager = () => {
             examDurationMinutes: a.examDurationMinutes || 30,
             unitName: a.unitName || '',
             topicName: a.topicName || '',
+            rawScore: a.rawScore || 0,
         });
         setAiTopicPreset('');
         setAiTopicCustom('');
@@ -242,7 +243,7 @@ const AssignmentManager = () => {
         setForm({
             title: '', description: '', language: course?.language || 'c', difficulty: 'ง่าย',
             timeLimit: 5000, memoryLimit: 256, isPublished: false, assignmentType: 'practice',
-            examDurationMinutes: 30, unitName: '', topicName: '',
+            examDurationMinutes: 30, unitName: '', topicName: '', rawScore: 0,
         });
         setAiTopicPreset('');
         setAiTopicCustom('');
@@ -353,6 +354,7 @@ const AssignmentManager = () => {
                                             <span>⏱ {(a.timeLimit || 5000) / 1000}s</span>
                                             <span>💾 {a.memoryLimit || 256}MB</span>
                                             <span>{LANGUAGES[a.language || 'c']?.icon} {LANGUAGES[a.language || 'c']?.name}</span>
+                                            {a.rawScore > 0 && <span style={{ color: '#be185d', fontWeight: 600 }}>📊 {a.rawScore} คะแนนดิบ</span>}
                                         </div>
                                     </div>
                                     <div className="flex items-center flex-wrap gap-2 flex-shrink-0">
@@ -633,6 +635,17 @@ const AssignmentManager = () => {
                                     <input type="number" value={form.memoryLimit}
                                         onChange={e => setForm(f => ({ ...f, memoryLimit: parseInt(e.target.value) }))}
                                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-pink-400" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        คะแนนดิบ (เต็ม)
+                                        <span className="ml-1 text-xs font-normal text-gray-400">— น้ำหนักคะแนนข้อนี้ในหน่วย</span>
+                                    </label>
+                                    <input type="number" min="0" max="100" value={form.rawScore || 0}
+                                        onChange={e => setForm(f => ({ ...f, rawScore: parseInt(e.target.value) || 0 }))}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-pink-400"
+                                        placeholder="เช่น 5, 3, 4" />
+                                    <p className="text-xs text-gray-400 mt-1">ใช้แสดงคะแนนดิบใน Analytics (เช่น 3/5 คะแนน)</p>
                                 </div>
                             </div>
 

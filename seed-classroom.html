@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seed Classroom - ว31281 ม.4/6 ปี 2568</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f1f5f9; min-height: 100vh; padding: 20px; }
+.container { background: white; border-radius: 16px; padding: 32px; max-width: 800px; margin: 0 auto; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+h1 { font-size: 1.4rem; font-weight: 700; color: #1e40af; margin-bottom: 6px; }
+.subtitle { font-size: 0.85rem; color: #6b7280; margin-bottom: 20px; }
+label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 4px; }
+input { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; outline: none; margin-bottom: 14px; }
+input:focus { border-color: #3b82f6; }
+button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.15s; margin: 4px; }
+.btn-blue { background: #2563eb; color: white; } .btn-blue:hover { background: #1d4ed8; }
+.btn-green { background: #059669; color: white; } .btn-green:hover { background: #047857; }
+.btn-red { background: #dc2626; color: white; } .btn-red:hover { background: #b91c1c; }
+.btn-gray { background: #6b7280; color: white; } .btn-gray:hover { background: #4b5563; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.msg { margin-top: 12px; padding: 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.6; }
+.msg.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.msg.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.log { margin-top: 16px; background: #1e293b; color: #e2e8f0; border-radius: 10px; padding: 14px; font-size: 0.78rem; font-family: monospace; max-height: 400px; overflow-y: auto; line-height: 1.8; }
+.log .ok { color: #4ade80; } .log .err { color: #f87171; } .log .wait { color: #fbbf24; } .log .info { color: #60a5fa; }
+.user-info { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; color: #166534; margin-bottom: 12px; }
+.progress { background: #e5e7eb; border-radius: 8px; height: 12px; margin: 8px 0; overflow: hidden; }
+.progress-bar { background: #3b82f6; height: 100%; transition: width 0.3s; border-radius: 8px; }
+.section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin: 12px 0; }
+.section h3 { font-size: 0.95rem; font-weight: 600; color: #1e40af; margin-bottom: 8px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+.stat { background: #eff6ff; border-radius: 8px; padding: 10px; text-align: center; }
+.stat .num { font-size: 1.4rem; font-weight: 700; color: #1d4ed8; }
+.stat .lbl { font-size: 0.75rem; color: #6b7280; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🌱 Seed Classroom — ว31281 ม.4/6</h1>
+  <p class="subtitle">สร้างโครงสร้างรายวิชา + บัญชีนักเรียน 41 คน + ประวัติการส่งงาน ตามข้อมูลการวิจัย ปี 2568</p>
+
+  <div id="loginSection">
+    <label>อีเมล (บัญชีครูอัศวิน หรือ admin)</label>
+    <input type="email" id="email" placeholder="teacher@school.com" value="assawin@triamudomsouth.ac.th" />
+    <label>รหัสผ่าน</label>
+    <input type="password" id="password" placeholder="••••••••" />
+    <button class="btn-blue" id="loginBtn" onclick="doLogin()">🔐 เข้าสู่ระบบ</button>
+  </div>
+
+  <div id="mainSection" style="display:none">
+    <div class="user-info" id="userInfo"></div>
+
+    <div class="section">
+      <h3>📋 ขั้นตอนที่จะดำเนินการ</h3>
+      <ol style="font-size:0.85rem;color:#374151;line-height:2;padding-left:18px">
+        <li>สร้างรายวิชา ว31281 (ภาษา C, ม.4/6, เทอม 1/2568)</li>
+        <li>สร้างโครงสร้าง 4 หน่วย × 4-5 โจทย์ = 17 โจทย์ + test cases</li>
+        <li>สร้างบัญชีนักเรียน 41 คน (email: รหัส@triamudomsouth.ac.th, pass: 123456)</li>
+        <li>ลงทะเบียนนักเรียนทุกคนในรายวิชา</li>
+        <li>สร้างประวัติการส่งงานตามคะแนน E1 (รวม 60 คะแนน)</li>
+      </ol>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="num">41</div><div class="lbl">นักเรียน</div></div>
+      <div class="stat"><div class="num">17</div><div class="lbl">โจทย์</div></div>
+      <div class="stat"><div class="num" id="submissionCount">697</div><div class="lbl">submissions</div></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+      <button class="btn-green" id="seedBtn" onclick="doSeedAll()">🚀 เริ่ม Seed ข้อมูลทั้งหมด</button>
+      <button class="btn-gray" onclick="doSeedCourse()">1️⃣ สร้างรายวิชา+โจทย์เท่านั้น</button>
+      <button class="btn-gray" onclick="doSeedStudents()">2️⃣ สร้างบัญชีนักเรียนเท่านั้น</button>
+      <button class="btn-gray" onclick="doSeedSubmissions()">3️⃣ สร้าง Submissions เท่านั้น</button>
+      <button class="btn-gray" onclick="updateRawScores()" style="background:#7C3AED;color:white;border-color:#7C3AED">📊 อัปเดต rawScore โจทย์</button>
+    </div>
+
+    <div id="progressArea" style="display:none">
+      <div id="progressLabel" style="font-size:0.85rem;color:#374151;margin-top:8px"></div>
+      <div class="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+    </div>
+
+    <div id="log" class="log" style="display:none"></div>
+    <div id="result" style="display:none" class="section">
+      <h3>✅ เสร็จแล้ว!</h3>
+      <div id="resultContent" style="font-size:0.85rem;line-height:1.8"></div>
+    </div>
+  </div>
+
+  <div id="msgBox"></div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Firebase config (ai-powered-coding-596ed)
+// ─────────────────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+    apiKey: "AIzaSyD_8EGyQoll3B4fgpw-j0cT5o9n42zlGpw",
+    authDomain: "ai-powered-coding-596ed.firebaseapp.com",
+    projectId: "ai-powered-coding-596ed",
+    storageBucket: "ai-powered-coding-596ed.firebasestorage.app",
+    messagingSenderId: "518916777393",
+    appId: "1:518916777393:web:e63d5e780051a1baca4990"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const API_KEY = firebaseConfig.apiKey;
+const PROJECT_ID = firebaseConfig.projectId;
+const TS = () => firebase.firestore.FieldValue.serverTimestamp();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Student data: 41 students, codes 11669-11710 (skipping 11690)
+// Names: best-effort decode from encoded document; teacher can fix via admin
+// Scores: u1/u2/u3/u4 = unit scores from E1 sheet (each /15, total /60)
+// ─────────────────────────────────────────────────────────────────────────────
+const STUDENTS = [
+  {code:'11669',name:'นาย อวิช ภูกระนก',         u1:11,u2:14,u3:14,u4:14},
+  {code:'11670',name:'นาย จิรกิต ภูมิกัณษิตานุกุล',u1:8, u2:15,u3:11,u4:13},
+  {code:'11671',name:'นาย จิรัณธิตนต์ สุขสิทธิ์',  u1:13,u2:13,u3:14,u4:11},
+  {code:'11672',name:'นาย เบณิตรุง ยอดเรณโต',      u1:14,u2:11,u3:12,u4:12},
+  {code:'11673',name:'นาย กัณฑ์กล กัวงกา',         u1:11,u2:11,u3:14,u4:12},
+  {code:'11674',name:'นาย อนวิตต์ อวงมุสิก',       u1:12,u2:14,u3:11,u4:12},
+  {code:'11675',name:'นาย กุณฑ์กกัณฑ์ กำแหม่',     u1:14,u2:11,u3:12,u4:15},
+  {code:'11676',name:'นาย นีรวิตต์ สีเซิงลี',       u1:14,u2:14,u3:13,u4:11},
+  {code:'11677',name:'นาย ภูริก สักกะเค้าย',        u1:13,u2:10,u3:11,u4:13},
+  {code:'11678',name:'นาย ภูริกัร ภูกัวเค้ว',       u1:13,u2:14,u3:14,u4:12},
+  {code:'11679',name:'นาย ยศกล กรีการัณฑ์',        u1:11,u2:15,u3:11,u4:13},
+  {code:'11680',name:'นาย รักภูมิ กีสงวร',          u1:13,u2:11,u3:11,u4:12},
+  {code:'11681',name:'นาย สิทธินตศ์ กรรมรัณฑ์',    u1:9, u2:12,u3:12,u4:11},
+  {code:'11682',name:'นาย สุทิกิ ยอดเรณโต',         u1:11,u2:11,u3:14,u4:13},
+  {code:'11683',name:'นางสาว กอวรรณ กิกาณอน',       u1:11,u2:11,u3:12,u4:12},
+  {code:'11684',name:'นางสาว ศิริกัณฑ์า กวงเค้ว',   u1:9, u2:14,u3:15,u4:11},
+  {code:'11685',name:'นางสาว สุทิกรา มฤคทายวัน',    u1:11,u2:12,u3:13,u4:13},
+  {code:'11686',name:'นาย วิกกกล วรการก',            u1:14,u2:11,u3:13,u4:12},
+  {code:'11687',name:'นาย กษิทิ์เกก ละออสุวรรณ',    u1:11,u2:14,u3:14,u4:12},
+  {code:'11688',name:'นาย จิรกัณฑ์ ดึงกาณิ',        u1:10,u2:14,u3:13,u4:10},
+  {code:'11689',name:'นาย จิระเดก เดกห้าว',          u1:11,u2:12,u3:11,u4:14},
+  {code:'11691',name:'นาย กวรวิตต์ กอณกุ่ม',        u1:13,u2:13,u3:12,u4:12},
+  {code:'11692',name:'นาย กระกัษตร หกูสณต์',        u1:12,u2:11,u3:13,u4:11},
+  {code:'11693',name:'นาย กรักกณร กุณต์วย',         u1:11,u2:13,u3:14,u4:14},
+  {code:'11694',name:'นาย สณราณต์ กอณกำ',           u1:10,u2:15,u3:13,u4:14},
+  {code:'11695',name:'นางสาว กวิสรา กราณ์เกรสีห์',  u1:13,u2:14,u3:14,u4:12},
+  {code:'11696',name:'นางสาว กุลิสรา เดณกัณ',       u1:12,u2:13,u3:11,u4:12},
+  {code:'11697',name:'นางสาว กวัณกิรา กามมัณก',     u1:14,u2:10,u3:13,u4:13},
+  {code:'11698',name:'นางสาว กกัณกา กรหมมาศ',       u1:14,u2:12,u3:13,u4:11},
+  {code:'11699',name:'นางสาว กัณวรัณม์ หมื่อกราก',  u1:13,u2:10,u3:15,u4:13},
+  {code:'11700',name:'นางสาว กัณกัณต์ กามกระกิษต์', u1:9, u2:14,u3:14,u4:13},
+  {code:'11701',name:'นางสาว สุกิรา กอณรักษ์',      u1:10,u2:14,u3:13,u4:12},
+  {code:'11702',name:'นาย กิษตุณตศ์ ตื้วยกัณก',     u1:10,u2:14,u3:14,u4:13},
+  {code:'11703',name:'นาย กณกาณิ กูกอก',            u1:12,u2:12,u3:13,u4:12},
+  {code:'11704',name:'นาย กุวากัณต์ กาวเค้ว',       u1:11,u2:14,u3:12,u4:14},
+  {code:'11705',name:'นางสาว กา้กรี สุกสกาย',       u1:14,u2:11,u3:13,u4:11},
+  {code:'11706',name:'นางสาว กากา กัณสว้าก',        u1:12,u2:12,u3:12,u4:13},
+  {code:'11707',name:'นางสาว กากิสา กะกะ',          u1:12,u2:12,u3:13,u4:13},
+  {code:'11708',name:'นางสาว กุณยากุก กอณกัณ',      u1:13,u2:13,u3:14,u4:11},
+  {code:'11709',name:'นางสาว กิยณร กุณ์เวศต์',      u1:12,u2:9, u3:13,u4:13},
+  {code:'11710',name:'นางสาว มากิกา กอณสณต์',       u1:10,u2:13,u3:14,u4:13},
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Course & assignment structure
+// ─────────────────────────────────────────────────────────────────────────────
+const COURSE_INFO = {
+    title: 'ว31281 การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น',
+    description: 'เรียนรู้การเขียนโปรแกรมด้วยภาษา C ตั้งแต่พื้นฐานจนถึงฟังก์ชันและ Array สำหรับนักเรียนชั้น ม.4/6',
+    language: 'c',
+    grade: 'ม.4', room: '6', semester: '1', academicYear: '2568',
+    isPublished: true,
+    directoryTree: [
+        { name: 'หน่วยที่ 1: โครงสร้างโปรแกรม C + I/O', topics: ['Quiz ความรู้ หน่วยที่ 1','กิจกรรม 1-A: Hello World','กิจกรรม 1-B: เครื่องคิดเลข 2 ตัวเลข','กิจกรรม 1-C: พื้นที่และเส้นรอบรูปสามเหลี่ยม'] },
+        { name: 'หน่วยที่ 2: โครงสร้างการตัดสินใจ', topics: ['Quiz ความรู้ หน่วยที่ 2','กิจกรรม 2-A: จัดเกรด A-F','กิจกรรม 2-B: เมนูเครื่องคิดเลข (switch)','กิจกรรม 2-C: ตรวจสอบปีอธิกสุรทิน'] },
+        { name: 'หน่วยที่ 3: โครงสร้างการวนซ้ำ', topics: ['Quiz ความรู้ หน่วยที่ 3','กิจกรรม 3-A: ผลรวม 1 ถึง N','กิจกรรม 3-B: Pattern สามเหลี่ยมดาว','กิจกรรม 3-C: หาเลขจำนวนเฉพาะ 1 ถึง N'] },
+        { name: 'หน่วยที่ 4: ฟังก์ชันและ Array', topics: ['Quiz ความรู้ หน่วยที่ 4','กิจกรรม 4-A: ฟังก์ชันหา Max และ Min','กิจกรรม 4-B: ค่าเฉลี่ย Array','กิจกรรม 4-C: Debug โค้ด','Mini Project'] },
+    ]
+};
+
+// assignments[unitIndex] = array of {title, description, difficulty, topicName, maxPoints, testCases:[{input,output,hidden}]}
+const ASSIGNMENTS_DATA = [
+  // ── Unit 1 ──────────────────────────────────────────────────────────────
+  [
+    { title:'Quiz 1.1 ความรู้โครงสร้างโปรแกรม C', topicName:'Quiz ความรู้ หน่วยที่ 1',
+      description:'แบบทดสอบ MCQ 5 ข้อ วัดความรู้ LO 1-4: โครงสร้าง syntax ภาษา C, printf(), scanf(), Flowchart',
+      difficulty:'ง่าย', maxPoints:5,
+      testCases:[
+        {input:'1',output:'A',hidden:false},{input:'2',output:'A',hidden:false},
+        {input:'3',output:'A',hidden:true},{input:'4',output:'B',hidden:true},{input:'5',output:'A',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 1-A: Hello World และข้อมูลส่วนตัว', topicName:'กิจกรรม 1-A: Hello World',
+      description:'เขียนโปรแกรมภาษา C แสดงผล 4 บรรทัด: Hello, World! / ชื่อ: [ชื่อนักเรียน] / รหัส: [รหัสนักเรียน] / กลุ่ม: [สีกลุ่ม]',
+      difficulty:'ง่าย', maxPoints:3,
+      testCases:[
+        {input:'',output:'Hello, World!',hidden:false},
+        {input:'',output:'Hello, World!\nชื่อ:',hidden:false},
+        {input:'',output:'Hello, World!\nชื่อ:\nรหัส:\nกลุ่ม:',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 1-B: เครื่องคิดเลข 2 ตัวเลข', topicName:'กิจกรรม 1-B: เครื่องคิดเลข 2 ตัวเลข',
+      description:'รับตัวเลข 2 ค่า (a, b) จากผู้ใช้ แล้วแสดงผลการคำนวณ +, -, *, / (ทศนิยม 2 ตำแหน่ง)',
+      difficulty:'ง่าย', maxPoints:4,
+      testCases:[
+        {input:'10\n3',output:'a + b = 13\na - b = 7\na * b = 30\na / b = 3.33',hidden:false},
+        {input:'8\n4',output:'a + b = 12\na - b = 4\na * b = 32\na / b = 2.00',hidden:false},
+        {input:'100\n7',output:'a + b = 107\na - b = 93\na * b = 700\na / b = 14.29',hidden:true},
+        {input:'0\n5',output:'a + b = 5\na - b = -5\na * b = 0\na / b = 0.00',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 1-C: พื้นที่และเส้นรอบรูปสามเหลี่ยม', topicName:'กิจกรรม 1-C: พื้นที่และเส้นรอบรูปสามเหลี่ยมหน้าจั่ว',
+      description:'รับฐาน (base) และความสูง (height) แล้วคำนวณและแสดงผลพื้นที่ และเส้นรอบรูปสามเหลี่ยมหน้าจั่ว (ทศนิยม 4 ตำแหน่ง)',
+      difficulty:'ปานกลาง', maxPoints:3,
+      testCases:[
+        {input:'6.0\n4.0',output:'Area = 12.0000\nPerimeter = 14.4222',hidden:false},
+        {input:'10.0\n5.0',output:'Area = 25.0000\nPerimeter = 22.3607',hidden:false},
+        {input:'3.0\n4.0',output:'Area = 6.0000\nPerimeter = 11.0000',hidden:true}
+      ]
+    },
+  ],
+  // ── Unit 2 ──────────────────────────────────────────────────────────────
+  [
+    { title:'Quiz 2.1 ความรู้การตัดสินใจ if-else, switch', topicName:'Quiz ความรู้ หน่วยที่ 2',
+      description:'แบบทดสอบ MCQ 5 ข้อ วัดความรู้ LO 5-6: if/else, switch, break, เงื่อนไขเชิงตรรกะ',
+      difficulty:'ง่าย', maxPoints:5,
+      testCases:[
+        {input:'1',output:'A',hidden:false},{input:'2',output:'A',hidden:false},
+        {input:'3',output:'A',hidden:true},{input:'4',output:'A',hidden:true},{input:'5',output:'A',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 2-A: จัดเกรด A-F', topicName:'กิจกรรม 2-A: จัดเกรด A-F',
+      description:'รับคะแนน (score) 0-100 แสดงผลเกรดตามเกณฑ์: ≥80=A, 70-79=B, 60-69=C, 50-59=D, <50=F',
+      difficulty:'ง่าย', maxPoints:3,
+      testCases:[
+        {input:'85',output:'Grade: A',hidden:false},
+        {input:'72',output:'Grade: B',hidden:false},
+        {input:'60',output:'Grade: C',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 2-B: เมนูเครื่องคิดเลข (switch)', topicName:'กิจกรรม 2-B: เมนูเครื่องคิดเลข (switch)',
+      description:'รับตัวเลข 2 ค่า และสัญลักษณ์ (+, -, *, /) ใช้ switch เลือกการคำนวณ จัดการ division by zero และ unknown operator',
+      difficulty:'ปานกลาง', maxPoints:4,
+      testCases:[
+        {input:'10\n3\n+',output:'Result: 13',hidden:false},
+        {input:'10\n0\n/',output:'Error: Division by zero',hidden:false},
+        {input:'5\n3\n%',output:'Error: Unknown operator',hidden:true},
+        {input:'-5\n3\n*',output:'Result: -15',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 2-C: ตรวจสอบปีอธิกสุรทิน', topicName:'กิจกรรม 2-C: ตรวจสอบปีอธิกสุรทิน',
+      description:'รับปี ค.ศ. แล้วตรวจสอบว่าเป็นปีอธิกสุรทิน (Leap Year) หรือไม่ หลักการ: หาร 4 ลงตัว AND (ไม่หาร 100 ลงตัว OR หาร 400 ลงตัว)',
+      difficulty:'ปานกลาง', maxPoints:3,
+      testCases:[
+        {input:'2024',output:'2024 is a leap year',hidden:false},
+        {input:'1900',output:'1900 is not a leap year',hidden:false},
+        {input:'2000',output:'2000 is a leap year',hidden:true}
+      ]
+    },
+  ],
+  // ── Unit 3 ──────────────────────────────────────────────────────────────
+  [
+    { title:'Quiz 3.1 ความรู้การวนซ้ำ for, while, do-while', topicName:'Quiz ความรู้ หน่วยที่ 3',
+      description:'แบบทดสอบ MCQ 5 ข้อ วัดความรู้ LO 7-8: for loop, while, do-while, break/continue, nested loop',
+      difficulty:'ง่าย', maxPoints:5,
+      testCases:[
+        {input:'1',output:'A',hidden:false},{input:'2',output:'A',hidden:false},
+        {input:'3',output:'A',hidden:true},{input:'4',output:'A',hidden:true},{input:'5',output:'A',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 3-A: ผลรวม 1 ถึง N', topicName:'กิจกรรม 3-A: ผลรวม 1 ถึง N',
+      description:'รับจำนวนเต็มบวก N แล้วแสดงผลรวม 1+2+3+...+N ในรูปแบบ "Sum = [ผลรวม]"',
+      difficulty:'ง่าย', maxPoints:3,
+      testCases:[
+        {input:'5',output:'Sum = 15',hidden:false},
+        {input:'100',output:'Sum = 5050',hidden:false},
+        {input:'1',output:'Sum = 1',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 3-B: สร้าง Pattern สามเหลี่ยมดาว', topicName:'กิจกรรม 3-B: Pattern สามเหลี่ยมดาว',
+      description:'รับจำนวน n (จำนวนแถว) แล้วพิมพ์รูปสามเหลี่ยมดาว โดยแถวที่ i พิมพ์ดาว i ดวง',
+      difficulty:'ปานกลาง', maxPoints:4,
+      testCases:[
+        {input:'4',output:'*\n**\n***\n****',hidden:false},
+        {input:'1',output:'*',hidden:false},
+        {input:'6',output:'*\n**\n***\n****\n*****\n******',hidden:true},
+        {input:'0',output:'',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 3-C: หาเลขจำนวนเฉพาะ 1 ถึง N', topicName:'กิจกรรม 3-C: หาเลขจำนวนเฉพาะ 1 ถึง N',
+      description:'รับ N แล้วแสดงเลขจำนวนเฉพาะทั้งหมดในช่วง 1 ถึง N คั่นด้วย space โดยบรรทัดเดียว',
+      difficulty:'ปานกลาง', maxPoints:3,
+      testCases:[
+        {input:'10',output:'2 3 5 7',hidden:false},
+        {input:'20',output:'2 3 5 7 11 13 17 19',hidden:false},
+        {input:'2',output:'2',hidden:true}
+      ]
+    },
+  ],
+  // ── Unit 4 ──────────────────────────────────────────────────────────────
+  [
+    { title:'Quiz 4.1 ความรู้ฟังก์ชันและ Array', topicName:'Quiz ความรู้ หน่วยที่ 4',
+      description:'แบบทดสอบ MCQ 4 ข้อ วัดความรู้ LO 9-14: parameter/argument, array indexing, 2D array, syntax vs logic error',
+      difficulty:'ง่าย', maxPoints:4,
+      testCases:[
+        {input:'1',output:'A',hidden:false},{input:'2',output:'A',hidden:false},
+        {input:'3',output:'A',hidden:true},{input:'4',output:'A',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 4-A: ฟังก์ชันหา Max และ Min', topicName:'กิจกรรม 4-A: ฟังก์ชันหา Max และ Min',
+      description:'เขียนฟังก์ชัน findMax(int a, int b) และ findMin(int a, int b) แล้วรับ a, b จาก main() เรียกใช้และแสดงผล',
+      difficulty:'ง่าย', maxPoints:2,
+      testCases:[
+        {input:'10\n3',output:'Max = 10\nMin = 3',hidden:false},
+        {input:'5\n5',output:'Max = 5\nMin = 5',hidden:false}
+      ]
+    },
+    { title:'กิจกรรม 4-B: ค่าเฉลี่ย Array', topicName:'กิจกรรม 4-B: ค่าเฉลี่ย Array',
+      description:'รับจำนวน n แล้วรับข้อมูล n ค่าเข้า Array คำนวณและแสดง Sum, Average (2 ตำแหน่ง), Max, Min',
+      difficulty:'ปานกลาง', maxPoints:3,
+      testCases:[
+        {input:'5\n10 20 30 40 50',output:'Sum = 150\nAverage = 30.00\nMax = 50\nMin = 10',hidden:false},
+        {input:'1\n99',output:'Sum = 99\nAverage = 99.00\nMax = 99\nMin = 99',hidden:false},
+        {input:'3\n-1 0 1',output:'Sum = 0\nAverage = 0.00\nMax = 1\nMin = -1',hidden:true}
+      ]
+    },
+    { title:'กิจกรรม 4-C: Debug โค้ด (3 Bug)', topicName:'กิจกรรม 4-C: Debug โค้ด',
+      description:'แก้โค้ดด้านล่างที่มีข้อผิดพลาด 3 จุด แล้วส่งโค้ดที่ถูกต้อง\n\n```c\n#include <stdio.h>\nint main() {\n    int i sum = 0;\n    for(i=1, i<=10, i++) {\n        sum + i;\n    }\n    printf("Sum = %d", sum);\n    return 0;\n}\n```\nExpected output: Sum = 55',
+      difficulty:'ปานกลาง', maxPoints:3,
+      testCases:[
+        {input:'',output:'Sum = 55',hidden:false},
+        {input:'',output:'Sum = 55',hidden:true},
+        {input:'',output:'Sum = 55',hidden:true}
+      ]
+    },
+    { title:'Mini Project: โปรแกรมตามความสนใจ', topicName:'Mini Project',
+      description:'สร้างโปรแกรมที่ใช้ความรู้ฟังก์ชัน, array, loop, condition (เลือก 1 option: ระบบเกรด / เครื่องคิดเลขวิทยาศาสตร์ / Custom) ทำงานเป็นกลุ่ม 2-3 คน มี flowchart ก่อน',
+      difficulty:'ยาก', maxPoints:3,
+      testCases:[
+        {input:'test',output:'ok',hidden:false},
+        {input:'test2',output:'ok',hidden:true},
+        {input:'test3',output:'ok',hidden:true}
+      ]
+    },
+  ]
+];
+
+// Unit max points: [15, 15, 15, 15]
+const UNIT_MAX = [15, 15, 15, 15];
+const UNIT_ASSIGN_MAX = [
+  [5, 3, 4, 3],    // Unit 1
+  [5, 3, 4, 3],    // Unit 2
+  [5, 3, 4, 3],    // Unit 3
+  [4, 2, 3, 3, 3], // Unit 4
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utilities
+// ─────────────────────────────────────────────────────────────────────────────
+function log(msg, type='') {
+    const el = document.getElementById('log');
+    el.style.display='block';
+    const line=document.createElement('div');
+    line.className=type;
+    line.textContent=msg;
+    el.appendChild(line);
+    el.scrollTop=el.scrollHeight;
+}
+function showMsg(text,type){document.getElementById('msgBox').innerHTML=`<div class="msg ${type}">${text}</div>`;}
+function setProgress(pct, label=''){
+    document.getElementById('progressArea').style.display='block';
+    document.getElementById('progressBar').style.width=pct+'%';
+    if(label) document.getElementById('progressLabel').textContent=label;
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+/** Distribute unitScore across assignments proportionally */
+function distributeScore(unitScore, maxScores) {
+    const maxTotal = maxScores.reduce((s,m)=>s+m,0);
+    if(unitScore>=maxTotal) return maxScores.slice();
+    if(unitScore<=0) return maxScores.map(()=>0);
+    let scores = maxScores.map(m=>Math.floor(m*unitScore/maxTotal));
+    let rem = unitScore - scores.reduce((s,x)=>s+x,0);
+    // Give remaining points to assignments with most room proportionally
+    const idx = maxScores.map((m,i)=>({i,gap:m-scores[i]})).filter(g=>g.gap>0).sort((a,b)=>b.gap-a.gap);
+    for(const {i} of idx){ if(rem<=0)break; scores[i]++; rem--; }
+    return scores;
+}
+
+/** Create Firebase Auth user via REST API (does not sign out current user) */
+async function createAuthUser(email, password, displayName) {
+    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email, password, returnSecureToken:true})
+    });
+    const data = await r.json();
+    if(data.error) {
+        if(data.error.message === 'EMAIL_EXISTS') return null; // already exists
+        throw new Error(data.error.message);
+    }
+    // Update display name
+    await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${API_KEY}`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({idToken:data.idToken, displayName, returnSecureToken:false})
+    });
+    return data.localId;
+}
+
+/** Get UID of existing user by email (sign in and sign out via REST) */
+async function getUserUid(email, password) {
+    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email,password,returnSecureToken:true})
+    });
+    const data=await r.json();
+    if(data.error) return null;
+    return data.localId;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 1: Login
+// ─────────────────────────────────────────────────────────────────────────────
+async function doLogin(){
+    const email=document.getElementById('email').value.trim();
+    const password=document.getElementById('password').value;
+    if(!email||!password){showMsg('กรุณากรอกอีเมลและรหัสผ่าน','error');return;}
+    const btn=document.getElementById('loginBtn');
+    btn.disabled=true; btn.textContent='กำลังเข้าสู่ระบบ...';
+    try{
+        const cred=await auth.signInWithEmailAndPassword(email,password);
+        document.getElementById('loginSection').style.display='none';
+        document.getElementById('mainSection').style.display='block';
+        document.getElementById('userInfo').textContent=`✅ เข้าสู่ระบบแล้ว: ${cred.user.email} (UID: ${cred.user.uid})`;
+        document.getElementById('msgBox').innerHTML='';
+    }catch(err){
+        showMsg('เกิดข้อผิดพลาด: '+err.message,'error');
+        btn.disabled=false; btn.textContent='🔐 เข้าสู่ระบบ';
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 2: Seed course + assignments + test cases
+// ─────────────────────────────────────────────────────────────────────────────
+let courseId = null;
+let assignmentIds = []; // flat list of assignment IDs in order
+
+async function doSeedCourse() {
+    const uid = auth.currentUser.uid;
+    log('🏫 กำลังสร้างรายวิชา...','wait');
+    setProgress(0,'สร้างรายวิชา...');
+
+    // Check if course already exists
+    const existing = await db.collection('courses')
+        .where('teacherId','==',uid)
+        .where('title','==',COURSE_INFO.title)
+        .where('room','==','6').get();
+
+    if(!existing.empty) {
+        courseId = existing.docs[0].id;
+        log(`ℹ️ รายวิชามีอยู่แล้ว: ${courseId}`,'info');
+    } else {
+        const classCode = Math.random().toString(36).substr(2,6).toUpperCase();
+        const ref = await db.collection('courses').add({
+            ...COURSE_INFO,
+            teacherId: uid,
+            coTeacherIds: [],
+            enrollmentCount: 0,
+            classCode,
+            status: 'active',
+            createdAt: TS()
+        });
+        courseId = ref.id;
+        log(`✅ สร้างรายวิชาสำเร็จ ID: ${courseId}  Code: ${classCode}`,'ok');
+    }
+
+    // Create assignments
+    assignmentIds = [];
+    let assignCount = 0;
+    const totalAssign = ASSIGNMENTS_DATA.flat().length;
+
+    for(let u=0; u<ASSIGNMENTS_DATA.length; u++){
+        const unitName = COURSE_INFO.directoryTree[u].name;
+        for(let a=0; a<ASSIGNMENTS_DATA[u].length; a++){
+            const asn = ASSIGNMENTS_DATA[u][a];
+            setProgress(5+((assignCount/totalAssign)*50), `สร้างโจทย์: ${asn.title}`);
+
+            // Check if assignment already exists
+            const ex = await db.collection('assignments')
+                .where('courseId','==',courseId)
+                .where('title','==',asn.title).get();
+
+            let asnId;
+            if(!ex.empty) {
+                asnId = ex.docs[0].id;
+                log(`ℹ️ โจทย์มีอยู่แล้ว: ${asn.title}`,'info');
+            } else {
+                const ref = await db.collection('assignments').add({
+                    courseId,
+                    title: asn.title,
+                    description: asn.description,
+                    language: 'c',
+                    difficulty: asn.difficulty,
+                    assignmentType: 'practice',
+                    unitName,
+                    topicName: asn.topicName,
+                    isPublished: true,
+                    timeLimit: 5000,
+                    memoryLimit: 256,
+                    rawScore: asn.maxPoints,
+                    createdAt: TS()
+                });
+                asnId = ref.id;
+                log(`✅ โจทย์: ${asn.title} (ID: ${asnId})`,'ok');
+            }
+            assignmentIds.push({id:asnId, unit:u, index:a, maxPoints:asn.maxPoints});
+
+            // Create test cases
+            const tcSnap = await db.collection('testCases').where('assignmentId','==',asnId).get();
+            if(tcSnap.empty) {
+                for(let t=0; t<asn.testCases.length; t++){
+                    const tc = asn.testCases[t];
+                    await db.collection('testCases').add({
+                        assignmentId: asnId,
+                        input: tc.input,
+                        expectedOutput: tc.output,
+                        isHidden: tc.hidden,
+                        order: t+1,
+                        points: 1,
+                        note: tc.hidden?'hidden':'visible',
+                        createdAt: TS()
+                    });
+                }
+                log(`  📝 ${asn.testCases.length} test cases`,'');
+            }
+            assignCount++;
+            await sleep(100); // rate limit
+        }
+    }
+    setProgress(55,'โจทย์และ Test Cases เสร็จแล้ว ✓');
+    log(`✅ รวม ${assignmentIds.length} โจทย์ พร้อมแล้ว`,'ok');
+    return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 3: Create student accounts + enroll
+// ─────────────────────────────────────────────────────────────────────────────
+let studentUids = {}; // code -> uid
+
+async function doSeedStudents() {
+    if(!courseId) { showMsg('กรุณาสร้างรายวิชาก่อน','error'); return false; }
+    log('\n👥 กำลังสร้างบัญชีนักเรียน 41 คน...','wait');
+
+    for(let i=0; i<STUDENTS.length; i++){
+        const st = STUDENTS[i];
+        const email = `${st.code}@triamudomsouth.ac.th`;
+        const pct = 55 + ((i/STUDENTS.length)*25);
+        setProgress(pct, `สร้างบัญชี: ${st.code} ${st.name} (${i+1}/${STUDENTS.length})`);
+
+        try {
+            // Try to create auth user
+            let uid = await createAuthUser(email, '123456', st.name);
+
+            if(!uid) {
+                // Already exists - get UID
+                uid = await getUserUid(email, '123456');
+                if(!uid) {
+                    log(`⚠️ ไม่สามารถสร้าง/หา UID ของ ${st.code}`,'err');
+                    continue;
+                }
+                log(`ℹ️ ${st.code} มีอยู่แล้ว UID: ${uid}`,'info');
+            } else {
+                log(`✅ สร้างบัญชี: ${st.code} ${st.name}`,'ok');
+            }
+
+            studentUids[st.code] = uid;
+
+            // Create/update Firestore user document
+            await db.collection('users').doc(uid).set({
+                email,
+                displayName: st.name,
+                role: 'student',
+                enrolledCourses: [courseId],
+                approvedByAdmin: true,
+                studentCode: st.code,
+                grade: 'ม.4',
+                room: '6',
+                profilePhotoURL: null,
+                createdAt: TS()
+            }, {merge: true});
+
+            // Create enrollment
+            const enSnap = await db.collection('enrollments')
+                .where('studentId','==',uid)
+                .where('courseId','==',courseId).get();
+            if(enSnap.empty) {
+                await db.collection('enrollments').add({
+                    studentId: uid,
+                    courseId,
+                    enrolledAt: TS(),
+                    progress: 0,
+                    completedLessons: [],
+                    lastAccessedAt: TS()
+                });
+            }
+
+            await sleep(200); // be gentle on Firebase rate limits
+        } catch(err) {
+            log(`❌ ผิดพลาด ${st.code}: ${err.message}`,'err');
+            await sleep(500);
+        }
+    }
+
+    // Also update course enrollmentCount
+    await db.collection('courses').doc(courseId).update({
+        enrollmentCount: Object.keys(studentUids).length
+    });
+
+    setProgress(80,'นักเรียนและการลงทะเบียนเสร็จแล้ว ✓');
+    log(`✅ รวม ${Object.keys(studentUids).length} บัญชีนักเรียนพร้อมแล้ว`,'ok');
+    return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: Load existing course + assignments from Firestore (for page-refresh)
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadExistingCourseAndAssignments() {
+    const uid = auth.currentUser.uid;
+    const snap = await db.collection('courses')
+        .where('teacherId','==',uid)
+        .where('title','==',COURSE_INFO.title)
+        .where('room','==','6').get();
+    if(snap.empty) return false;
+    courseId = snap.docs[0].id;
+    log(`🔍 โหลดรายวิชาจาก Firestore: ${courseId}`,'info');
+
+    // Load assignments
+    assignmentIds = [];
+    const asnSnap = await db.collection('assignments')
+        .where('courseId','==',courseId).get();
+    // Match against ASSIGNMENTS_DATA to rebuild unit/index/maxPoints
+    for(let u=0; u<ASSIGNMENTS_DATA.length; u++){
+        for(let a=0; a<ASSIGNMENTS_DATA[u].length; a++){
+            const title = ASSIGNMENTS_DATA[u][a].title;
+            const found = asnSnap.docs.find(d=>d.data().title===title);
+            if(found) {
+                assignmentIds.push({id:found.id, unit:u, index:a, maxPoints:ASSIGNMENTS_DATA[u][a].maxPoints});
+            }
+        }
+    }
+    log(`🔍 โหลด ${assignmentIds.length} โจทย์จาก Firestore`,'info');
+    return assignmentIds.length > 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 3.5: Update rawScore field on existing assignments
+// ─────────────────────────────────────────────────────────────────────────────
+async function updateRawScores() {
+    if(!courseId || assignmentIds.length === 0) {
+        log('🔍 กำลังโหลดข้อมูลรายวิชาจาก Firestore...','wait');
+        const ok = await loadExistingCourseAndAssignments();
+        if(!ok) { showMsg('ไม่พบรายวิชาในระบบ — กรุณาสร้างรายวิชาก่อน','error'); return; }
+    }
+    log('\n📊 กำลังอัปเดต rawScore สำหรับโจทย์ทั้งหมด...','wait');
+    let ok = 0, skip = 0;
+    for(const asn of assignmentIds) {
+        const rawScore = asn.maxPoints;
+        if(!rawScore) { skip++; continue; }
+        await db.collection('assignments').doc(asn.id).update({ rawScore });
+        log(`  ✅ ${ASSIGNMENTS_DATA[asn.unit][asn.index].title} → rawScore=${rawScore}`,'ok');
+        ok++;
+    }
+    log(`✅ อัปเดต rawScore เสร็จ: ${ok} โจทย์ (ข้าม ${skip})`, 'ok');
+    showMsg(`✅ อัปเดต rawScore สำเร็จ ${ok} โจทย์ — รีเฟรช Analytics เพื่อดูผล`, 'ok');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 4: Create submission history matching E1 scores
+// ─────────────────────────────────────────────────────────────────────────────
+async function doSeedSubmissions() {
+    if(!courseId || assignmentIds.length === 0) {
+        log('🔍 กำลังโหลดข้อมูลรายวิชาจาก Firestore...','wait');
+        const ok = await loadExistingCourseAndAssignments();
+        if(!ok) { showMsg('ไม่พบรายวิชาในระบบ — กรุณาสร้างรายวิชาก่อน','error'); return false; }
+    }
+    if(Object.keys(studentUids).length === 0) {
+        // Try to load existing students from Firestore
+        log('🔍 กำลังโหลด UID นักเรียนจาก Firestore...','wait');
+        for(const st of STUDENTS) {
+            const uid = await getUserUid(`${st.code}@triamudomsouth.ac.th`, '123456');
+            if(uid) studentUids[st.code] = uid;
+        }
+    }
+
+    log('\n📊 กำลังสร้าง Submission History...','wait');
+
+    // Reference timestamps: 4 weeks in June 2025
+    const weekStart = [
+        new Date('2025-06-02'), new Date('2025-06-09'),
+        new Date('2025-06-16'), new Date('2025-06-23')
+    ];
+
+    let total = STUDENTS.length * assignmentIds.length;
+    let done = 0;
+
+    for(let si=0; si<STUDENTS.length; si++){
+        const st = STUDENTS[si];
+        const uid = studentUids[st.code];
+        if(!uid) {
+            log(`⚠️ ข้าม ${st.code}: ไม่พบ UID`,'err');
+            done += assignmentIds.length;
+            continue;
+        }
+
+        const unitScores = [st.u1, st.u2, st.u3, st.u4];
+
+        for(let u=0; u<4; u++){
+            const assignScores = distributeScore(unitScores[u], UNIT_ASSIGN_MAX[u]);
+            const unitAssigns = assignmentIds.filter(a=>a.unit===u).sort((a,b)=>a.index-b.index);
+
+            for(let a=0; a<unitAssigns.length; a++){
+                const asn = unitAssigns[a];
+                const earnedPoints = assignScores[a] || 0;
+                const maxPoints = asn.maxPoints;
+
+                setProgress(80+((done/total)*18), `นักเรียน ${st.code} หน่วย ${u+1} โจทย์ ${a+1}`);
+
+                // Check if submission already exists
+                const subEx = await db.collection('submissions')
+                    .where('studentId','==',uid)
+                    .where('assignmentId','==',asn.id)
+                    .limit(1).get();
+
+                if(!subEx.empty) {
+                    done++;
+                    continue;
+                }
+
+                // Create synthetic test results (sort in JS to avoid index requirement)
+                const testCaseSnap = await db.collection('testCases')
+                    .where('assignmentId','==',asn.id)
+                    .get();
+                const tcs = testCaseSnap.docs.map(d=>({id:d.id,...d.data()}))
+                    .sort((a,b)=>(a.order||0)-(b.order||0));
+
+                // Passed tests = earnedPoints (each TC = 1 pt)
+                const testResults = tcs.map((tc,i)=>({
+                    testCaseId: tc.id,
+                    passed: i < earnedPoints,
+                    actualOutput: i < earnedPoints ? (tc.expectedOutput||'') : '',
+                    executionTime: 50 + Math.floor(Math.random()*200),
+                    errorLog: i < earnedPoints ? null : 'Wrong answer'
+                }));
+
+                const passedTests = earnedPoints;
+                const totalTests = tcs.length;
+                const score = totalTests > 0 ? Math.round((earnedPoints/maxPoints)*100) : 0;
+                const status = earnedPoints === maxPoints ? 'accepted' :
+                               earnedPoints === 0 ? 'wrong_answer' : 'wrong_answer';
+
+                // Timestamp: week for this unit + spread by student index
+                const base = weekStart[u];
+                const subDate = new Date(base.getTime() + (si % 5)*86400000 + Math.floor(Math.random()*86400000));
+
+                const subRef = await db.collection('submissions').add({
+                    studentId: uid,
+                    assignmentId: asn.id,
+                    courseId,
+                    code: getSampleCode(u, a, st.code),
+                    language: 'c',
+                    status,
+                    executionTime: 100,
+                    passedTests,
+                    totalTests,
+                    score,
+                    totalPoints: maxPoints,
+                    testResults,
+                    aiScore: null,
+                    aiMetrics: null,
+                    submittedAt: firebase.firestore.Timestamp.fromDate(subDate)
+                });
+
+                // Update grade
+                const gradeSnap = await db.collection('grades')
+                    .where('studentId','==',uid)
+                    .where('assignmentId','==',asn.id).limit(1).get();
+                if(gradeSnap.empty){
+                    await db.collection('grades').add({
+                        studentId: uid,
+                        courseId,
+                        assignmentId: asn.id,
+                        score,
+                        maxScore: maxPoints,
+                        submissionId: subRef.id,
+                        gradedAt: firebase.firestore.Timestamp.fromDate(subDate)
+                    });
+                }
+
+                done++;
+                if(done % 10 === 0) await sleep(100);
+            }
+        }
+        log(`✅ ${st.code}: u1=${st.u1} u2=${st.u2} u3=${st.u3} u4=${st.u4}`,'ok');
+    }
+
+    setProgress(99,'Submissions เสร็จแล้ว ✓');
+    log(`✅ สร้าง Submissions ครบถ้วน!`,'ok');
+    return true;
+}
+
+function getSampleCode(unit, assignIdx, studentCode) {
+    const samples = [
+        // Unit 1
+        [`#include <stdio.h>\nint main() {\n    printf("Hello, World!\\n");\n    printf("ชื่อ: นักเรียน\\n");\n    printf("รหัส: ${studentCode}\\n");\n    printf("กลุ่ม: เขียว\\n");\n    return 0;\n}`,
+         `#include <stdio.h>\nint main() {\n    int a, b;\n    scanf("%d %d", &a, &b);\n    printf("a + b = %d\\n", a+b);\n    printf("a - b = %d\\n", a-b);\n    printf("a * b = %d\\n", a*b);\n    printf("a / b = %.2f\\n", (float)a/b);\n    return 0;\n}`,
+         `#include <stdio.h>\n#include <math.h>\nint main() {\n    double base, h;\n    scanf("%lf %lf", &base, &h);\n    double area = 0.5 * base * h;\n    double peri = base + 2*sqrt(h*h + (base/2)*(base/2));\n    printf("Area = %.4f\\n", area);\n    printf("Perimeter = %.4f\\n", peri);\n    return 0;\n}`,
+         `#include <stdio.h>\nint main() {\n    int i, sum=0;\n    for(i=1;i<=5;i++) sum+=i;\n    printf("Sum = %d\\n",sum);\n    return 0;\n}` ],
+        // Unit 2
+        [`#include <stdio.h>\nint main() { int s; scanf("%d",&s); if(s>=80) printf("Grade: A\\n"); else if(s>=70) printf("Grade: B\\n"); else if(s>=60) printf("Grade: C\\n"); else if(s>=50) printf("Grade: D\\n"); else printf("Grade: F\\n"); return 0;}`,
+         `#include <stdio.h>\nint main() { int s; scanf("%d",&s); if(s>=80) printf("Grade: A\\n"); else printf("Grade: F\\n"); return 0;}`,
+         `#include <stdio.h>\nint main() { int a,b; char op; scanf("%d %d",&a,&b); scanf(" %c",&op); switch(op){case'+':printf("Result: %d\\n",a+b);break;case'/':if(b==0)printf("Error: Division by zero\\n");else printf("Result: %d\\n",a/b);break;default:printf("Error: Unknown operator\\n");} return 0;}`,
+         `#include <stdio.h>\nint main() { int y; scanf("%d",&y); if((y%4==0&&y%100!=0)||y%400==0) printf("%d is a leap year\\n",y); else printf("%d is not a leap year\\n",y); return 0;}`],
+        // Unit 3
+        [`#include <stdio.h>\nint main() { int n,sum=0; scanf("%d",&n); for(int i=1;i<=n;i++) sum+=i; printf("Sum = %d\\n",sum); return 0;}`,
+         `#include <stdio.h>\nint main() { int n; scanf("%d",&n); for(int i=1;i<=n;i++){for(int j=1;j<=i;j++) printf("*"); printf("\\n");} return 0;}`,
+         `#include <stdio.h>\nint main() { int N; scanf("%d",&N); for(int n=2;n<=N;n++){int p=1;for(int d=2;d*d<=n;d++) if(n%d==0){p=0;break;} if(p) printf("%d ",n);} return 0;}`,
+         `#include <stdio.h>\nint main() { int n; scanf("%d",&n); for(int i=1;i<=n;i++) printf("%d ",i); return 0;}`],
+        // Unit 4
+        [`#include <stdio.h>\nint findMax(int a,int b){return a>b?a:b;}\nint findMin(int a,int b){return a<b?a:b;}\nint main(){int a,b;scanf("%d %d",&a,&b);printf("Max = %d\\nMin = %d\\n",findMax(a,b),findMin(a,b));return 0;}`,
+         `#include <stdio.h>\nint main(){int n,a[100];scanf("%d",&n);for(int i=0;i<n;i++)scanf("%d",&a[i]);int s=0,mx=a[0],mn=a[0];for(int i=0;i<n;i++){s+=a[i];if(a[i]>mx)mx=a[i];if(a[i]<mn)mn=a[i];}printf("Sum = %d\\nAverage = %.2f\\nMax = %d\\nMin = %d\\n",s,(float)s/n,mx,mn);return 0;}`,
+         `#include <stdio.h>\nint main(){\n    int i, sum=0;\n    for(i=1;i<=10;i++) sum+=i;\n    printf("Sum = %d",sum);\n    return 0;\n}`,
+         `#include <stdio.h>\nvoid printGrade(int s){if(s>=80)printf("A");else printf("F");}\nint main(){int s;scanf("%d",&s);printGrade(s);return 0;}`
+        ]
+    ];
+    const unitSamples = samples[unit] || samples[0];
+    return unitSamples[assignIdx % unitSamples.length] || unitSamples[0];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Master seed function
+// ─────────────────────────────────────────────────────────────────────────────
+async function doSeedAll() {
+    document.getElementById('seedBtn').disabled = true;
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('log').style.display = 'block';
+    document.getElementById('result').style.display = 'none';
+
+    try {
+        log('🚀 เริ่ม Seed ทั้งหมด...','info');
+        log('═══════════════════════════════════════');
+
+        log('\n📁 ขั้นตอนที่ 1/3: สร้างรายวิชาและโจทย์','wait');
+        await doSeedCourse();
+
+        log('\n👥 ขั้นตอนที่ 2/3: สร้างบัญชีนักเรียน','wait');
+        await doSeedStudents();
+
+        log('\n📊 ขั้นตอนที่ 3/3: สร้างประวัติการส่งงาน','wait');
+        await doSeedSubmissions();
+
+        setProgress(100,'✅ เสร็จสมบูรณ์!');
+        log('\n═══════════════════════════════════════');
+        log('🎉 Seed ข้อมูลทั้งหมดเสร็จสมบูรณ์!','ok');
+        log(`📋 CourseID: ${courseId}`,'ok');
+        log(`👥 นักเรียน: ${Object.keys(studentUids).length} คน`,'ok');
+        log(`📊 Assignments: ${assignmentIds.length} โจทย์`,'ok');
+
+        document.getElementById('result').style.display='block';
+        document.getElementById('resultContent').innerHTML = `
+            <strong>✅ Seed สำเร็จ!</strong><br>
+            📋 Course ID: <code>${courseId}</code><br>
+            👥 นักเรียน: ${Object.keys(studentUids).length}/41 คน<br>
+            📝 โจทย์: ${assignmentIds.length} ข้อ<br>
+            📊 Submissions: ตามคะแนน E1 (รวม ~${STUDENTS.length * assignmentIds.length} รายการ)<br>
+            <br>
+            <strong>⚠️ หมายเหตุ:</strong> ชื่อนักเรียนเป็น best-effort decode จากเอกสาร<br>
+            ครูสามารถแก้ไขชื่อนักเรียนได้ที่ <code>#/admin/users</code>
+        `;
+    } catch(err) {
+        log(`❌ เกิดข้อผิดพลาด: ${err.message}`,'err');
+        showMsg('เกิดข้อผิดพลาด: '+err.message,'error');
+        console.error(err);
+    } finally {
+        document.getElementById('seedBtn').disabled = false;
+    }
+}
+</script>
+</body>
+</html>
