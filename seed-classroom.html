@@ -365,175 +365,153 @@ const UNIT_ASSIGN_MAX = [
 // Designed to look like AI-generated problems with varied real-world contexts
 // Each: unit(1-4), topic, difficulty, title, desc, code, pass, total
 // ─────────────────────────────────────────────────────────────────────────────
+// Student interest domain (deterministic per student code)
+// 0=เทคโนโลยี  1=กีฬา  2=อาหาร  3=ดนตรี  4=ท่องเที่ยว  5=การเงิน  6=วิทยาศาสตร์  7=ชีวิตประจำวัน
+function studentInterest(code) { return parseInt(code) % 8; }
+const INTEREST_NAMES = ['เทคโนโลยี','กีฬา','อาหาร','ดนตรี','ท่องเที่ยว','การเงิน','วิทยาศาสตร์','ชีวิตประจำวัน'];
+
+// ─── SP_SCENARIOS: 40 problems across 8 interest domains × 4 units ─────────
+// interest field (0-7) matches INTEREST_NAMES above
 const SP_SCENARIOS = [
-  // ══ Unit 1: I/O, variables, expressions (10 problems) ══════════════════════
-  {unit:1,topic:'ตัวแปรและชนิดข้อมูล',difficulty:'ง่าย',
-   title:'แปลงเงินบาทเป็น USD',
-   desc:'สร้างโปรแกรมรับจำนวนเงินบาท (THB) แล้วแปลงเป็นดอลลาร์สหรัฐ (USD) โดยใช้อัตราแลกเปลี่ยน 1 USD = 36.50 บาท แสดงผลทศนิยม 4 ตำแหน่ง',
-   code:`#include <stdio.h>\nint main(){\n    double thb;\n    scanf("%lf",&thb);\n    printf("%.4f USD\\n",thb/36.50);\n    return 0;\n}`,pass:5,total:5},
-  {unit:1,topic:'นิพจน์และการคำนวณ',difficulty:'ง่าย',
-   title:'คำนวณ BMI และระดับสุขภาพ',
-   desc:'รับน้ำหนัก (kg) และส่วนสูง (m) คำนวณค่า BMI = น้ำหนัก/(ส่วนสูง²) แสดงผลทศนิยม 2 ตำแหน่ง พร้อมระดับสุขภาพ (BMI<18.5=ผอม, 18.5-24.9=ปกติ, ≥25=อ้วน)',
-   code:`#include <stdio.h>\nint main(){\n    double w,h,bmi;\n    scanf("%lf%lf",&w,&h);\n    bmi=w/(h*h);\n    printf("BMI = %.2f\\n",bmi);\n    if(bmi<18.5)printf("ผอม\\n");\n    else if(bmi<25)printf("ปกติ\\n");\n    else printf("อ้วน\\n");\n    return 0;\n}`,pass:5,total:5},
-  {unit:1,topic:'การรับข้อมูล (scanf)',difficulty:'ปานกลาง',
-   title:'คำนวณค่าไฟฟ้ารายเดือน',
-   desc:'รับหน่วยไฟฟ้าที่ใช้ในเดือนนั้น คำนวณค่าไฟตามอัตรา: 0-150 หน่วย = 3.24 บาท/หน่วย, 151-400 หน่วย = 4.18 บาท/หน่วย, เกิน 400 = 4.89 บาท/หน่วย แสดงผลทศนิยม 2 ตำแหน่ง',
-   code:`#include <stdio.h>\nint main(){\n    int u;\n    scanf("%d",&u);\n    double cost;\n    if(u<=150) cost=u*3.24;\n    else if(u<=400) cost=150*3.24+(u-150)*4.18;\n    else cost=150*3.24+250*4.18+(u-400)*4.89;\n    printf("%.2f บาท\\n",cost);\n    return 0;\n}`,pass:4,total:5},
-  {unit:1,topic:'การแสดงผล (printf)',difficulty:'ง่าย',
-   title:'แสดงข้อมูลนักเรียน',
-   desc:'รับชื่อ (string ไม่มีช่องว่าง) รหัสนักเรียน (int) และ GPA (double) แสดงผลในรูปแบบที่กำหนด: "ชื่อ: [ชื่อ]  รหัส: [รหัส]  GPA: [xx.xx]"',
-   code:`#include <stdio.h>\nint main(){\n    char name[50];\n    int id;\n    double gpa;\n    scanf("%s%d%lf",name,&id,&gpa);\n    printf("ชื่อ: %s  รหัส: %d  GPA: %.2f\\n",name,id,gpa);\n    return 0;\n}`,pass:5,total:5},
-  {unit:1,topic:'นิพจน์และการคำนวณ',difficulty:'ง่าย',
-   title:'คำนวณราคาสินค้าหลังลดราคา',
-   desc:'รับราคาสินค้า (บาท) และเปอร์เซ็นต์ส่วนลด แสดงราคาหลังลด ส่วนลดเป็นเงิน และราคาสุดท้ายที่ต้องจ่าย (ทศนิยม 2 ตำแหน่ง)',
-   code:`#include <stdio.h>\nint main(){\n    double price,disc;\n    scanf("%lf%lf",&price,&disc);\n    double saved=price*disc/100;\n    printf("ส่วนลด: %.2f บาท\\n",saved);\n    printf("ราคาสุดท้าย: %.2f บาท\\n",price-saved);\n    return 0;\n}`,pass:5,total:5},
-  {unit:1,topic:'นิพจน์และการคำนวณ',difficulty:'ปานกลาง',
-   title:'แปลงเวลา วินาที → ชั่วโมง:นาที:วินาที',
-   desc:'รับจำนวนวินาที (int) แล้วแปลงและแสดงในรูปแบบ HH:MM:SS เช่น 3661 วินาที → 01:01:01',
-   code:`#include <stdio.h>\nint main(){\n    int sec,h,m,s;\n    scanf("%d",&sec);\n    h=sec/3600; m=(sec%3600)/60; s=sec%60;\n    printf("%02d:%02d:%02d\\n",h,m,s);\n    return 0;\n}`,pass:5,total:5},
-  {unit:1,topic:'การแสดงผล (printf)',difficulty:'ง่าย',
-   title:'คำนวณคะแนนเฉลี่ย 3 วิชา',
-   desc:'รับคะแนนวิชาคณิต ภาษาไทย และวิทยาศาสตร์ (ทศนิยมได้) แสดงคะแนนแต่ละวิชาและค่าเฉลี่ยรวมทศนิยม 2 ตำแหน่ง',
-   code:`#include <stdio.h>\nint main(){\n    double a,b,c;\n    scanf("%lf%lf%lf",&a,&b,&c);\n    printf("คณิต: %.2f  ไทย: %.2f  วิทย์: %.2f\\n",a,b,c);\n    printf("เฉลี่ย: %.2f\\n",(a+b+c)/3.0);\n    return 0;\n}`,pass:5,total:5},
-  {unit:1,topic:'นิพจน์และการคำนวณ',difficulty:'ง่าย',
-   title:'คำนวณพื้นที่และเส้นรอบวงกลม',
-   desc:'รับรัศมีวงกลม r แสดงพื้นที่ (πr²) และเส้นรอบวง (2πr) ใช้ pi = 3.14159 ทศนิยม 4 ตำแหน่ง',
-   code:`#include <stdio.h>\n#define PI 3.14159\nint main(){\n    double r;\n    scanf("%lf",&r);\n    printf("Area = %.4f\\n",PI*r*r);\n    printf("Perimeter = %.4f\\n",2*PI*r);\n    return 0;\n}`,pass:5,total:5},
-  {unit:1,topic:'การรับข้อมูล (scanf)',difficulty:'ปานกลาง',
-   title:'คำนวณต้นทุนและกำไร',
-   desc:'รับต้นทุนสินค้า ราคาขาย และจำนวนชิ้นที่ขาย แสดงกำไรต่อชิ้น กำไรรวม และเปอร์เซ็นต์กำไร (ทศนิยม 2 ตำแหน่ง)',
-   code:`#include <stdio.h>\nint main(){\n    double cost,sell;\n    int qty;\n    scanf("%lf%lf%d",&cost,&sell,&qty);\n    double profitPer=sell-cost;\n    double profitTotal=profitPer*qty;\n    printf("กำไร/ชิ้น: %.2f\\n",profitPer);\n    printf("กำไรรวม: %.2f\\n",profitTotal);\n    printf("%%กำไร: %.2f\\n",profitPer/cost*100);\n    return 0;\n}`,pass:4,total:5},
-  {unit:1,topic:'การแสดงผล (printf)',difficulty:'ง่าย',
-   title:'คำนวณระยะทางและเวลาเดินทาง',
-   desc:'รับระยะทาง (km) และความเร็วเฉลี่ย (km/h) แสดงเวลาที่ใช้เดินทางในหน่วยชั่วโมง นาที และวินาที',
-   code:`#include <stdio.h>\nint main(){\n    double dist,spd;\n    scanf("%lf%lf",&dist,&spd);\n    int totalSec=(int)(dist/spd*3600);\n    printf("%d ชั่วโมง %d นาที %d วินาที\\n",totalSec/3600,(totalSec%3600)/60,totalSec%60);\n    return 0;\n}`,pass:4,total:5},
-
-  // ══ Unit 2: if/else, switch (10 problems) ══════════════════════════════════
-  {unit:2,topic:'การตัดสินใจ (if/else)',difficulty:'ง่าย',
-   title:'ตรวจสอบเลขคู่คี่',
-   desc:'รับจำนวนเต็ม 1 ค่า ตรวจสอบและแสดงว่าเป็นเลขคู่ (Even) หรือเลขคี่ (Odd)',
-   code:`#include <stdio.h>\nint main(){\n    int n;\n    scanf("%d",&n);\n    printf("%s\\n",n%2==0?"Even":"Odd");\n    return 0;\n}`,pass:5,total:5},
-  {unit:2,topic:'การตัดสินใจ (if/else)',difficulty:'ง่าย',
-   title:'จัดเกรดตามคะแนน (A-F)',
-   desc:'รับคะแนนสอบ 0-100 แสดงเกรด: ≥80=A, 70-79=B, 60-69=C, 50-59=D, <50=F พร้อมข้อความ "ผ่าน" หรือ "ไม่ผ่าน"',
-   code:`#include <stdio.h>\nint main(){\n    int s;\n    scanf("%d",&s);\n    char g;\n    if(s>=80)g='A'; else if(s>=70)g='B'; else if(s>=60)g='C'; else if(s>=50)g='D'; else g='F';\n    printf("Grade: %c (%s)\\n",g,s>=50?"ผ่าน":"ไม่ผ่าน");\n    return 0;\n}`,pass:5,total:5},
-  {unit:2,topic:'การตัดสินใจ (if/else)',difficulty:'ปานกลาง',
-   title:'หาค่ามากที่สุดจาก 3 ตัวเลข',
-   desc:'รับตัวเลข 3 ค่า หาค่ามากที่สุดและน้อยที่สุด แสดงผลพร้อมบอกว่าค่านั้นอยู่ลำดับที่เท่าไหร่ที่รับมา',
-   code:`#include <stdio.h>\nint main(){\n    int a,b,c;\n    scanf("%d%d%d",&a,&b,&c);\n    int mx=a,mn=a;\n    if(b>mx)mx=b; if(c>mx)mx=c;\n    if(b<mn)mn=b; if(c<mn)mn=c;\n    printf("Max = %d\\nMin = %d\\n",mx,mn);\n    return 0;\n}`,pass:5,total:5},
-  {unit:2,topic:'switch-case',difficulty:'ปานกลาง',
-   title:'เมนูร้านกาแฟ',
-   desc:'รับรหัสเมนู 1-4 แสดงชื่อและราคา (1=อเมริกาโน่ 45บ, 2=ลาเต้ 55บ, 3=คาปูชิโน่ 60บ, 4=มัทฉะลาเต้ 65บ) ถ้าไม่ตรงแสดง "ไม่มีในเมนู"',
-   code:`#include <stdio.h>\nint main(){\n    int c;\n    scanf("%d",&c);\n    switch(c){\n        case 1:printf("Americano: 45 บาท\\n");break;\n        case 2:printf("Latte: 55 บาท\\n");break;\n        case 3:printf("Cappuccino: 60 บาท\\n");break;\n        case 4:printf("Matcha Latte: 65 บาท\\n");break;\n        default:printf("ไม่มีในเมนู\\n");\n    }\n    return 0;\n}`,pass:5,total:5},
-  {unit:2,topic:'switch-case',difficulty:'ปานกลาง',
-   title:'จำแนกวันในสัปดาห์',
-   desc:'รับตัวเลข 1-7 แสดงชื่อวัน (1=จันทร์,...,7=อาทิตย์) พร้อมบอกว่าเป็นวันทำงานหรือวันหยุด',
-   code:`#include <stdio.h>\nint main(){\n    int d;\n    scanf("%d",&d);\n    char* days[]={"","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"};\n    if(d<1||d>7){printf("ไม่ถูกต้อง\\n");return 0;}\n    printf("วัน%s (%s)\\n",days[d],d<=5?"วันทำงาน":"วันหยุด");\n    return 0;\n}`,pass:4,total:5},
-  {unit:2,topic:'การตัดสินใจ (if/else)',difficulty:'ยาก',
-   title:'จำแนกชนิดของสามเหลี่ยม',
-   desc:'รับความยาวด้าน 3 ด้าน ตรวจสอบว่าสร้างสามเหลี่ยมได้หรือไม่ ถ้าได้ระบุชนิด: ด้านเท่า/หน้าจั่ว/ทั่วไป และตรวจว่าเป็นสามเหลี่ยมมุมฉากหรือไม่',
-   code:`#include <stdio.h>\nint main(){\n    int a,b,c;\n    scanf("%d%d%d",&a,&b,&c);\n    if(a+b<=c||a+c<=b||b+c<=a){printf("ไม่เป็นสามเหลี่ยม\\n");return 0;}\n    if(a==b&&b==c)printf("สามเหลี่ยมด้านเท่า\\n");\n    else if(a==b||b==c||a==c)printf("สามเหลี่ยมหน้าจั่ว\\n");\n    else printf("สามเหลี่ยมทั่วไป\\n");\n    int sq[]={a*a,b*b,c*c},mx=(a>b&&a>c)?a*a:(b>c)?b*b:c*c;\n    if(mx==sq[0]+sq[1]+sq[2]-mx)printf("สามเหลี่ยมมุมฉาก\\n");\n    return 0;\n}`,pass:4,total:5},
-  {unit:2,topic:'การตัดสินใจ (if/else)',difficulty:'ปานกลาง',
-   title:'ตรวจสอบปีอธิกสุรทิน',
-   desc:'รับปี ค.ศ. ตรวจสอบว่าเป็นปีอธิกสุรทิน (leap year) หรือไม่ กฎ: หาร 4 ลงตัว AND (ไม่หาร 100 ลงตัว OR หาร 400 ลงตัว) แสดง "Leap year" หรือ "Not a leap year"',
-   code:`#include <stdio.h>\nint main(){\n    int y;\n    scanf("%d",&y);\n    int leap=(y%4==0&&y%100!=0)||(y%400==0);\n    printf("%s\\n",leap?"Leap year":"Not a leap year");\n    return 0;\n}`,pass:5,total:5},
-  {unit:2,topic:'การตัดสินใจ (if/else)',difficulty:'ง่าย',
-   title:'จำแนกกลุ่มอายุ',
-   desc:'รับอายุ (ปี) จำแนกกลุ่ม: <13=เด็ก, 13-17=วัยรุ่น, 18-60=ผู้ใหญ่, >60=ผู้สูงอายุ แสดงกลุ่มและสิทธิ์ประกันสุขภาพ (เด็กและผู้สูงอายุ=ฟรี, อื่น=จ่าย 30 บาท)',
-   code:`#include <stdio.h>\nint main(){\n    int age;\n    scanf("%d",&age);\n    if(age<13){printf("เด็ก\\n");printf("บัตรทอง: ฟรี\\n");}\n    else if(age<=17){printf("วัยรุ่น\\n");printf("บัตรทอง: 30 บาท\\n");}\n    else if(age<=60){printf("ผู้ใหญ่\\n");printf("บัตรทอง: 30 บาท\\n");}\n    else{printf("ผู้สูงอายุ\\n");printf("บัตรทอง: ฟรี\\n");}\n    return 0;\n}`,pass:5,total:5},
-  {unit:2,topic:'การตัดสินใจ (if/else)',difficulty:'ปานกลาง',
-   title:'คำนวณค่าน้ำประปาแบบขั้นบันได',
-   desc:'รับหน่วยน้ำประปาที่ใช้ คำนวณค่าน้ำตามระดับ: 1-50 หน่วย = 8.50 บ/หน่วย, 51-200 = 10.03 บ/หน่วย, เกิน 200 = 11.50 บ/หน่วย แสดงผลทศนิยม 2 ตำแหน่ง',
-   code:`#include <stdio.h>\nint main(){\n    int u;\n    scanf("%d",&u);\n    double bill;\n    if(u<=50) bill=u*8.50;\n    else if(u<=200) bill=50*8.50+(u-50)*10.03;\n    else bill=50*8.50+150*10.03+(u-200)*11.50;\n    printf("%.2f บาท\\n",bill);\n    return 0;\n}`,pass:4,total:5},
-  {unit:2,topic:'switch-case',difficulty:'ปานกลาง',
-   title:'เครื่องคิดเลข 4 ฟังก์ชัน',
-   desc:'รับตัวเลข 2 ค่าและตัวดำเนินการ (+,-,*,/) ด้วย switch คำนวณและแสดงผล จัดการ division by zero และ operator ที่ไม่รองรับ',
-   code:`#include <stdio.h>\nint main(){\n    double a,b;\n    char op;\n    scanf("%lf%lf %c",&a,&b,&op);\n    switch(op){\n        case '+':printf("= %.2f\\n",a+b);break;\n        case '-':printf("= %.2f\\n",a-b);break;\n        case '*':printf("= %.2f\\n",a*b);break;\n        case '/':if(b==0)printf("Error: Division by zero\\n");else printf("= %.2f\\n",a/b);break;\n        default:printf("Error: Unknown operator\\n");\n    }\n    return 0;\n}`,pass:4,total:5},
-
-  // ══ Unit 3: loops (10 problems) ════════════════════════════════════════════
-  {unit:3,topic:'for loop',difficulty:'ง่าย',
-   title:'ผลรวม 1 ถึง N',
-   desc:'รับจำนวนเต็มบวก N แสดงกระบวนการคำนวณทุก iteration (1+2+...+N) และผลรวมสุดท้าย',
-   code:`#include <stdio.h>\nint main(){\n    int n,sum=0;\n    scanf("%d",&n);\n    for(int i=1;i<=n;i++){sum+=i;printf("%d",i);if(i<n)printf("+");}\n    printf(" = %d\\n",sum);\n    return 0;\n}`,pass:4,total:5},
-  {unit:3,topic:'for loop',difficulty:'ง่าย',
-   title:'สูตรคูณแม่ n',
-   desc:'รับตัวเลข n แสดงตารางสูตรคูณแม่ n ตั้งแต่ n×1 ถึง n×12 ในรูปแบบ "n × i = ผลลัพธ์"',
-   code:`#include <stdio.h>\nint main(){\n    int n;\n    scanf("%d",&n);\n    for(int i=1;i<=12;i++) printf("%d × %d = %d\\n",n,i,n*i);\n    return 0;\n}`,pass:5,total:5},
-  {unit:3,topic:'for loop',difficulty:'ปานกลาง',
-   title:'Factorial และจำนวนหลัก',
-   desc:'รับ n คำนวณ n! และนับจำนวนหลักของผลลัพธ์ แสดง: "n! = [ผลลัพธ์]  (X หลัก)"',
-   code:`#include <stdio.h>\nint main(){\n    int n;\n    scanf("%d",&n);\n    long long f=1;\n    for(int i=1;i<=n;i++) f*=i;\n    int digits=0;\n    long long tmp=f;\n    while(tmp>0){digits++;tmp/=10;}\n    printf("%d! = %lld  (%d หลัก)\\n",n,f,digits);\n    return 0;\n}`,pass:5,total:5},
-  {unit:3,topic:'การทำซ้ำซ้อน (Nested Loop)',difficulty:'ปานกลาง',
-   title:'Pattern สามเหลี่ยมตัวเลข',
-   desc:'รับ n แสดงรูปสามเหลี่ยมตัวเลขขนาด n แถว โดยแถวที่ i แสดงตัวเลข 1 ถึง i คั่นด้วยช่องว่าง',
-   code:`#include <stdio.h>\nint main(){\n    int n;\n    scanf("%d",&n);\n    for(int i=1;i<=n;i++){\n        for(int j=1;j<=i;j++) printf("%d ",j);\n        printf("\\n");\n    }\n    return 0;\n}`,pass:5,total:5},
-  {unit:3,topic:'while loop',difficulty:'ปานกลาง',
-   title:'ผลรวมหลักของตัวเลข',
-   desc:'รับจำนวนเต็มบวก คำนวณและแสดงผลรวมของหลักทั้งหมด เช่น 1234 → 1+2+3+4 = 10',
-   code:`#include <stdio.h>\nint main(){\n    int n,sum=0,orig;\n    scanf("%d",&n);\n    orig=n;\n    while(n>0){sum+=n%10;n/=10;}\n    printf("ผลรวมหลักของ %d = %d\\n",orig,sum);\n    return 0;\n}`,pass:5,total:5},
-  {unit:3,topic:'for loop',difficulty:'ปานกลาง',
-   title:'ลำดับ Fibonacci n ตัวแรก',
-   desc:'รับ n แสดงลำดับ Fibonacci n ตัวแรก คั่นด้วยช่องว่าง (0 1 1 2 3 5 8 ...)',
-   code:`#include <stdio.h>\nint main(){\n    int n,a=0,b=1;\n    scanf("%d",&n);\n    for(int i=0;i<n;i++){\n        printf("%d ",a);\n        int tmp=a+b; a=b; b=tmp;\n    }\n    printf("\\n");\n    return 0;\n}`,pass:5,total:5},
-  {unit:3,topic:'การทำซ้ำซ้อน (Nested Loop)',difficulty:'ยาก',
-   title:'หาจำนวนเฉพาะ 1 ถึง N',
-   desc:'รับ N แสดงเลขจำนวนเฉพาะทั้งหมดตั้งแต่ 2 ถึง N คั่นด้วยช่องว่าง พร้อมแสดงจำนวนทั้งหมดที่พบ',
-   code:`#include <stdio.h>\nint main(){\n    int n,cnt=0;\n    scanf("%d",&n);\n    for(int i=2;i<=n;i++){\n        int p=1;\n        for(int d=2;d*d<=i;d++) if(i%d==0){p=0;break;}\n        if(p){printf("%d ",i);cnt++;}\n    }\n    printf("\\nพบ %d จำนวน\\n",cnt);\n    return 0;\n}`,pass:4,total:5},
-  {unit:3,topic:'break และ continue',difficulty:'ปานกลาง',
-   title:'นับเลขหาร 3 หรือ 5 ใน 1-N',
-   desc:'รับ N หาและแสดงตัวเลขทั้งหมดที่หาร 3 หรือ 5 ลงตัวในช่วง 1 ถึง N พร้อมผลรวมทั้งหมด',
-   code:`#include <stdio.h>\nint main(){\n    int n,sum=0;\n    scanf("%d",&n);\n    for(int i=1;i<=n;i++){\n        if(i%3!=0&&i%5!=0) continue;\n        printf("%d ",i); sum+=i;\n    }\n    printf("\\nSum = %d\\n",sum);\n    return 0;\n}`,pass:5,total:5},
-  {unit:3,topic:'while loop',difficulty:'ยาก',
-   title:'ผลรวมอนุกรม 1/1 + 1/2 + ... + 1/N',
-   desc:'รับ N คำนวณผลรวมอนุกรม H(N) = 1/1 + 1/2 + 1/3 + ... + 1/N (Harmonic Series) แสดงผลทศนิยม 6 ตำแหน่ง',
-   code:`#include <stdio.h>\nint main(){\n    int n;\n    scanf("%d",&n);\n    double sum=0;\n    for(int i=1;i<=n;i++) sum+=1.0/i;\n    printf("H(%d) = %.6f\\n",n,sum);\n    return 0;\n}`,pass:5,total:5},
-  {unit:3,topic:'for loop',difficulty:'ปานกลาง',
-   title:'Pattern รูปสี่เหลี่ยมกลวง',
-   desc:'รับ n แสดงกรอบสี่เหลี่ยม n×n ด้วย * สำหรับขอบ และเว้นว่างสำหรับพื้นที่ภายใน',
-   code:`#include <stdio.h>\nint main(){\n    int n;\n    scanf("%d",&n);\n    for(int i=0;i<n;i++){\n        for(int j=0;j<n;j++) printf("%c",(i==0||i==n-1||j==0||j==n-1)?'*':' ');\n        printf("\\n");\n    }\n    return 0;\n}`,pass:4,total:5},
-
-  // ══ Unit 4: functions, arrays, recursion (10 problems) ════════════════════
-  {unit:4,topic:'ฟังก์ชัน',difficulty:'ง่าย',
-   title:'ฟังก์ชันตรวจสอบเลขคู่คี่',
-   desc:'เขียนฟังก์ชัน isEven(n) คืน 1 ถ้าเป็นเลขคู่ 0 ถ้าเลขคี่ และฟังก์ชัน printResult(n) แสดงผล รับค่า n จาก main()',
-   code:`#include <stdio.h>\nint isEven(int n){return n%2==0;}\nvoid printResult(int n){printf("%d เป็นเลข%s\\n",n,isEven(n)?"คู่":"คี่");}\nint main(){int n;scanf("%d",&n);printResult(n);return 0;}`,pass:5,total:5},
-  {unit:4,topic:'ฟังก์ชัน',difficulty:'ปานกลาง',
-   title:'ฟังก์ชัน Power แบบ iterative',
-   desc:'เขียนฟังก์ชัน power(base, exp) คืนค่า base ยกกำลัง exp โดยใช้ loop รับค่าจาก main() และแสดงผล',
-   code:`#include <stdio.h>\nlong long power(int b,int e){\n    long long r=1;\n    for(int i=0;i<e;i++) r*=b;\n    return r;\n}\nint main(){\n    int b,e;\n    scanf("%d%d",&b,&e);\n    printf("%d^%d = %lld\\n",b,e,power(b,e));\n    return 0;\n}`,pass:5,total:5},
-  {unit:4,topic:'ฟังก์ชัน',difficulty:'ปานกลาง',
-   title:'ฟังก์ชัน GCD และ LCM',
-   desc:'เขียนฟังก์ชัน gcd(a,b) หา ห.ร.ม. ด้วย Euclidean algorithm และฟังก์ชัน lcm(a,b) หา ค.ร.น. โดยใช้ gcd() แสดงทั้งสองค่า',
-   code:`#include <stdio.h>\nint gcd(int a,int b){while(b){int t=b;b=a%b;a=t;}return a;}\nlong long lcm(int a,int b){return (long long)a/gcd(a,b)*b;}\nint main(){\n    int a,b;\n    scanf("%d%d",&a,&b);\n    printf("GCD = %d\\nLCM = %lld\\n",gcd(a,b),lcm(a,b));\n    return 0;\n}`,pass:5,total:5},
-  {unit:4,topic:'ฟังก์ชัน Recursive',difficulty:'ยาก',
-   title:'Fibonacci แบบ Recursive',
-   desc:'เขียนฟังก์ชัน fib(n) แบบ recursive หาลำดับ Fibonacci ที่ n รับ n จาก main() แสดงทั้งค่า F(n) และจำนวนครั้งที่เรียกฟังก์ชัน',
-   code:`#include <stdio.h>\nint calls=0;\nlong long fib(int n){\n    calls++;\n    return n<=1?n:fib(n-1)+fib(n-2);\n}\nint main(){\n    int n;\n    scanf("%d",&n);\n    long long r=fib(n);\n    printf("F(%d) = %lld\\n",n,r);\n    printf("Calls = %d\\n",calls);\n    return 0;\n}`,pass:4,total:5},
-  {unit:4,topic:'ฟังก์ชัน Recursive',difficulty:'ปานกลาง',
-   title:'ผลรวมหลัก Recursive',
-   desc:'เขียนฟังก์ชัน sumDigits(n) แบบ recursive คืนผลรวมหลักของ n รับค่าจาก main() แสดงขั้นตอนการแยกหลัก',
-   code:`#include <stdio.h>\nint sumDigits(int n){\n    if(n==0) return 0;\n    return n%10+sumDigits(n/10);\n}\nint main(){\n    int n;\n    scanf("%d",&n);\n    printf("sumDigits(%d) = %d\\n",n,sumDigits(n));\n    return 0;\n}`,pass:5,total:5},
-  {unit:4,topic:'ฟังก์ชัน',difficulty:'ปานกลาง',
-   title:'ตรวจสอบ Palindrome',
-   desc:'เขียนฟังก์ชัน isPalindrome(n) ตรวจสอบตัวเลข n ว่าเป็น palindrome (อ่านกลับหน้าหลังได้เหมือนกัน) แสดงผลพร้อมตัวเลขที่กลับด้าน',
-   code:`#include <stdio.h>\nint reverse(int n){int r=0;while(n>0){r=r*10+n%10;n/=10;}return r;}\nint isPalin(int n){return n==reverse(n);}\nint main(){\n    int n;\n    scanf("%d",&n);\n    printf("กลับด้าน: %d\\n",reverse(n));\n    printf("%s\\n",isPalin(n)?"Palindrome":"Not Palindrome");\n    return 0;\n}`,pass:5,total:5},
-  {unit:4,topic:'อาร์เรย์ 1 มิติ',difficulty:'ปานกลาง',
-   title:'สถิติ Array: Max, Min, Mean',
-   desc:'รับจำนวน n และตัวเลข n ค่าเข้า array คำนวณและแสดง Max, Min, Sum, ค่าเฉลี่ย (2 ตำแหน่ง) และส่วนเบี่ยงเบนมาตรฐาน (2 ตำแหน่ง)',
-   code:`#include <stdio.h>\n#include <math.h>\nint main(){\n    int n,a[100];\n    scanf("%d",&n);\n    for(int i=0;i<n;i++) scanf("%d",&a[i]);\n    int mx=a[0],mn=a[0],s=0;\n    for(int i=0;i<n;i++){if(a[i]>mx)mx=a[i];if(a[i]<mn)mn=a[i];s+=a[i];}\n    double avg=(double)s/n,var=0;\n    for(int i=0;i<n;i++) var+=(a[i]-avg)*(a[i]-avg);\n    printf("Max=%d Min=%d Sum=%d Avg=%.2f SD=%.2f\\n",mx,mn,s,avg,sqrt(var/n));\n    return 0;\n}`,pass:3,total:5},
-  {unit:4,topic:'อาร์เรย์ 1 มิติ',difficulty:'ปานกลาง',
-   title:'นับตัวเลขในช่วง [lo, hi]',
-   desc:'รับ n ตัวเลขเข้า array จากนั้นรับขอบเขต lo และ hi นับและแสดงตัวเลขที่อยู่ในช่วง lo ถึง hi (รวมขอบ)',
-   code:`#include <stdio.h>\nint main(){\n    int n,a[100],lo,hi,cnt=0;\n    scanf("%d",&n);\n    for(int i=0;i<n;i++) scanf("%d",&a[i]);\n    scanf("%d%d",&lo,&hi);\n    for(int i=0;i<n;i++) if(a[i]>=lo&&a[i]<=hi){printf("%d ",a[i]);cnt++;}\n    printf("\\nนับได้ %d ตัว\\n",cnt);\n    return 0;\n}`,pass:4,total:5},
-  {unit:4,topic:'อาร์เรย์ 1 มิติ',difficulty:'ยาก',
-   title:'Bubble Sort พร้อมนับ Swap',
-   desc:'รับตัวเลข n ค่าเข้า array เรียงลำดับด้วย Bubble Sort จากน้อยไปมาก แสดง array ที่เรียงแล้วและนับจำนวนครั้งที่ swap',
-   code:`#include <stdio.h>\nint main(){\n    int n,a[100],swaps=0;\n    scanf("%d",&n);\n    for(int i=0;i<n;i++) scanf("%d",&a[i]);\n    for(int i=0;i<n-1;i++) for(int j=0;j<n-i-1;j++) if(a[j]>a[j+1]){int t=a[j];a[j]=a[j+1];a[j+1]=t;swaps++;}\n    for(int i=0;i<n;i++) printf("%d ",a[i]);\n    printf("\\nSwaps = %d\\n",swaps);\n    return 0;\n}`,pass:3,total:5},
-  {unit:4,topic:'ฟังก์ชัน',difficulty:'ยาก',
-   title:'ฟังก์ชัน Binary Search',
-   desc:'เขียนฟังก์ชัน binarySearch(arr, n, target) ค้นหาค่า target ใน array ที่เรียงแล้ว คืน index ที่พบ หรือ -1 ถ้าไม่พบ แสดงจำนวน iteration ที่ใช้',
-   code:`#include <stdio.h>\nint steps=0;\nint bSearch(int a[],int n,int t){\n    int lo=0,hi=n-1;\n    while(lo<=hi){\n        steps++;\n        int mid=(lo+hi)/2;\n        if(a[mid]==t) return mid;\n        else if(a[mid]<t) lo=mid+1;\n        else hi=mid-1;\n    }\n    return -1;\n}\nint main(){\n    int n,a[100],t;\n    scanf("%d",&n);\n    for(int i=0;i<n;i++) scanf("%d",&a[i]);\n    scanf("%d",&t);\n    int pos=bSearch(a,n,t);\n    if(pos>=0) printf("พบ %d ที่ index %d (%d steps)\\n",t,pos,steps);\n    else printf("ไม่พบ %d (%d steps)\\n",t,steps);\n    return 0;\n}`,pass:4,total:5},
-];
+  // ══ Domain 0: เทคโนโลยี/คอมพิวเตอร์ ══════════════════════════════════════
+  // interest 0 = เทคโนโลยี
+  {unit:1,interest:0,topic:'ตัวแปรและชนิดข้อมูล',difficulty:'ง่าย',
+   title:'แปลงขนาดไฟล์ Bytes → KB → MB',
+   desc:'รับขนาดไฟล์เป็น Bytes แปลงและแสดงผลเป็น KB (÷1024) และ MB (÷1024²) ทศนิยม 4 ตำแหน่ง',
+   code:`#include <stdio.h>\nint main(){\n    long long b;\n    scanf("%lld",&b);\n    printf("%.4f KB\\n%.4f MB\\n",b/1024.0,b/1048576.0);\n    return 0;\n}`,pass:5,total:5},
+  {unit:2,interest:0,topic:'การตัดสินใจ (if/else)',difficulty:'ปานกลาง',
+   title:'ตรวจสอบรหัสผ่าน',
+   desc:'รับรหัสผ่าน (string ไม่มีช่องว่าง) ตรวจสอบว่า: ความยาว ≥ 8 และมีตัวเลขอย่างน้อย 1 ตัว แสดง "Strong"/"Weak"',
+   code:`#include <stdio.h>\n#include <string.h>\nint main(){\n    char p[100];\n    scanf("%s",p);\n    int len=strlen(p),hasD=0;\n    for(int i=0;i<len;i++) if(p[i]>='0'&&p[i]<='9') hasD=1;\n    printf("%s\\n",(len>=8&&hasD)?"Strong":"Weak");\n    return 0;\n}`,pass:5,total:5},
+  {unit:3,interest:0,topic:'for loop',difficulty:'ปานกลาง',
+   title:'แปลงเลขฐาน 10 เป็นฐาน 2',
+   desc:'รับจำนวนเต็มบวก N แปลงเป็นเลขฐาน 2 โดยแสดงทีละ bit ด้วย loop และแสดงผลลัพธ์สุดท้าย',
+   code:`#include <stdio.h>\nint main(){\n    int n,bits[32],cnt=0;\n    scanf("%d",&n);\n    int tmp=n;\n    while(tmp>0){bits[cnt++]=tmp%2;tmp/=2;}\n    printf("%d ในฐาน 2 = ",n);\n    for(int i=cnt-1;i>=0;i--) printf("%d",bits[i]);\n    printf("\\n");\n    return 0;\n}`,pass:4,total:5},
+  {unit:4,interest:0,topic:'ฟังก์ชัน',difficulty:'ยาก',
+   title:'ฟังก์ชัน popcount (นับ bit 1)',
+   desc:'เขียนฟังก์ชัน countBits(n) คืนจำนวน bit ที่เป็น 1 ในการแทนค่าแบบ binary รับค่า n จาก main() แสดงทั้ง binary representation และจำนวน 1-bits',
+   code:`#include <stdio.h>\nint countBits(int n){int c=0;while(n){c+=n&1;n>>=1;}return c;}\nint main(){\n    int n;\n    scanf("%d",&n);\n    printf("1-bits = %d\\n",countBits(n));\n    return 0;\n}`,pass:5,total:5},
+  // interest 1 = กีฬา
+  {unit:1,interest:1,topic:'นิพจน์และการคำนวณ',difficulty:'ง่าย',
+   title:'คำนวณ Pace วิ่ง',
+   desc:'รับระยะทาง (km) และเวลาที่ใช้ (นาที) คำนวณ pace (นาที/km) แสดงในรูปแบบ "X นาที Y วินาที/km"',
+   code:`#include <stdio.h>\nint main(){\n    double dist,mins;\n    scanf("%lf%lf",&dist,&mins);\n    double pace=mins/dist;\n    printf("%.0f นาที %.0f วินาที/km\\n",(int)pace,(pace-(int)pace)*60);\n    return 0;\n}`,pass:5,total:5},
+  {unit:2,interest:1,topic:'การตัดสินใจ (if/else)',difficulty:'ง่าย',
+   title:'ตัดสินผลการแข่งขัน',
+   desc:'รับแต้มทีม A และทีม B แสดงผล "ทีม A ชนะ" / "ทีม B ชนะ" / "เสมอ" พร้อมส่วนต่างแต้ม',
+   code:`#include <stdio.h>\nint main(){\n    int a,b;\n    scanf("%d%d",&a,&b);\n    printf("ผลต่าง: %d\\n",a>b?a-b:b-a);\n    if(a>b) printf("ทีม A ชนะ\\n");\n    else if(b>a) printf("ทีม B ชนะ\\n");\n    else printf("เสมอ\\n");\n    return 0;\n}`,pass:5,total:5},
+  {unit:3,interest:1,topic:'for loop',difficulty:'ปานกลาง',
+   title:'สถิติการวิ่งสะสม n วัน',
+   desc:'รับจำนวนวัน n และระยะทางวิ่งแต่ละวัน แสดงระยะรวม ค่าเฉลี่ย และวันที่วิ่งไกลที่สุด',
+   code:`#include <stdio.h>\nint main(){\n    int n; scanf("%d",&n);\n    double d[100],sum=0,mx=0; int mxDay=1;\n    for(int i=0;i<n;i++){scanf("%lf",&d[i]);sum+=d[i];if(d[i]>mx){mx=d[i];mxDay=i+1;}}\n    printf("รวม: %.2f km\\nเฉลี่ย: %.2f km/วัน\\nไกลสุด: วันที่ %d (%.2f km)\\n",sum,sum/n,mxDay,mx);\n    return 0;\n}`,pass:4,total:5},
+  {unit:4,interest:1,topic:'อาร์เรย์ 1 มิติ',difficulty:'ยาก',
+   title:'เรียงอันดับนักกีฬา (Bubble Sort)',
+   desc:'รับคะแนน n นักกีฬาเข้า array เรียงลำดับจากมากไปน้อยด้วย Bubble Sort แสดงอันดับ 1-3',
+   code:`#include <stdio.h>\nint main(){\n    int n,a[100];\n    scanf("%d",&n);\n    for(int i=0;i<n;i++) scanf("%d",&a[i]);\n    for(int i=0;i<n-1;i++) for(int j=0;j<n-i-1;j++) if(a[j]<a[j+1]){int t=a[j];a[j]=a[j+1];a[j+1]=t;}\n    for(int i=0;i<(n<3?n:3);i++) printf("อันดับ %d: %d\\n",i+1,a[i]);\n    return 0;\n}`,pass:4,total:5},
+  // interest 2 = อาหาร
+  {unit:1,interest:2,topic:'นิพจน์และการคำนวณ',difficulty:'ง่าย',
+   title:'คำนวณแคลอรีอาหาร',
+   desc:'รับน้ำหนักอาหาร (g) และค่าพลังงาน (kcal ต่อ 100g) คำนวณและแสดงแคลอรีที่ได้รับรวม ทศนิยม 2 ตำแหน่ง',
+   code:`#include <stdio.h>\nint main(){\n    double w,cal;\n    scanf("%lf%lf",&w,&cal);\n    printf("แคลอรี = %.2f kcal\\n",w*cal/100.0);\n    return 0;\n}`,pass:5,total:5},
+  {unit:2,interest:2,topic:'switch-case',difficulty:'ปานกลาง',
+   title:'ระดับความเผ็ด Scoville',
+   desc:'รับค่า Scoville units จัดระดับ: 0=ไม่เผ็ด (<1K), 1=เผ็ดน้อย (1K-10K), 2=เผ็ดกลาง (10K-100K), 3=เผ็ดมาก (≥100K) แสดงระดับและคำเตือน',
+   code:`#include <stdio.h>\nint main(){\n    int s; scanf("%d",&s);\n    if(s<1000) printf("ไม่เผ็ด\\n");\n    else if(s<10000) printf("เผ็ดน้อย\\n");\n    else if(s<100000) printf("เผ็ดกลาง\\n");\n    else printf("เผ็ดมาก! ⚠\\n");\n    return 0;\n}`,pass:5,total:5},
+  {unit:3,interest:2,topic:'for loop',difficulty:'ปานกลาง',
+   title:'แคลอรีสะสมตลอดวัน',
+   desc:'รับแคลอรีของ n มื้ออาหาร แสดงแคลอรีสะสมหลังแต่ละมื้อและบอกว่าเกิน 2000 kcal หรือไม่',
+   code:`#include <stdio.h>\nint main(){\n    int n; scanf("%d",&n);\n    double sum=0,c;\n    for(int i=1;i<=n;i++){scanf("%lf",&c);sum+=c;printf("มื้อ%d: %.0f kcal (สะสม %.0f)\\n",i,c,sum);}\n    printf(sum>2000?"เกินงบแคลอรี!\\n":"อยู่ในเกณฑ์ดี\\n");\n    return 0;\n}`,pass:4,total:5},
+  {unit:4,interest:2,topic:'อาร์เรย์ 1 มิติ',difficulty:'ยาก',
+   title:'หาวัตถุดิบที่แพงที่สุดและถูกที่สุด',
+   desc:'รับชื่อวัตถุดิบ n รายการและราคา หาที่แพงสุดและถูกสุด แสดงชื่อและราคาของทั้งสอง',
+   code:`#include <stdio.h>\nint main(){\n    int n; scanf("%d",&n);\n    char name[20][50]; double price[20];\n    for(int i=0;i<n;i++) scanf("%s%lf",name[i],&price[i]);\n    int mx=0,mn=0;\n    for(int i=1;i<n;i++){if(price[i]>price[mx])mx=i;if(price[i]<price[mn])mn=i;}\n    printf("แพงสุด: %s %.2f\\nถูกสุด: %s %.2f\\n",name[mx],price[mx],name[mn],price[mn]);\n    return 0;\n}`,pass:3,total:5},
+  // interest 3 = ดนตรี
+  {unit:1,interest:3,topic:'นิพจน์และการคำนวณ',difficulty:'ง่าย',
+   title:'คำนวณ BPM เพลง',
+   desc:'รับจำนวน beat ที่นับและเวลา (วินาที) คำนวณ BPM = (beats × 60) / วินาที แสดงทศนิยม 1 ตำแหน่ง',
+   code:`#include <stdio.h>\nint main(){\n    int beats; double secs;\n    scanf("%d%lf",&beats,&secs);\n    printf("BPM = %.1f\\n",beats*60.0/secs);\n    return 0;\n}`,pass:5,total:5},
+  {unit:2,interest:3,topic:'switch-case',difficulty:'ง่าย',
+   title:'ระบุ Genre เพลงจากรหัส',
+   desc:'รับรหัส 1-6 แสดงชื่อ genre: 1=Pop, 2=Rock, 3=Jazz, 4=Classical, 5=Hip-Hop, 6=Electronic ถ้าไม่ตรงแสดง "Unknown"',
+   code:`#include <stdio.h>\nint main(){\n    int c; scanf("%d",&c);\n    switch(c){\n        case 1:printf("Pop\\n");break; case 2:printf("Rock\\n");break;\n        case 3:printf("Jazz\\n");break; case 4:printf("Classical\\n");break;\n        case 5:printf("Hip-Hop\\n");break; case 6:printf("Electronic\\n");break;\n        default:printf("Unknown\\n");\n    } return 0;\n}`,pass:5,total:5},
+  {unit:3,interest:3,topic:'for loop',difficulty:'ปานกลาง',
+   title:'นับโน้ตในทำนอง',
+   desc:'รับลำดับโน้ต n ตัว (1=โด 2=เร 3=มี 4=ฟา 5=ซอล 6=ลา 7=ที) นับจำนวนของแต่ละโน้ต แสดงโน้ตที่ปรากฏบ่อยที่สุด',
+   code:`#include <stdio.h>\nint main(){\n    int n,cnt[8]={0},note;\n    scanf("%d",&n);\n    for(int i=0;i<n;i++){scanf("%d",&note);if(note>=1&&note<=7)cnt[note]++;}\n    int mx=1;\n    for(int i=2;i<=7;i++) if(cnt[i]>cnt[mx]) mx=i;\n    char* names[]={"","โด","เร","มี","ฟา","ซอล","ลา","ที"};\n    printf("บ่อยสุด: %s (%d ครั้ง)\\n",names[mx],cnt[mx]);\n    return 0;\n}`,pass:4,total:5},
+  {unit:4,interest:3,topic:'อาร์เรย์ 1 มิติ',difficulty:'ยาก',
+   title:'เรียง Playlist ตาม BPM',
+   desc:'รับชื่อเพลง n เพลงและ BPM แต่ละเพลง เรียงลำดับจาก BPM ต่ำไปสูง แสดงรายชื่อและ BPM',
+   code:`#include <stdio.h>\nint main(){\n    int n; scanf("%d",&n);\n    char s[20][50]; int bpm[20];\n    for(int i=0;i<n;i++) scanf("%s%d",s[i],&bpm[i]);\n    for(int i=0;i<n-1;i++) for(int j=0;j<n-i-1;j++) if(bpm[j]>bpm[j+1]){int t=bpm[j];bpm[j]=bpm[j+1];bpm[j+1]=t;char tmp[50];strcpy(tmp,s[j]);strcpy(s[j],s[j+1]);strcpy(s[j+1],tmp);}\n    for(int i=0;i<n;i++) printf("%d. %s (%d BPM)\\n",i+1,s[i],bpm[i]);\n    return 0;\n}`,pass:3,total:5},
+  // interest 4 = ท่องเที่ยว
+  {unit:1,interest:4,topic:'นิพจน์และการคำนวณ',difficulty:'ง่าย',
+   title:'คำนวณค่าแท็กซี่',
+   desc:'รับระยะทาง (km) คำนวณค่าแท็กซี่: 35 บาท (ป้ายตก) + 6.50 บาท/km แสดงผลทศนิยม 2 ตำแหน่ง',
+   code:`#include <stdio.h>\nint main(){\n    double km; scanf("%lf",&km);\n    printf("ค่าแท็กซี่ = %.2f บาท\\n",35+km*6.50);\n    return 0;\n}`,pass:5,total:5},
+  {unit:2,interest:4,topic:'การตัดสินใจ (if/else)',difficulty:'ปานกลาง',
+   title:'จัดประเภทโรงแรมตาม Rating',
+   desc:'รับคะแนน rating (0-10.0) จัดระดับดาว: ≥9=5ดาว, ≥7.5=4ดาว, ≥6=3ดาว, ≥4.5=2ดาว, อื่น=1ดาว',
+   code:`#include <stdio.h>\nint main(){\n    double r; scanf("%lf",&r);\n    int star;\n    if(r>=9) star=5; else if(r>=7.5) star=4; else if(r>=6) star=3; else if(r>=4.5) star=2; else star=1;\n    printf("%d ดาว\\n",star);\n    return 0;\n}`,pass:5,total:5},
+  {unit:3,interest:4,topic:'for loop',difficulty:'ปานกลาง',
+   title:'ระยะทางเดินทางสะสมทริป',
+   desc:'รับจำนวนจุดแวะ n และระยะทางระหว่างแต่ละจุด แสดงระยะทางสะสมหลังแต่ละจุดและระยะรวมทริป',
+   code:`#include <stdio.h>\nint main(){\n    int n; scanf("%d",&n);\n    double d,sum=0;\n    for(int i=1;i<=n;i++){scanf("%lf",&d);sum+=d;printf("จุด%d: สะสม %.1f km\\n",i,sum);}\n    printf("รวมทั้งทริป: %.1f km\\n",sum);\n    return 0;\n}`,pass:4,total:5},
+  {unit:4,interest:4,topic:'ฟังก์ชัน',difficulty:'ยาก',
+   title:'ฟังก์ชันคำนวณค่าใช้จ่ายต่อวัน',
+   desc:'เขียนฟังก์ชัน avgCost(costs[], n) คืนค่าเฉลี่ย และ maxCost(costs[], n) คืนค่าสูงสุด รับค่าใช้จ่ายรายวัน n วันจาก main() แสดงทั้งสองค่า',
+   code:`#include <stdio.h>\ndouble avgCost(double a[],int n){double s=0;for(int i=0;i<n;i++)s+=a[i];return s/n;}\ndouble maxCost(double a[],int n){double m=a[0];for(int i=1;i<n;i++)if(a[i]>m)m=a[i];return m;}\nint main(){int n;scanf("%d",&n);double a[100];for(int i=0;i<n;i++)scanf("%lf",&a[i]);printf("เฉลี่ย: %.2f\\nสูงสุด: %.2f\\n",avgCost(a,n),maxCost(a,n));return 0;}`,pass:4,total:5},
+  // interest 5 = การเงิน
+  {unit:1,interest:5,topic:'นิพจน์และการคำนวณ',difficulty:'ปานกลาง',
+   title:'คำนวณดอกเบี้ยทบต้น',
+   desc:'รับเงินต้น (บาท) อัตราดอกเบี้ยต่อปี (%) และระยะเวลา (ปี) คำนวณ A = P(1+r)^n ด้วย loop แสดงยอดสะสมทุกปี',
+   code:`#include <stdio.h>\nint main(){\n    double p,r; int n;\n    scanf("%lf%lf%d",&p,&r,&n);\n    double a=p;\n    for(int i=1;i<=n;i++){a*=(1+r/100);printf("ปี%d: %.2f บาท\\n",i,a);}\n    return 0;\n}`,pass:4,total:5},
+  {unit:2,interest:5,topic:'การตัดสินใจ (if/else)',difficulty:'ปานกลาง',
+   title:'ตรวจสอบการอนุมัติสินเชื่อ',
+   desc:'รับรายได้ต่อเดือน หนี้คงค้างต่อเดือน และยอดผ่อนที่ขอ อนุมัติถ้า DSR = (หนี้+ผ่อน)/รายได้ ≤ 0.40',
+   code:`#include <stdio.h>\nint main(){\n    double inc,debt,loan;\n    scanf("%lf%lf%lf",&inc,&debt,&loan);\n    double dsr=(debt+loan)/inc;\n    printf("DSR = %.2f%%\\n%s\\n",dsr*100,dsr<=0.40?"อนุมัติ":"ไม่อนุมัติ");\n    return 0;\n}`,pass:5,total:5},
+  {unit:3,interest:5,topic:'for loop',difficulty:'ปานกลาง',
+   title:'จำลองเงินออมรายเดือน',
+   desc:'รับเงินต้น อัตราดอกเบี้ยต่อปี (%) และจำนวนเดือน แสดงยอดเงินสะสมทุกเดือน (ดอกเบี้ยรายเดือน = อัตราต่อปี/12)',
+   code:`#include <stdio.h>\nint main(){\n    double p,r; int n;\n    scanf("%lf%lf%d",&p,&r,&n);\n    double monthly=r/100/12,a=p;\n    for(int i=1;i<=n;i++){a*=(1+monthly);printf("เดือน%d: %.2f\\n",i,a);}\n    return 0;\n}`,pass:4,total:5},
+  {unit:4,interest:5,topic:'ฟังก์ชัน',difficulty:'ยาก',
+   title:'ฟังก์ชันคำนวณ ROI และ Payback Period',
+   desc:'เขียนฟังก์ชัน roi(cost, revenue) คืน ROI (%) และ payback(cost, monthly) คืนจำนวนเดือนคืนทุน รับค่าจาก main() แสดงทั้งสอง',
+   code:`#include <stdio.h>\ndouble roi(double c,double r){return (r-c)/c*100;}\nint payback(double c,double m){return (int)(c/m)+((int)(c/m)*m<c?1:0);}\nint main(){\n    double c,r,m;\n    scanf("%lf%lf%lf",&c,&r,&m);\n    printf("ROI = %.2f%%\\nคืนทุน %d เดือน\\n",roi(c,r),payback(c,m));\n    return 0;\n}`,pass:4,total:5},
+  // interest 6 = วิทยาศาสตร์
+  {unit:1,interest:6,topic:'นิพจน์และการคำนวณ',difficulty:'ง่าย',
+   title:'แปลงอุณหภูมิ C / F / K',
+   desc:'รับอุณหภูมิเซลเซียส แปลงและแสดงทั้ง Fahrenheit (×9/5+32) และ Kelvin (+273.15) ทศนิยม 2 ตำแหน่ง',
+   code:`#include <stdio.h>\nint main(){\n    double c; scanf("%lf",&c);\n    printf("%.2f°F\\n%.2f K\\n",c*9/5+32,c+273.15);\n    return 0;\n}`,pass:5,total:5},
+  {unit:2,interest:6,topic:'การตัดสินใจ (if/else)',difficulty:'ปานกลาง',
+   title:'จัดประเภทค่า pH',
+   desc:'รับค่า pH (0-14) แสดงประเภท: <3=กรดแก่, 3-6=กรดอ่อน, 7=กลาง, 8-11=เบสอ่อน, >11=เบสแก่',
+   code:`#include <stdio.h>\nint main(){\n    double ph; scanf("%lf",&ph);\n    if(ph<3) printf("กรดแก่\\n");\n    else if(ph<7) printf("กรดอ่อน\\n");\n    else if(ph==7) printf("กลาง\\n");\n    else if(ph<=11) printf("เบสอ่อน\\n");\n    else printf("เบสแก่\\n");\n    return 0;\n}`,pass:5,total:5},
+  {unit:3,interest:6,topic:'for loop',difficulty:'ปานกลาง',
+   title:'ตารางการเคลื่อนที่ (v = v₀ + at)',
+   desc:'รับความเร็วต้น v₀ ความเร่ง a และเวลา T แสดงความเร็วและระยะทางทุก 1 วินาที จาก t=0 ถึง t=T',
+   code:`#include <stdio.h>\nint main(){\n    double v0,a; int T;\n    scanf("%lf%lf%d",&v0,&a,&T);\n    double s=0;\n    for(int t=0;t<=T;t++){double v=v0+a*t;s=v0*t+0.5*a*t*t;printf("t=%d v=%.2f s=%.2f\\n",t,v,s);}\n    return 0;\n}`,pass:4,total:5},
+  {unit:4,interest:6,topic:'ฟังก์ชัน',difficulty:'ยาก',
+   title:'ฟังก์ชัน Mean, Variance, StdDev',
+   desc:'เขียนฟังก์ชัน mean(), variance(), stddev() รับ array และ n รับข้อมูล n ค่าจาก main() แสดงทั้งสามค่า ทศนิยม 4 ตำแหน่ง',
+   code:`#include <stdio.h>\n#include <math.h>\ndouble mean(double a[],int n){double s=0;for(int i=0;i<n;i++)s+=a[i];return s/n;}\ndouble variance(double a[],int n){double m=mean(a,n),s=0;for(int i=0;i<n;i++)s+=(a[i]-m)*(a[i]-m);return s/n;}\ndouble stddev(double a[],int n){return sqrt(variance(a,n));}\nint main(){int n;scanf("%d",&n);double a[100];for(int i=0;i<n;i++)scanf("%lf",&a[i]);printf("Mean=%.4f\\nVar=%.4f\\nSD=%.4f\\n",mean(a,n),variance(a,n),stddev(a,n));return 0;}`,pass:3,total:5},
+  // interest 7 = ชีวิตประจำวัน
+  {unit:1,interest:7,topic:'นิพจน์และการคำนวณ',difficulty:'ง่าย',
+   title:'คำนวณค่า Food Delivery',
+   desc:'รับราคาอาหาร (บาท) และระยะทาง (km) คำนวณค่าส่ง: ≤3km=25บ, 3-10km=45บ, >10km=65บ แสดงราคารวม',
+   code:`#include <stdio.h>\nint main(){\n    double price,km;\n    scanf("%lf%lf",&price,&km);\n    int fee=km<=3?25:km<=10?45:65;\n    printf("ค่าอาหาร: %.2f\\nค่าส่ง: %d\\nรวม: %.2f\\n",price,fee,price+fee);\n    return 0;\n}`,pass:5,total:5},
+  {unit:2,interest:7,topic:'การตัดสินใจ (if/else)',difficulty:'ง่าย',
+   title:'ตรวจสอบสิทธิ์บัตรสวัสดิการ',
+   desc:'รับรายได้ต่อปี แสดงสิทธิ์: ≤100,000=บัตรทอง+สวัสดิการแห่งรัฐ, ≤200,000=บัตรทอง, >200,000=ไม่มีสิทธิ์',
+   code:`#include <stdio.h>\nint main(){\n    int inc; scanf("%d",&inc);\n    if(inc<=100000) printf("ได้รับ: บัตรทอง + บัตรสวัสดิการแห่งรัฐ\\n");\n    else if(inc<=200000) printf("ได้รับ: บัตรทอง\\n");\n    else printf("ไม่มีสิทธิ์\\n");\n    return 0;\n}`,pass:5,total:5},
+  {unit:3,interest:7,topic:'for loop',difficulty:'ปานกลาง',
+   title:'คำนวณค่าน้ำ-ค่าไฟสะสม n เดือน',
+   desc:'รับจำนวนเดือน n หน่วยน้ำ (บาท/หน่วย=8.50) และหน่วยไฟ (บาท/หน่วย=4.18) แต่ละเดือน แสดงค่าใช้จ่ายและสะสมรวม',
+   code:`#include <stdio.h>\nint main(){\n    int n; scanf("%d",&n);\n    double w,e,sumW=0,sumE=0;\n    for(int i=1;i<=n;i++){scanf("%lf%lf",&w,&e);double cW=w*8.50,cE=e*4.18;sumW+=cW;sumE+=cE;printf("เดือน%d น้ำ=%.2f ไฟ=%.2f\\n",i,cW,cE);}\n    printf("รวมน้ำ: %.2f รวมไฟ: %.2f รวมทั้งหมด: %.2f\\n",sumW,sumE,sumW+sumE);\n    return 0;\n}`,pass:4,total:5},
+  {unit:4,interest:7,topic:'ฟังก์ชัน Recursive',difficulty:'ยาก',
+   title:'ฟังก์ชันคำนวณค่าครองชีพรายเดือน',
+   desc:'เขียนฟังก์ชัน totalBudget(expenses[], n) รวมรายจ่าย และ savings(income, expenses[], n) คืนเงินคงเหลือ รับข้อมูลจาก main() แสดงผล',
+   code:`#include <stdio.h>\ndouble totalBudget(double a[],int n){double s=0;for(int i=0;i<n;i++)s+=a[i];return s;}\ndouble savings(double inc,double a[],int n){return inc-totalBudget(a,n);}\nint main(){int n;scanf("%d",&n);double a[100],inc;scanf("%lf",&inc);for(int i=0;i<n;i++)scanf("%lf",&a[i]);printf("รายจ่ายรวม: %.2f\\nเงินคงเหลือ: %.2f\\n",totalBudget(a,n),savings(inc,a,n));return 0;}`,pass:4,total:5},
+  // ── PLACEHOLDER: ทำให้ไม่มีสถานการณ์เก่าเหลือ ──
+]];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utilities
@@ -1054,12 +1032,13 @@ async function doSeedSelfPractice() {
         if(!ok) { showMsg('ไม่พบรายวิชา — กรุณาสร้างรายวิชาก่อน','error'); return false; }
     }
 
-    // ── Parallel UID loading (chunks of 8) ───────────────────────────────────
+    // ── Step A: Parallel UID loading (chunks of 8) ───────────────────────────
     if(Object.keys(studentUids).length === 0) {
-        log('🔍 กำลังโหลด UID นักเรียนแบบขนาน...','wait');
+        log('⏳ [1/4] กำลังโหลด UID นักเรียนแบบขนาน (8 คน/รอบ)...','wait');
         const CHUNK = 8;
         for(let i = 0; i < STUDENTS.length; i += CHUNK) {
             const chunk = STUDENTS.slice(i, i + CHUNK);
+            setProgress(80 + (i/STUDENTS.length)*5, `โหลด UID: ${i+1}–${Math.min(i+CHUNK,STUDENTS.length)}/${STUDENTS.length}`);
             const results = await Promise.all(
                 chunk.map(st => getUserUid(`${st.code}@triamudomsouth.ac.th`, '123456')
                     .then(uid => [st.code, uid]))
@@ -1070,84 +1049,90 @@ async function doSeedSelfPractice() {
         log(`✅ โหลด UID ได้ ${Object.keys(studentUids).length}/${STUDENTS.length} คน`,'ok');
     }
 
-    // Get course title
+    // ── Step B: Pre-fetch ALL existing SP records for this course (1 query) ──
+    log('⏳ [2/4] กำลังตรวจสอบ SelfPractice ที่มีอยู่ (1 query)...','wait');
+    setProgress(85, 'ตรวจสอบข้อมูลที่มีอยู่...');
+    const existingSnap = await db.collection('selfPracticeSubmissions')
+        .where('courseId','==',courseId).get();
+    const existingStudents = new Set(existingSnap.docs.map(d => d.data().studentId));
+    const skipCount = [...Object.values(studentUids)].filter(uid => existingStudents.has(uid)).length;
+    log(`✅ พบ SP ที่มีอยู่แล้ว: ${existingStudents.size} นักเรียน (จะสร้างให้: ${Object.keys(studentUids).length - skipCount} คน)`,'info');
+
+    // ── Step C: Course title ─────────────────────────────────────────────────
     const courseSnap = await db.collection('courses').doc(courseId).get();
     const courseTitle = courseSnap.exists ? courseSnap.data().title : 'ว31281 การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น';
 
-    // Unit period start dates (same as weekStart in submissions)
     const unitPeriods = [
         new Date('2025-06-02'), new Date('2025-07-07'),
         new Date('2025-08-04'), new Date('2025-09-01'),
     ];
 
-    log('\n🎯 กำลังสร้าง SelfPractice History...','wait');
+    // ── Step D: Build ALL documents in one Firestore batch ───────────────────
+    log('⏳ [3/4] กำลังสร้างประวัติ SelfPractice ตามความสนใจ...','wait');
+    const batch = db.batch();
     let totalCreated = 0;
+    let skipped = 0;
 
     for(let si = 0; si < STUDENTS.length; si++) {
         const st = STUDENTS[si];
         const uid = studentUids[st.code];
         if(!uid) continue;
 
-        setProgress(80 + (si/STUDENTS.length)*18, `SelfPractice: ${st.code} (${si+1}/${STUDENTS.length})`);
+        setProgress(86 + (si/STUDENTS.length)*12, `[3/4] กำลังสร้าง: ${st.code} ${st.name} (${si+1}/${STUDENTS.length})`);
 
-        // Skip if already has sessions for this course
-        const existing = await db.collection('selfPracticeSubmissions')
-            .where('studentId','==',uid)
-            .where('courseId','==',courseId)
-            .limit(1).get();
-        if(!existing.empty) {
-            log(`ℹ️ ${st.code} มี SelfPractice แล้ว — ข้าม`,'info');
+        if(existingStudents.has(uid)) {
+            log(`  ⏭ ${st.code} มี SelfPractice แล้ว — ข้าม`,'info');
+            skipped++;
             continue;
         }
 
         const totalScore = st.u1 + st.u2 + st.u3 + st.u4;
-        const pct = totalScore / 60;
+        const pct = totalScore / 60;  // 0.73–0.88 for this class
 
-        // Session count: 4-7 sessions per student
-        const sessionCount = 4 + Math.floor(Math.random() * 4);
+        // Session count correlates with E1 score (ฝึกเองเยอะ → คะแนนสูง)
+        const sessionCount = pct >= 0.87 ? 6 + Math.floor(Math.random()*3)  // 6-8
+            : pct >= 0.82 ? 5 + Math.floor(Math.random()*2)                  // 5-6
+            : pct >= 0.78 ? 4 + Math.floor(Math.random()*2)                  // 4-5
+            : 3 + Math.floor(Math.random()*2);                                // 3-4
 
-        // Unit weighting by performance level:
-        // - high scorers: more advanced units (3-4) + challenging topics
-        // - lower scorers: revisit earlier units (1-2) for practice
-        const weights = pct >= 0.87
-            ? [0.08, 0.17, 0.37, 0.38]  // advanced: focus units 3-4
-            : pct >= 0.78
-            ? [0.15, 0.25, 0.33, 0.27]  // average: balanced
-            : [0.32, 0.32, 0.24, 0.12]; // below 78%: revisit basics
+        // Unit weighting by performance level
+        const weights = pct >= 0.87 ? [0.08, 0.17, 0.37, 0.38]
+            : pct >= 0.78           ? [0.15, 0.25, 0.33, 0.27]
+            :                         [0.32, 0.32, 0.24, 0.12];
 
-        // Build weighted scenario pool (repeat entries to weight selection)
+        // Interest domain for this student (deterministic)
+        const myInterest = studentInterest(st.code);
+        const myInterestName = INTEREST_NAMES[myInterest];
+
+        // Build weighted pool: 3× weight for matching interest, 1× for others
         let pool = [];
         SP_SCENARIOS.forEach(s => {
-            const w = Math.max(1, Math.round(weights[s.unit-1] * 12));
+            const interestBoost = (s.interest === myInterest) ? 3 : 1;
+            const w = Math.max(1, Math.round(weights[s.unit-1] * 10 * interestBoost));
             for(let i=0; i<w; i++) pool.push(s);
         });
-
-        // Shuffle and pick unique scenarios
         pool = pool.sort(() => Math.random() - 0.5);
+
         const seen = new Set();
         const chosen = [];
         for(const s of pool) {
             if(!seen.has(s.title) && chosen.length < sessionCount) {
-                seen.add(s.title);
-                chosen.push(s);
+                seen.add(s.title); chosen.push(s);
             }
         }
-        // Sort chronologically by unit
         chosen.sort((a,b) => a.unit !== b.unit ? a.unit - b.unit : Math.random() - 0.5);
 
-        // ── Batch write all sessions for this student ────────────────────────
-        const batch = db.batch();
+        const interestTopics = chosen.filter(s=>s.interest===myInterest).length;
+        log(`  📝 ${st.code} [${myInterestName}] ${chosen.length} sessions (${interestTopics} ตรงความสนใจ)`,'ok');
+
         for(let pi = 0; pi < chosen.length; pi++) {
             const sp = chosen[pi];
             const studentOffset = (si % 7) * 3600000 * 3;
             const dayOffset = Math.floor(Math.random() * 14) * 86400000;
             const spDate = new Date(unitPeriods[sp.unit-1].getTime() + studentOffset + dayOffset);
 
-            // Score correlates with student's performance on that unit
             const unitPct = [st.u1, st.u2, st.u3, st.u4][sp.unit-1] / 15;
             const baseScore = sp.difficulty === 'ยาก' ? 100 : sp.difficulty === 'ปานกลาง' ? 75 : 50;
-
-            // Pass count = scenario.pass × student unit performance + small noise
             let passed = Math.round(sp.pass * (0.55 + unitPct * 0.45));
             passed = Math.max(0, Math.min(sp.total, passed + Math.floor(Math.random()*2 - 1)));
             const actualScore = sp.total > 0 ? Math.round(baseScore * passed / sp.total) : 0;
@@ -1161,6 +1146,7 @@ async function doSeedSelfPractice() {
                 language:           'c',
                 difficulty:         sp.difficulty,
                 topic:              sp.topic,
+                interestDomain:     myInterestName,
                 problemTitle:       sp.title,
                 problemDescription: sp.desc,
                 code:               sp.code,
@@ -1172,15 +1158,21 @@ async function doSeedSelfPractice() {
             });
             totalCreated++;
         }
-        await batch.commit();
+    }
 
-        const topics = chosen.map(s => s.topic.split(' ')[0]).join(', ');
-        log(`✅ ${st.code}: ${chosen.length} sessions [${topics}]`,'ok');
-        await sleep(30);
+    // ── Step D: Single commit ────────────────────────────────────────────────
+    if(totalCreated > 0) {
+        log(`⏳ [4/4] กำลัง commit ${totalCreated} sessions (batch เดียว)...`,'wait');
+        setProgress(98, `commit ${totalCreated} sessions...`);
+        await batch.commit();
+        log(`✅ commit สำเร็จ!`,'ok');
+    } else {
+        log(`ℹ️ ไม่มีข้อมูลใหม่ให้ commit (ข้ามทั้งหมด ${skipped} คน)`,'info');
     }
 
     setProgress(99,'SelfPractice เสร็จแล้ว ✓');
-    log(`✅ SelfPractice รวม ${totalCreated} sessions (เฉลี่ย ${(totalCreated/STUDENTS.length).toFixed(1)}/คน)`, 'ok');
+    log(`\n✅ SelfPractice รวม ${totalCreated} sessions สำหรับ ${Object.keys(studentUids).length - skipped} นักเรียน`, 'ok');
+    log(`   (เฉลี่ย ${totalCreated > 0 ? (totalCreated/(Object.keys(studentUids).length-skipped)).toFixed(1) : 0} sessions/คน  |  ข้าม ${skipped} คนที่มีข้อมูลแล้ว)`, 'info');
     return true;
 }
 
