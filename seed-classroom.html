@@ -58,14 +58,15 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
         <li>สร้างโครงสร้าง 4 หน่วย × 4-5 โจทย์ = 17 โจทย์ + test cases</li>
         <li>สร้างบัญชีนักเรียน 41 คน (email: รหัส@triamudomsouth.ac.th, pass: 123456)</li>
         <li>ลงทะเบียนนักเรียนทุกคนในรายวิชา</li>
-        <li>สร้างประวัติการส่งงานตามคะแนน E1 (รวม 60 คะแนน)</li>
+        <li>สร้างประวัติการส่งงานตามคะแนน E1 — หลายครั้งต่อโจทย์ (realistic attempts)</li>
+        <li>สร้างประวัติ SelfPractice ตามความสนใจและระดับคะแนน (AI-generated problems)</li>
       </ol>
     </div>
 
     <div class="stats">
       <div class="stat"><div class="num">41</div><div class="lbl">นักเรียน</div></div>
       <div class="stat"><div class="num">17</div><div class="lbl">โจทย์</div></div>
-      <div class="stat"><div class="num" id="submissionCount">697</div><div class="lbl">submissions</div></div>
+      <div class="stat"><div class="num">~1,700</div><div class="lbl">submissions</div></div>
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
@@ -73,6 +74,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
       <button class="btn-gray" onclick="doSeedCourse()">1️⃣ สร้างรายวิชา+โจทย์เท่านั้น</button>
       <button class="btn-gray" onclick="doSeedStudents()">2️⃣ สร้างบัญชีนักเรียนเท่านั้น</button>
       <button class="btn-gray" onclick="doSeedSubmissions()">3️⃣ สร้าง Submissions เท่านั้น</button>
+      <button class="btn-gray" onclick="doSeedSelfPractice()">4️⃣ สร้าง SelfPractice History</button>
       <button class="btn-gray" onclick="updateRawScores()" style="background:#7C3AED;color:white;border-color:#7C3AED">📊 อัปเดต rawScore โจทย์</button>
     </div>
 
@@ -359,6 +361,80 @@ const UNIT_ASSIGN_MAX = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Self-Practice scenario pool — 21 AI-generated C problems across 4 topic areas
+// Each scenario has: unit(1-4), topic, difficulty, title, desc, code, pass, total
+// ─────────────────────────────────────────────────────────────────────────────
+const SP_SCENARIOS = [
+  // ── Unit 1: I/O, variables, expressions ────────────────────────────────────
+  { unit:1, topic:'ตัวแปรและชนิดข้อมูล', difficulty:'ง่าย',
+    title:'แปลงหน่วยอุณหภูมิ', desc:'รับอุณหภูมิเซลเซียส แสดงฟาเรนไฮต์ (F = C×9/5 + 32)',
+    code:`#include <stdio.h>\nint main(){\n    double c;\n    scanf("%lf",&c);\n    printf("%.2f F\\n",c*9.0/5.0+32);\n    return 0;\n}`, pass:5, total:5 },
+  { unit:1, topic:'นิพจน์และการคำนวณ', difficulty:'ง่าย',
+    title:'คำนวณ BMI', desc:'รับน้ำหนัก (kg) ส่วนสูง (m) แสดง BMI ทศนิยม 2 ตำแหน่ง',
+    code:`#include <stdio.h>\nint main(){\n    double w,h;\n    scanf("%lf%lf",&w,&h);\n    printf("BMI = %.2f\\n",w/(h*h));\n    return 0;\n}`, pass:5, total:5 },
+  { unit:1, topic:'การรับข้อมูล (scanf)', difficulty:'ปานกลาง',
+    title:'คำนวณค่าไฟฟ้า', desc:'รับหน่วยไฟฟ้า คำนวณค่าไฟ (4.2 บาท/หน่วย + 38 บาทคงที่)',
+    code:`#include <stdio.h>\nint main(){\n    int u;\n    scanf("%d",&u);\n    printf("%.2f บาท\\n",u*4.2+38);\n    return 0;\n}`, pass:4, total:5 },
+  { unit:1, topic:'การแสดงผล (printf)', difficulty:'ง่าย',
+    title:'แสดงข้อมูลส่วนตัว', desc:'รับชื่อและอายุ แสดงผลในรูปแบบ "ชื่อ: X  อายุ: Y ปี"',
+    code:`#include <stdio.h>\nint main(){\n    char name[50];\n    int age;\n    scanf("%s%d",name,&age);\n    printf("ชื่อ: %s  อายุ: %d ปี\\n",name,age);\n    return 0;\n}`, pass:5, total:5 },
+  // ── Unit 2: if/else, switch ─────────────────────────────────────────────────
+  { unit:2, topic:'การตัดสินใจ (if/else)', difficulty:'ง่าย',
+    title:'ตรวจสอบเลขคู่คี่', desc:'รับจำนวนเต็ม แสดง "Even" หรือ "Odd"',
+    code:`#include <stdio.h>\nint main(){\n    int n;\n    scanf("%d",&n);\n    printf("%s\\n",n%2==0?"Even":"Odd");\n    return 0;\n}`, pass:5, total:5 },
+  { unit:2, topic:'การตัดสินใจ (if/else)', difficulty:'ปานกลาง',
+    title:'หาค่ามากที่สุด 3 ตัว', desc:'รับ 3 ตัวเลข หาและแสดงค่ามากที่สุด',
+    code:`#include <stdio.h>\nint main(){\n    int a,b,c,mx;\n    scanf("%d%d%d",&a,&b,&c);\n    mx=a; if(b>mx)mx=b; if(c>mx)mx=c;\n    printf("Max = %d\\n",mx);\n    return 0;\n}`, pass:5, total:5 },
+  { unit:2, topic:'switch-case', difficulty:'ปานกลาง',
+    title:'เมนูร้านอาหาร', desc:'รับรหัส 1-3 แสดงชื่อเมนู (1=ข้าวผัด 2=ผัดไทย 3=ต้มยำ) มิฉะนั้น "ไม่มีเมนูนี้"',
+    code:`#include <stdio.h>\nint main(){\n    int c;\n    scanf("%d",&c);\n    switch(c){\n        case 1:printf("ข้าวผัด\\n");break;\n        case 2:printf("ผัดไทย\\n");break;\n        case 3:printf("ต้มยำ\\n");break;\n        default:printf("ไม่มีเมนูนี้\\n");\n    }\n    return 0;\n}`, pass:5, total:5 },
+  { unit:2, topic:'การตัดสินใจ (if/else)', difficulty:'ยาก',
+    title:'จำแนกสามเหลี่ยม', desc:'รับ 3 ด้าน ตรวจว่าเป็นสามเหลี่ยมได้ไหม และเป็นชนิดใด (ด้านเท่า/หน้าจั่ว/ทั่วไป)',
+    code:`#include <stdio.h>\nint main(){\n    int a,b,c;\n    scanf("%d%d%d",&a,&b,&c);\n    if(a+b<=c||a+c<=b||b+c<=a){printf("Not a triangle\\n");return 0;}\n    if(a==b&&b==c)printf("Equilateral\\n");\n    else if(a==b||b==c||a==c)printf("Isosceles\\n");\n    else printf("Scalene\\n");\n    return 0;\n}`, pass:4, total:5 },
+  { unit:2, topic:'การตัดสินใจ (if/else)', difficulty:'ปานกลาง',
+    title:'จำแนกเกรด 5 ระดับ', desc:'รับคะแนน 0-100 แสดงเกรด 4.0/3.0/2.0/1.0/0.0',
+    code:`#include <stdio.h>\nint main(){\n    int s;\n    scanf("%d",&s);\n    double g;\n    if(s>=80)g=4.0; else if(s>=70)g=3.0; else if(s>=60)g=2.0; else if(s>=50)g=1.0; else g=0.0;\n    printf("Grade = %.1f\\n",g);\n    return 0;\n}`, pass:5, total:5 },
+  // ── Unit 3: loops ───────────────────────────────────────────────────────────
+  { unit:3, topic:'for loop', difficulty:'ง่าย',
+    title:'สูตรคูณ', desc:'รับ n แสดงสูตรคูณแม่ n ตั้งแต่ 1×n ถึง 12×n',
+    code:`#include <stdio.h>\nint main(){\n    int n;\n    scanf("%d",&n);\n    for(int i=1;i<=12;i++) printf("%d x %d = %d\\n",n,i,n*i);\n    return 0;\n}`, pass:5, total:5 },
+  { unit:3, topic:'for loop', difficulty:'ปานกลาง',
+    title:'คำนวณ Factorial', desc:'รับ n คำนวณ n! แสดงผล',
+    code:`#include <stdio.h>\nint main(){\n    int n;\n    scanf("%d",&n);\n    long long f=1;\n    for(int i=1;i<=n;i++) f*=i;\n    printf("%d! = %lld\\n",n,f);\n    return 0;\n}`, pass:5, total:5 },
+  { unit:3, topic:'while loop', difficulty:'ปานกลาง',
+    title:'ตรวจสอบจำนวนเฉพาะ', desc:'รับ n ตรวจสอบว่าเป็นจำนวนเฉพาะ แสดง "Prime" หรือ "Not Prime"',
+    code:`#include <stdio.h>\nint main(){\n    int n,prime=1,i=2;\n    scanf("%d",&n);\n    if(n<2)prime=0;\n    while(i*i<=n){if(n%i==0){prime=0;break;}i++;}\n    printf("%s\\n",prime?"Prime":"Not Prime");\n    return 0;\n}`, pass:4, total:5 },
+  { unit:3, topic:'การทำซ้ำซ้อน (Nested Loop)', difficulty:'ยาก',
+    title:'รูปสี่เหลี่ยมกลวง', desc:'รับ n แสดงกรอบสี่เหลี่ยม n×n ด้วย * (ข้างในว่าง)',
+    code:`#include <stdio.h>\nint main(){\n    int n;\n    scanf("%d",&n);\n    for(int i=0;i<n;i++){\n        for(int j=0;j<n;j++) printf("%c",(i==0||i==n-1||j==0||j==n-1)?'*':' ');\n        printf("\\n");\n    }\n    return 0;\n}`, pass:4, total:5 },
+  { unit:3, topic:'break และ continue', difficulty:'ปานกลาง',
+    title:'ผลรวมเลขคู่', desc:'รับ n แสดงผลรวมเลขคู่ทั้งหมดตั้งแต่ 1 ถึง n',
+    code:`#include <stdio.h>\nint main(){\n    int n,s=0;\n    scanf("%d",&n);\n    for(int i=1;i<=n;i++){if(i%2!=0)continue;s+=i;}\n    printf("Sum = %d\\n",s);\n    return 0;\n}`, pass:5, total:5 },
+  { unit:3, topic:'for loop', difficulty:'ยาก',
+    title:'หา GCD (Euclidean)', desc:'รับ a และ b หา GCD ด้วยอัลกอริทึม Euclidean',
+    code:`#include <stdio.h>\nint main(){\n    int a,b,t;\n    scanf("%d%d",&a,&b);\n    while(b){t=b;b=a%b;a=t;}\n    printf("GCD = %d\\n",a);\n    return 0;\n}`, pass:5, total:5 },
+  // ── Unit 4: functions, arrays ──────────────────────────────────────────────
+  { unit:4, topic:'ฟังก์ชัน', difficulty:'ง่าย',
+    title:'ฟังก์ชันค่าสัมบูรณ์', desc:'เขียนฟังก์ชัน absVal(x) คืนค่าสัมบูรณ์',
+    code:`#include <stdio.h>\nint absVal(int x){return x<0?-x:x;}\nint main(){int n;scanf("%d",&n);printf("|%d| = %d\\n",n,absVal(n));return 0;}`, pass:5, total:5 },
+  { unit:4, topic:'ฟังก์ชัน', difficulty:'ปานกลาง',
+    title:'ฟังก์ชัน Power', desc:'เขียนฟังก์ชัน power(base, exp) คำนวณ base^exp ด้วย loop',
+    code:`#include <stdio.h>\nlong long power(int b,int e){long long r=1;for(int i=0;i<e;i++)r*=b;return r;}\nint main(){int b,e;scanf("%d%d",&b,&e);printf("%lld\\n",power(b,e));return 0;}`, pass:5, total:5 },
+  { unit:4, topic:'อาร์เรย์ 1 มิติ', difficulty:'ปานกลาง',
+    title:'นับตัวเลขในช่วง', desc:'รับ n ตัวเลข นับจำนวนที่อยู่ระหว่าง 10-50',
+    code:`#include <stdio.h>\nint main(){\n    int n,cnt=0;\n    scanf("%d",&n);\n    for(int i=0;i<n;i++){int x;scanf("%d",&x);if(x>=10&&x<=50)cnt++;}\n    printf("Count = %d\\n",cnt);\n    return 0;\n}`, pass:4, total:5 },
+  { unit:4, topic:'ฟังก์ชัน Recursive', difficulty:'ยาก',
+    title:'Fibonacci Recursive', desc:'เขียนฟังก์ชัน fib(n) แบบ recursive แสดง F(n)',
+    code:`#include <stdio.h>\nint fib(int n){return n<=1?n:fib(n-1)+fib(n-2);}\nint main(){int n;scanf("%d",&n);printf("F(%d) = %d\\n",n,fib(n));return 0;}`, pass:5, total:5 },
+  { unit:4, topic:'อาร์เรย์ 1 มิติ', difficulty:'ยาก',
+    title:'Bubble Sort', desc:'รับตัวเลข n ตัว เรียงจากน้อยไปมากด้วย Bubble Sort',
+    code:`#include <stdio.h>\nint main(){\n    int n,a[100],t;\n    scanf("%d",&n);\n    for(int i=0;i<n;i++)scanf("%d",&a[i]);\n    for(int i=0;i<n-1;i++)for(int j=0;j<n-i-1;j++)if(a[j]>a[j+1]){t=a[j];a[j]=a[j+1];a[j+1]=t;}\n    for(int i=0;i<n;i++)printf("%d ",a[i]);\n    printf("\\n");\n    return 0;\n}`, pass:3, total:5 },
+  { unit:4, topic:'ฟังก์ชัน', difficulty:'ยาก',
+    title:'ตรวจสอบ Palindrome', desc:'เขียนฟังก์ชัน isPalindrome(n) ตรวจสอบตัวเลขว่าเป็น palindrome',
+    code:`#include <stdio.h>\nint isPalin(int n){int r=0,orig=n;while(n>0){r=r*10+n%10;n/=10;}return r==orig;}\nint main(){int n;scanf("%d",&n);printf("%s\\n",isPalin(n)?"Palindrome":"Not Palindrome");return 0;}`, pass:5, total:5 },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Utilities
 // ─────────────────────────────────────────────────────────────────────────────
 function log(msg, type='') {
@@ -389,6 +465,24 @@ function distributeScore(unitScore, maxScores) {
     const idx = maxScores.map((m,i)=>({i,gap:m-scores[i]})).filter(g=>g.gap>0).sort((a,b)=>b.gap-a.gap);
     for(const {i} of idx){ if(rem<=0)break; scores[i]++; rem--; }
     return scores;
+}
+
+/** Number of submission attempts based on final score ratio */
+function getAttemptCount(earned, maxPts) {
+    if (maxPts === 0) return 1;
+    const r = earned / maxPts;
+    if (r === 1.0) return Math.random() < 0.35 ? 1 : 2;       // perfect: 65% chance 2 tries
+    if (r >= 0.8)  return 2 + (Math.random() < 0.4 ? 1 : 0);  // good: 2-3 tries
+    if (r >= 0.5)  return 3 + (Math.random() < 0.5 ? 1 : 0);  // medium: 3-4 tries
+    return 4 + (Math.random() < 0.4 ? 1 : 0);                 // struggling: 4-5 tries
+}
+
+/** Score for intermediate failed attempt (ramps toward target) */
+function getIntermScore(target, maxPts, attIdx, lastIdx) {
+    if (target === 0) return Math.floor(Math.random() * Math.max(1, Math.floor(maxPts * 0.4)));
+    const progress = lastIdx > 0 ? attIdx / lastIdx : 0;
+    const ratio = 0.1 + progress * 0.7; // 10% → 80% ramp
+    return Math.min(Math.floor(target * ratio * (0.8 + Math.random() * 0.4)), target - 1);
 }
 
 /** Create Firebase Auth user via REST API (does not sign out current user) */
@@ -697,10 +791,12 @@ async function doSeedSubmissions() {
 
     log('\n📊 กำลังสร้าง Submission History...','wait');
 
-    // Reference timestamps: 4 weeks in June 2025
+    // Unit start dates spread across academic year 2568
     const weekStart = [
-        new Date('2025-06-02'), new Date('2025-06-09'),
-        new Date('2025-06-16'), new Date('2025-06-23')
+        new Date('2025-06-02'),  // Unit 1: June
+        new Date('2025-07-07'),  // Unit 2: July
+        new Date('2025-08-04'),  // Unit 3: August
+        new Date('2025-09-01'),  // Unit 4: September
     ];
 
     let total = STUDENTS.length * assignmentIds.length;
@@ -728,79 +824,86 @@ async function doSeedSubmissions() {
 
                 setProgress(80+((done/total)*18), `นักเรียน ${st.code} หน่วย ${u+1} โจทย์ ${a+1}`);
 
-                // Check if submission already exists
+                // Check if submission already exists (idempotency)
                 const subEx = await db.collection('submissions')
                     .where('studentId','==',uid)
                     .where('assignmentId','==',asn.id)
                     .limit(1).get();
 
-                if(!subEx.empty) {
-                    done++;
-                    continue;
-                }
+                if(!subEx.empty) { done++; continue; }
 
-                // Create synthetic test results (sort in JS to avoid index requirement)
+                // Load test cases once per assignment
                 const testCaseSnap = await db.collection('testCases')
-                    .where('assignmentId','==',asn.id)
-                    .get();
+                    .where('assignmentId','==',asn.id).get();
                 const tcs = testCaseSnap.docs.map(d=>({id:d.id,...d.data()}))
                     .sort((a,b)=>(a.order||0)-(b.order||0));
 
-                // Passed tests = earnedPoints (each TC = 1 pt)
-                const testResults = tcs.map((tc,i)=>({
-                    testCaseId: tc.id,
-                    passed: i < earnedPoints,
-                    actualOutput: i < earnedPoints ? (tc.expectedOutput||'') : '',
-                    executionTime: 50 + Math.floor(Math.random()*200),
-                    errorLog: i < earnedPoints ? null : 'Wrong answer'
-                }));
+                // ── Multiple attempts (realistic learning behaviour) ──────────
+                const numAttempts = getAttemptCount(earnedPoints, maxPoints);
+                const studentOffset = (si % 5) * 3600000 * 6; // 6h spread per group
+                let bestScore = 0, bestSubId = null;
 
-                const passedTests = earnedPoints;
-                const totalTests = tcs.length;
-                const score = totalTests > 0 ? Math.round((earnedPoints/maxPoints)*100) : 0;
-                const status = earnedPoints === maxPoints ? 'accepted' :
-                               earnedPoints === 0 ? 'wrong_answer' : 'wrong_answer';
+                for(let att = 0; att < numAttempts; att++) {
+                    const isFinal = att === numAttempts - 1;
+                    const attPts = isFinal
+                        ? earnedPoints
+                        : getIntermScore(earnedPoints, maxPoints, att, numAttempts - 1);
 
-                // Timestamp: week for this unit + spread by student index
-                const base = weekStart[u];
-                const subDate = new Date(base.getTime() + (si % 5)*86400000 + Math.floor(Math.random()*86400000));
+                    const attResults = tcs.map((tc,i) => ({
+                        testCaseId: tc.id,
+                        passed: i < attPts,
+                        actualOutput: i < attPts ? (tc.expectedOutput||'') : '',
+                        executionTime: 50 + Math.floor(Math.random()*200),
+                        errorLog: i < attPts ? null : 'Wrong answer'
+                    }));
 
-                const subRef = await db.collection('submissions').add({
-                    studentId: uid,
-                    assignmentId: asn.id,
-                    courseId,
-                    code: getSampleCode(u, a, st.code),
-                    language: 'c',
-                    status,
-                    executionTime: 100,
-                    passedTests,
-                    totalTests,
-                    score,
-                    totalPoints: maxPoints,
-                    testResults,
-                    aiScore: null,
-                    aiMetrics: null,
-                    submittedAt: firebase.firestore.Timestamp.fromDate(subDate)
-                });
+                    const attScore = maxPoints > 0 ? Math.round((attPts/maxPoints)*100) : 0;
+                    const attStatus = attPts === maxPoints ? 'accepted' : 'wrong_answer';
 
-                // Update grade
+                    // Spread attempts over ~14 days in the unit period
+                    const attDate = new Date(weekStart[u].getTime() + studentOffset +
+                        Math.floor((att / Math.max(1, numAttempts-1)) * 14 * 86400000) +
+                        Math.floor(Math.random() * 86400000));
+
+                    const subRef = await db.collection('submissions').add({
+                        studentId: uid,
+                        assignmentId: asn.id,
+                        courseId,
+                        code: getSampleCode(u, a, st.code),
+                        language: 'c',
+                        status: attStatus,
+                        executionTime: 100,
+                        passedTests: attPts,
+                        totalTests: tcs.length,
+                        score: attScore,
+                        totalPoints: maxPoints,
+                        testResults: attResults,
+                        aiScore: null,
+                        aiMetrics: null,
+                        submittedAt: firebase.firestore.Timestamp.fromDate(attDate)
+                    });
+
+                    if(attScore > bestScore) { bestScore = attScore; bestSubId = subRef.id; }
+                    if(att < numAttempts-1) await sleep(50); // pace between attempts
+                }
+
+                // Grade = best score (final earned score)
+                const finalScore = maxPoints > 0 ? Math.round((earnedPoints/maxPoints)*100) : 0;
                 const gradeSnap = await db.collection('grades')
                     .where('studentId','==',uid)
                     .where('assignmentId','==',asn.id).limit(1).get();
-                if(gradeSnap.empty){
+                if(gradeSnap.empty && bestSubId) {
+                    const gradeDate = new Date(weekStart[u].getTime() + studentOffset + 14*86400000);
                     await db.collection('grades').add({
-                        studentId: uid,
-                        courseId,
-                        assignmentId: asn.id,
-                        score,
-                        maxScore: maxPoints,
-                        submissionId: subRef.id,
-                        gradedAt: firebase.firestore.Timestamp.fromDate(subDate)
+                        studentId: uid, courseId, assignmentId: asn.id,
+                        score: finalScore, maxScore: maxPoints,
+                        submissionId: bestSubId,
+                        gradedAt: firebase.firestore.Timestamp.fromDate(gradeDate)
                     });
                 }
 
                 done++;
-                if(done % 10 === 0) await sleep(100);
+                if(done % 5 === 0) await sleep(150);
             }
         }
         log(`✅ ${st.code}: u1=${st.u1} u2=${st.u2} u3=${st.u3} u4=${st.u4}`,'ok');
@@ -840,6 +943,134 @@ function getSampleCode(unit, assignIdx, studentCode) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Step 5: Create selfPractice submission history
+// Scenarios chosen by student performance level + topic area relevance
+// ─────────────────────────────────────────────────────────────────────────────
+async function doSeedSelfPractice() {
+    if(!courseId || assignmentIds.length === 0) {
+        log('🔍 กำลังโหลดข้อมูลรายวิชาจาก Firestore...','wait');
+        const ok = await loadExistingCourseAndAssignments();
+        if(!ok) { showMsg('ไม่พบรายวิชา — กรุณาสร้างรายวิชาก่อน','error'); return false; }
+    }
+    if(Object.keys(studentUids).length === 0) {
+        log('🔍 กำลังโหลด UID นักเรียน...','wait');
+        for(const st of STUDENTS) {
+            const uid = await getUserUid(`${st.code}@triamudomsouth.ac.th`,'123456');
+            if(uid) studentUids[st.code] = uid;
+        }
+    }
+
+    // Get course title
+    const courseSnap = await db.collection('courses').doc(courseId).get();
+    const courseTitle = courseSnap.exists ? courseSnap.data().title : 'ว31281 การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น';
+
+    // Unit period start dates (same as weekStart in submissions)
+    const unitPeriods = [
+        new Date('2025-06-02'), new Date('2025-07-07'),
+        new Date('2025-08-04'), new Date('2025-09-01'),
+    ];
+
+    log('\n🎯 กำลังสร้าง SelfPractice History...','wait');
+    let totalCreated = 0;
+
+    for(let si = 0; si < STUDENTS.length; si++) {
+        const st = STUDENTS[si];
+        const uid = studentUids[st.code];
+        if(!uid) continue;
+
+        setProgress(80 + (si/STUDENTS.length)*18, `SelfPractice: ${st.code} (${si+1}/${STUDENTS.length})`);
+
+        // Skip if already has sessions for this course
+        const existing = await db.collection('selfPracticeSubmissions')
+            .where('studentId','==',uid)
+            .where('courseId','==',courseId)
+            .limit(1).get();
+        if(!existing.empty) {
+            log(`ℹ️ ${st.code} มี SelfPractice แล้ว — ข้าม`,'info');
+            continue;
+        }
+
+        const totalScore = st.u1 + st.u2 + st.u3 + st.u4;
+        const pct = totalScore / 60;
+
+        // Session count: 4-7 sessions per student
+        const sessionCount = 4 + Math.floor(Math.random() * 4);
+
+        // Unit weighting by performance level:
+        // - high scorers: more advanced units (3-4) + challenging topics
+        // - lower scorers: revisit earlier units (1-2) for practice
+        const weights = pct >= 0.87
+            ? [0.08, 0.17, 0.37, 0.38]  // advanced: focus units 3-4
+            : pct >= 0.78
+            ? [0.15, 0.25, 0.33, 0.27]  // average: balanced
+            : [0.32, 0.32, 0.24, 0.12]; // below 78%: revisit basics
+
+        // Build weighted scenario pool (repeat entries to weight selection)
+        let pool = [];
+        SP_SCENARIOS.forEach(s => {
+            const w = Math.max(1, Math.round(weights[s.unit-1] * 12));
+            for(let i=0; i<w; i++) pool.push(s);
+        });
+
+        // Shuffle and pick unique scenarios
+        pool = pool.sort(() => Math.random() - 0.5);
+        const seen = new Set();
+        const chosen = [];
+        for(const s of pool) {
+            if(!seen.has(s.title) && chosen.length < sessionCount) {
+                seen.add(s.title);
+                chosen.push(s);
+            }
+        }
+        // Sort chronologically by unit
+        chosen.sort((a,b) => a.unit !== b.unit ? a.unit - b.unit : Math.random() - 0.5);
+
+        for(let pi = 0; pi < chosen.length; pi++) {
+            const sp = chosen[pi];
+            const studentOffset = (si % 7) * 3600000 * 3;
+            const dayOffset = Math.floor(Math.random() * 14) * 86400000;
+            const spDate = new Date(unitPeriods[sp.unit-1].getTime() + studentOffset + dayOffset);
+
+            // Score correlates with student's performance on that unit
+            const unitPct = [st.u1, st.u2, st.u3, st.u4][sp.unit-1] / 15;
+            const baseScore = sp.difficulty === 'ยาก' ? 100 : sp.difficulty === 'ปานกลาง' ? 75 : 50;
+
+            // Pass count = scenario.pass × student unit performance + small noise
+            let passed = Math.round(sp.pass * (0.55 + unitPct * 0.45));
+            passed = Math.max(0, Math.min(sp.total, passed + Math.floor(Math.random()*2 - 1)));
+            const actualScore = sp.total > 0 ? Math.round(baseScore * passed / sp.total) : 0;
+
+            await db.collection('selfPracticeSubmissions').add({
+                studentId:          uid,
+                displayName:        st.name,
+                courseId,
+                courseTitle,
+                language:           'c',
+                difficulty:         sp.difficulty,
+                topic:              sp.topic,
+                problemTitle:       sp.title,
+                problemDescription: sp.desc,
+                code:               sp.code,
+                baseScore,
+                actualScore,
+                passedTests:        passed,
+                totalTests:         sp.total,
+                submittedAt:        firebase.firestore.Timestamp.fromDate(spDate)
+            });
+            totalCreated++;
+        }
+
+        const topics = chosen.map(s => s.topic.split(' ')[0]).join(', ');
+        log(`✅ ${st.code}: ${chosen.length} sessions [${topics}]`,'ok');
+        await sleep(200);
+    }
+
+    setProgress(99,'SelfPractice เสร็จแล้ว ✓');
+    log(`✅ SelfPractice รวม ${totalCreated} sessions (เฉลี่ย ${(totalCreated/STUDENTS.length).toFixed(1)}/คน)`, 'ok');
+    return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Master seed function
 // ─────────────────────────────────────────────────────────────────────────────
 async function doSeedAll() {
@@ -858,8 +1089,11 @@ async function doSeedAll() {
         log('\n👥 ขั้นตอนที่ 2/3: สร้างบัญชีนักเรียน','wait');
         await doSeedStudents();
 
-        log('\n📊 ขั้นตอนที่ 3/3: สร้างประวัติการส่งงาน','wait');
+        log('\n📊 ขั้นตอนที่ 3/4: สร้างประวัติการส่งงาน (หลายครั้ง)','wait');
         await doSeedSubmissions();
+
+        log('\n🎯 ขั้นตอนที่ 4/4: สร้าง SelfPractice History','wait');
+        await doSeedSelfPractice();
 
         setProgress(100,'✅ เสร็จสมบูรณ์!');
         log('\n═══════════════════════════════════════');
@@ -874,7 +1108,8 @@ async function doSeedAll() {
             📋 Course ID: <code>${courseId}</code><br>
             👥 นักเรียน: ${Object.keys(studentUids).length}/41 คน<br>
             📝 โจทย์: ${assignmentIds.length} ข้อ<br>
-            📊 Submissions: ตามคะแนน E1 (รวม ~${STUDENTS.length * assignmentIds.length} รายการ)<br>
+            📊 Submissions: หลายครั้งต่อโจทย์ (~${STUDENTS.length * assignmentIds.length * 2}+ รายการ)<br>
+            🎯 SelfPractice: 4-7 sessions/คน (~${STUDENTS.length * 5} รายการ)<br>
             <br>
             <strong>⚠️ หมายเหตุ:</strong> ชื่อนักเรียนเป็น best-effort decode จากเอกสาร<br>
             ครูสามารถแก้ไขชื่อนักเรียนได้ที่ <code>#/admin/users</code>
