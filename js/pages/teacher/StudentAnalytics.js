@@ -408,7 +408,7 @@ const StudentAnalytics = () => {
     // Sorted enrollments for summary tab
     const sortedSummaryEnrollments = React.useMemo(() => {
         const arr = [...enrollmentsIndexed];
-        if (summarySort === 'no') arr.sort((a, b) => a.origIdx - b.origIdx);
+        if (summarySort === 'no') arr.sort((a, b) => parseInt(students[a.studentId]?.number||999) - parseInt(students[b.studentId]?.number||999));
         else if (summarySort === 'name') arr.sort((a, b) => (students[a.studentId]?.displayName||'').localeCompare(students[b.studentId]?.displayName||'', 'th'));
         else if (summarySort === 'score') {
             // compute grandTotal for each — need bestScore (compute inline)
@@ -429,7 +429,7 @@ const StudentAnalytics = () => {
     // Sorted enrollments for practice tab
     const sortedPracticeEnrollments = React.useMemo(() => {
         const arr = [...enrollmentsIndexed];
-        if (practiceSort === 'no') arr.sort((a, b) => a.origIdx - b.origIdx);
+        if (practiceSort === 'no') arr.sort((a, b) => parseInt(students[a.studentId]?.number||999) - parseInt(students[b.studentId]?.number||999));
         else if (practiceSort === 'score') arr.sort((a, b) => (practiceByStudent[b.studentId]?.totalScore||0) - (practiceByStudent[a.studentId]?.totalScore||0));
         else if (practiceSort === 'problems') arr.sort((a, b) => (practiceByStudent[b.studentId]?.count||0) - (practiceByStudent[a.studentId]?.count||0));
         return arr;
@@ -949,7 +949,7 @@ const StudentAnalytics = () => {
                                                 return [...cols, unitTotal];
                                             });
                                             const pct = totalRaw > 0 ? (grandTotal / totalRaw * 100).toFixed(2) : '';
-                                            return [idx+1, code, st?.displayName || sid, ...unitCols, grandTotal, pct];
+                                            return [st?.number||'-', code, st?.displayName || sid, ...unitCols, grandTotal, pct];
                                         });
                                         const csv = [header, ...rows].map(r => r.join(',')).join('\n');
                                         const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
@@ -1061,7 +1061,7 @@ const StudentAnalytics = () => {
                                                             return (
                                                                 <tr key={sid} className="hover:bg-pink-50"
                                                                     style={{ borderBottom: '1px solid #fce7f3' }}>
-                                                                    <td className="py-1 px-2 text-center text-gray-400 sticky left-0 bg-white">{enroll.origIdx + 1}</td>
+                                                                    <td className="py-1 px-2 text-center text-gray-600 font-medium sticky left-0 bg-white">{st?.number || '-'}</td>
                                                                     <td className="py-1 px-2 text-center text-gray-500 whitespace-nowrap" style={{ fontSize:'11px' }}>{code}</td>
                                                                     <td className="py-1 px-2 font-medium text-gray-800 whitespace-nowrap"
                                                                         style={{ background: 'white', minWidth: '120px' }}>
@@ -1144,7 +1144,7 @@ const StudentAnalytics = () => {
                                                         const code = st?.studentCode || st?.email?.split('@')[0] || '';
                                                         const prac = practiceByStudent[sid] || { count:0, totalScore:0, items:[] };
                                                         const byD = (d) => prac.items.filter(p=>p.difficulty===d).length;
-                                                        return [enroll.origIdx+1, code, st?.displayName||sid.slice(0,8), prac.count, prac.totalScore, byD('ง่าย'), byD('ปานกลาง'), byD('ยาก'), prac.count>0?Math.round(prac.totalScore/prac.count):0];
+                                                        return [st?.number||'-', code, st?.displayName||sid.slice(0,8), prac.count, prac.totalScore, byD('ง่าย'), byD('ปานกลาง'), byD('ยาก'), prac.count>0?Math.round(prac.totalScore/prac.count):0];
                                                     });
                                                     const csv = [header,...rows].map(r=>r.join(',')).join('\n');
                                                     const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
@@ -1200,7 +1200,7 @@ const StudentAnalytics = () => {
                                                                     const byDiff = (d) => prac.items.filter(p => p.difficulty === d);
                                                                     return (
                                                                         <tr key={sid} style={{ borderBottom: '1px solid #fce7f3' }} className="hover:bg-pink-50">
-                                                                            <td className="py-2 px-2 text-center text-gray-400 text-xs">{enroll.origIdx + 1}</td>
+                                                                            <td className="py-2 px-2 text-center text-gray-600 font-medium">{student?.number || '-'}</td>
                                                                             <td className="py-2 px-2 text-gray-500 text-xs whitespace-nowrap">{code}</td>
                                                                             <td className="py-2 px-2 font-medium text-gray-800">
                                                                                 {student?.displayName || sid.slice(0, 8)}
