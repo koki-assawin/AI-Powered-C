@@ -159,10 +159,15 @@ const SelfPractice = () => {
         try {
             const snap = await db.collection('selfPracticeSubmissions')
                 .where('studentId', '==', userDoc.id)
-                .orderBy('submittedAt', 'desc')
-                .limit(20)
+                .limit(50)
                 .get();
-            setHistory(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            docs.sort((a, b) => {
+                const ta = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : 0;
+                const tb = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : 0;
+                return tb - ta;
+            });
+            setHistory(docs.slice(0, 20));
         } catch (e) { console.error(e); }
         finally { setHistoryLoading(false); }
     };
