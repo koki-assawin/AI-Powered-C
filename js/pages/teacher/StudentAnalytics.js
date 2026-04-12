@@ -32,9 +32,15 @@ const StudentAnalytics = () => {
     const [practiceData, setPracticeData] = React.useState([]);
     const [practiceLoading, setPracticeLoading] = React.useState(false);
 
-    // Tab 4: AI Report
+    // Tab 5: AI Report
     const [classReport, setClassReport] = React.useState(null);
     const [classReportLoading, setClassReportLoading] = React.useState(false);
+
+    // Sort states
+    const [overviewSort,  setOverviewSort]  = React.useState('unit');   // 'unit'|'passRate'|'avgScore'
+    const [individualSort,setIndividualSort]= React.useState('unit');   // 'unit'|'score'|'date'
+    const [summarySort,   setSummarySort]   = React.useState('no');     // 'no'|'score'|'name'
+    const [practiceSort,  setPracticeSort]  = React.useState('no');     // 'no'|'score'|'problems'
 
     React.useEffect(() => { loadCourses(); }, [userDoc]);
     React.useEffect(() => { if (selectedCourse) loadAnalytics(); }, [selectedCourse]);
@@ -374,6 +380,72 @@ const StudentAnalytics = () => {
         return map;
     }, [practiceData]);
 
+    // ── Sort helpers ──────────────────────────────────────────────────────────
+    // Extract unit number from unitName string (e.g. "หน่วยที่ 2 …" → 2)
+    const unitNo = (name) => { const m = (name||'').match(/(\d+)/); return m ? parseInt(m[1]) : 99; };
+
+    // Assignments sorted for display (overview / individual tabs)
+    const sortedAssignments = React.useMemo(() => {
+        const arr = [...assignments];
+        if (overviewSort === 'unit') {
+            arr.sort((a, b) => {
+                const d = unitNo(a.unitName) - unitNo(b.unitName);
+                return d !== 0 ? d : (a.title||'').localeCompare(b.title||'', 'th');
+            });
+        } else if (overviewSort === 'passRate') {
+            arr.sort((a, b) => getAssignmentStats(b.id).passRate - getAssignmentStats(a.id).passRate);
+        } else if (overviewSort === 'avgScore') {
+            arr.sort((a, b) => getAssignmentStats(b.id).avgScore - getAssignmentStats(a.id).avgScore);
+        }
+        return arr;
+    }, [assignments, overviewSort, submissions]);
+
+    // Enrollment order (original index kept for เลขที่)
+    const enrollmentsIndexed = React.useMemo(() =>
+        enrollments.map((e, i) => ({ ...e, origIdx: i }))
+    , [enrollments]);
+
+    // Sorted enrollments for summary tab
+    const sortedSummaryEnrollments = React.useMemo(() => {
+        const arr = [...enrollmentsIndexed];
+        if (summarySort === 'no') arr.sort((a, b) => a.origIdx - b.origIdx);
+        else if (summarySort === 'name') arr.sort((a, b) => (students[a.studentId]?.displayName||'').localeCompare(students[b.studentId]?.displayName||'', 'th'));
+        else if (summarySort === 'score') {
+            // compute grandTotal for each — need bestScore (compute inline)
+            const best = {};
+            submissions.forEach(sub => {
+                if (!best[sub.studentId]) best[sub.studentId] = {};
+                const cur = best[sub.studentId][sub.assignmentId] || 0;
+                if ((sub.score||0) > cur) best[sub.studentId][sub.assignmentId] = sub.score||0;
+            });
+            arr.sort((a, b) => {
+                const tot = (e) => assignments.reduce((s, asn) => s + (asn.rawScore > 0 ? Math.round((best[e.studentId]?.[asn.id]||0) * asn.rawScore / 100) : 0), 0);
+                return tot(b) - tot(a);
+            });
+        }
+        return arr;
+    }, [enrollmentsIndexed, summarySort, students, submissions, assignments]);
+
+    // Sorted enrollments for practice tab
+    const sortedPracticeEnrollments = React.useMemo(() => {
+        const arr = [...enrollmentsIndexed];
+        if (practiceSort === 'no') arr.sort((a, b) => a.origIdx - b.origIdx);
+        else if (practiceSort === 'score') arr.sort((a, b) => (practiceByStudent[b.studentId]?.totalScore||0) - (practiceByStudent[a.studentId]?.totalScore||0));
+        else if (practiceSort === 'problems') arr.sort((a, b) => (practiceByStudent[b.studentId]?.count||0) - (practiceByStudent[a.studentId]?.count||0));
+        return arr;
+    }, [enrollmentsIndexed, practiceSort, practiceByStudent]);
+
+    // Sort button component
+    const SortBtn = ({ active, onClick, children }) => (
+        <button onClick={onClick} style={{
+            padding: '4px 12px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer',
+            background: active ? '#ec4899' : '#fce7f3',
+            color: active ? 'white' : '#be185d',
+            border: 'none', fontWeight: active ? 700 : 400,
+            fontFamily: "'Prompt', sans-serif",
+        }}>{children}</button>
+    );
+
     const TAB_STYLE = (t) => ({
         padding: '10px 20px',
         borderBottom: activeTab === t ? '2.5px solid #EC407A' : '2.5px solid transparent',
@@ -490,7 +562,15 @@ const StudentAnalytics = () => {
                                             </div>
                                         )}
 
-                                        <h3 className="font-bold text-gray-700 mb-4">📝 สถิติแต่ละโจทย์</h3>
+                                        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                            <h3 className="font-bold text-gray-700">📝 สถิติแต่ละโจทย์</h3>
+                                            <div className="flex gap-2 flex-wrap">
+                                                <span className="text-xs text-gray-400 self-center">เรียงตาม:</span>
+                                                <SortBtn active={overviewSort==='unit'}     onClick={()=>setOverviewSort('unit')}>หน่วย 1→4</SortBtn>
+                                                <SortBtn active={overviewSort==='passRate'} onClick={()=>setOverviewSort('passRate')}>อัตราผ่าน↓</SortBtn>
+                                                <SortBtn active={overviewSort==='avgScore'} onClick={()=>setOverviewSort('avgScore')}>คะแนนเฉลี่ย↓</SortBtn>
+                                            </div>
+                                        </div>
                                         {assignments.length === 0 ? (
                                             <p className="text-gray-400 text-sm text-center py-6">ยังไม่มีโจทย์ในรายวิชานี้</p>
                                         ) : (
@@ -498,20 +578,21 @@ const StudentAnalytics = () => {
                                                 <table className="w-full text-sm">
                                                     <thead>
                                                         <tr style={{ borderBottom: '2px solid #fce7f3' }}>
-                                                            {['โจทย์', 'คะแนนดิบ', 'ประเภท', 'นักเรียนที่ลอง', 'ครั้งส่ง', 'อัตราผ่าน', 'คะแนนเฉลี่ย', ''].map(h => (
+                                                            {['#', 'โจทย์', 'คะแนนดิบ', 'ประเภท', 'นักเรียนที่ลอง', 'ครั้งส่ง', 'อัตราผ่าน', 'คะแนนเฉลี่ย', ''].map(h => (
                                                                 <th key={h} className="text-left py-3 px-2 text-xs font-semibold text-gray-500 uppercase">{h}</th>
                                                             ))}
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {assignments.map(a => {
+                                                        {sortedAssignments.map((a, aidx) => {
                                                             const stats = getAssignmentStats(a.id);
                                                             return (
                                                                 <tr key={a.id} style={{ borderBottom: '1px solid #fce7f3' }}
                                                                     className="hover:bg-pink-50 transition-colors">
+                                                                    <td className="py-3 px-2 text-center text-xs text-gray-400">{aidx+1}</td>
                                                                     <td className="py-3 px-2">
                                                                         <div className="font-medium text-gray-800">{a.title}</div>
-                                                                        <div className="text-xs text-gray-400">{a.difficulty}</div>
+                                                                        <div className="text-xs text-gray-400">{a.unitName} · {a.difficulty}</div>
                                                                     </td>
                                                                     <td className="py-3 px-2 text-center">
                                                                         {a.rawScore > 0
@@ -687,7 +768,15 @@ const StudentAnalytics = () => {
                                             <>
                                                 {/* Student submission history */}
                                                 <div className="mb-6">
-                                                    <h3 className="font-bold text-gray-700 mb-3">📋 ประวัติการส่งงาน ({studentSubs.length} รายการ)</h3>
+                                                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                                        <h3 className="font-bold text-gray-700">📋 ประวัติการส่งงาน ({studentSubs.length} รายการ)</h3>
+                                                        <div className="flex gap-2 flex-wrap">
+                                                            <span className="text-xs text-gray-400 self-center">เรียงตาม:</span>
+                                                            <SortBtn active={individualSort==='unit'}  onClick={()=>setIndividualSort('unit')}>หน่วย 1→4</SortBtn>
+                                                            <SortBtn active={individualSort==='score'} onClick={()=>setIndividualSort('score')}>คะแนนสูง↓</SortBtn>
+                                                            <SortBtn active={individualSort==='date'}  onClick={()=>setIndividualSort('date')}>วันที่ล่าสุด</SortBtn>
+                                                        </div>
+                                                    </div>
                                                     {studentSubs.length === 0 ? (
                                                         <p className="text-gray-400 text-sm text-center py-6">ยังไม่มีการส่งงาน</p>
                                                     ) : (
@@ -695,19 +784,38 @@ const StudentAnalytics = () => {
                                                             <table className="w-full text-sm">
                                                                 <thead>
                                                                     <tr style={{ borderBottom: '2px solid #fce7f3' }}>
-                                                                        {['โจทย์', 'สถานะ', 'ผ่าน', 'คะแนน%', 'คะแนนดิบ', 'วันที่'].map(h => (
+                                                                        {['#', 'โจทย์', 'สถานะ', 'ผ่าน', 'คะแนน%', 'คะแนนดิบ', 'วันที่'].map(h => (
                                                                             <th key={h} className="text-left py-2 px-2 text-xs font-semibold text-gray-500">{h}</th>
                                                                         ))}
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    {studentSubs.map(sub => {
+                                                                    {(() => {
+                                                                        const sorted = [...studentSubs];
+                                                                        if (individualSort === 'unit') {
+                                                                            sorted.sort((a, b) => {
+                                                                                const aa = assignments.find(x => x.id === a.assignmentId);
+                                                                                const bb = assignments.find(x => x.id === b.assignmentId);
+                                                                                const d = unitNo(aa?.unitName) - unitNo(bb?.unitName);
+                                                                                return d !== 0 ? d : (aa?.title||'').localeCompare(bb?.title||'', 'th');
+                                                                            });
+                                                                        } else if (individualSort === 'score') {
+                                                                            sorted.sort((a, b) => (b.score||0) - (a.score||0));
+                                                                        } else if (individualSort === 'date') {
+                                                                            sorted.sort((a, b) => (b.submittedAt?.seconds||0) - (a.submittedAt?.seconds||0));
+                                                                        }
+                                                                        return sorted;
+                                                                    })().map((sub, sidx) => {
                                                                         const assign = assignments.find(a => a.id === sub.assignmentId);
                                                                         const info = STATUS_LABELS[sub.status] || STATUS_LABELS.pending;
                                                                         const earned = assign?.rawScore > 0 ? Math.round((sub.score || 0) * assign.rawScore / 100) : null;
                                                                         return (
                                                                             <tr key={sub.id} style={{ borderBottom: '1px solid #fce7f3' }} className="hover:bg-pink-50">
-                                                                                <td className="py-2 px-2 font-medium text-gray-800">{assign?.title || sub.assignmentId?.slice(0, 10)}</td>
+                                                                                <td className="py-2 px-2 text-center text-xs text-gray-400">{sidx+1}</td>
+                                                                                <td className="py-2 px-2">
+                                                                                    <div className="font-medium text-gray-800">{assign?.title || sub.assignmentId?.slice(0, 10)}</div>
+                                                                                    <div className="text-xs text-gray-400">{assign?.unitName}</div>
+                                                                                </td>
                                                                                 <td className="py-2 px-2 text-xs">{info.icon} {info.text}</td>
                                                                                 <td className="py-2 px-2 text-center text-gray-600">{sub.passedTests}/{sub.totalTests}</td>
                                                                                 <td className="py-2 px-2 text-center font-bold"
@@ -791,14 +899,19 @@ const StudentAnalytics = () => {
 
                                 {/* ─── TAB 3: SUMMARY SCORES ─── */}
                                 {activeTab === 'summary' && (() => {
-                                    // Group assignments by unitName (preserve insertion order)
+                                    // Group assignments by unitName sorted by unit number
                                     const unitNames = [];
                                     const unitMap = {};
-                                    assignments.forEach(a => {
-                                        const u = a.unitName || 'ไม่ระบุหน่วย';
-                                        if (!unitMap[u]) { unitMap[u] = []; unitNames.push(u); }
-                                        unitMap[u].push(a);
-                                    });
+                                    [...assignments]
+                                        .sort((a, b) => {
+                                            const d = unitNo(a.unitName) - unitNo(b.unitName);
+                                            return d !== 0 ? d : (a.title||'').localeCompare(b.title||'', 'th');
+                                        })
+                                        .forEach(a => {
+                                            const u = a.unitName || 'ไม่ระบุหน่วย';
+                                            if (!unitMap[u]) { unitMap[u] = []; unitNames.push(u); }
+                                            unitMap[u].push(a);
+                                        });
 
                                     // Best score per student per assignment
                                     const bestScore = {}; // { studentId: { assignmentId: score% } }
@@ -847,19 +960,25 @@ const StudentAnalytics = () => {
 
                                     return (
                                         <div>
-                                            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                                            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                                                 <div>
                                                     <h3 className="font-bold text-gray-700">📋 สรุปคะแนนดิบทุกคน (E1)</h3>
                                                     {hasRawScore
                                                         ? <p className="text-xs text-gray-400 mt-0.5">คะแนนเต็มรวม {totalRaw} คะแนน · {enrollments.length} คน · {assignments.length} โจทย์</p>
-                                                        : <p className="text-xs text-orange-500 mt-0.5">⚠️ ยังไม่มีข้อมูลคะแนนดิบ — กรุณาตั้งค่า "คะแนนดิบ" ในแต่ละโจทย์ หรือรัน Update rawScore ใน seed-classroom.html</p>
+                                                        : <p className="text-xs text-orange-500 mt-0.5">⚠️ ยังไม่มีข้อมูลคะแนนดิบ</p>
                                                     }
                                                 </div>
-                                                <button onClick={exportCSV}
-                                                    className="text-sm px-4 py-2 rounded-xl font-medium"
-                                                    style={{ background: '#fce7f3', color: '#be185d' }}>
-                                                    📥 Export CSV
-                                                </button>
+                                                <div className="flex gap-2 flex-wrap items-center">
+                                                    <span className="text-xs text-gray-400">เรียงตาม:</span>
+                                                    <SortBtn active={summarySort==='no'}    onClick={()=>setSummarySort('no')}>เลขที่</SortBtn>
+                                                    <SortBtn active={summarySort==='score'} onClick={()=>setSummarySort('score')}>คะแนนสูง↓</SortBtn>
+                                                    <SortBtn active={summarySort==='name'}  onClick={()=>setSummarySort('name')}>ชื่อ A→Z</SortBtn>
+                                                    <button onClick={exportCSV}
+                                                        className="text-sm px-4 py-2 rounded-xl font-medium"
+                                                        style={{ background: '#fce7f3', color: '#be185d', border:'none', cursor:'pointer', fontFamily:"'Prompt',sans-serif" }}>
+                                                        📥 Export CSV
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <div className="overflow-x-auto">
@@ -867,8 +986,9 @@ const StudentAnalytics = () => {
                                                     <thead>
                                                         {/* Unit group header */}
                                                         <tr style={{ background: '#FFF0F5' }}>
-                                                            <th className="py-2 px-2 border border-pink-100 text-left sticky left-0 bg-pink-50" rowSpan={2}>#</th>
-                                                            <th className="py-2 px-2 border border-pink-100 text-left sticky left-6 bg-pink-50 whitespace-nowrap" rowSpan={2}>ชื่อ-สกุล</th>
+                                                            <th className="py-2 px-2 border border-pink-100 text-center sticky left-0 bg-pink-50 whitespace-nowrap" rowSpan={2}>#</th>
+                                                            <th className="py-2 px-2 border border-pink-100 text-center bg-pink-50 whitespace-nowrap" rowSpan={2}>รหัส</th>
+                                                            <th className="py-2 px-2 border border-pink-100 text-left bg-pink-50 whitespace-nowrap" rowSpan={2} style={{minWidth:'120px'}}>ชื่อ-สกุล</th>
                                                             {unitNames.map(u => (
                                                                 <th key={u} className="py-2 px-2 border border-pink-100 text-center font-bold whitespace-nowrap"
                                                                     colSpan={unitMap[u].length + 1}
@@ -909,9 +1029,10 @@ const StudentAnalytics = () => {
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {enrollments.map((enroll, idx) => {
+                                                        {sortedSummaryEnrollments.map((enroll, dispIdx) => {
                                                             const sid = enroll.studentId;
                                                             const st = students[sid];
+                                                            const code = st?.studentCode || st?.email?.split('@')[0] || '';
                                                             let grandTotal = 0;
                                                             const cells = unitNames.flatMap(u => {
                                                                 let unitTotal = 0;
@@ -940,9 +1061,10 @@ const StudentAnalytics = () => {
                                                             return (
                                                                 <tr key={sid} className="hover:bg-pink-50"
                                                                     style={{ borderBottom: '1px solid #fce7f3' }}>
-                                                                    <td className="py-1 px-2 text-gray-400 sticky left-0 bg-white">{idx + 1}</td>
-                                                                    <td className="py-1 px-2 font-medium text-gray-800 sticky whitespace-nowrap"
-                                                                        style={{ left: '24px', background: 'white', minWidth: '130px' }}>
+                                                                    <td className="py-1 px-2 text-center text-gray-400 sticky left-0 bg-white">{enroll.origIdx + 1}</td>
+                                                                    <td className="py-1 px-2 text-center text-gray-500 whitespace-nowrap" style={{ fontSize:'11px' }}>{code}</td>
+                                                                    <td className="py-1 px-2 font-medium text-gray-800 whitespace-nowrap"
+                                                                        style={{ background: 'white', minWidth: '120px' }}>
                                                                         {st?.displayName || sid.slice(0,8)}
                                                                     </td>
                                                                     {cells}
@@ -974,7 +1096,8 @@ const StudentAnalytics = () => {
                                                             return (
                                                                 <tr style={{ background: '#FFF0F5', fontWeight: 600, borderTop: '2px solid #fce7f3' }}>
                                                                     <td className="py-2 px-2 sticky left-0" style={{ background:'#FFF0F5' }}></td>
-                                                                    <td className="py-2 px-2 sticky whitespace-nowrap" style={{ left:'24px', background:'#FFF0F5', color:'#AD1457' }}>
+                                                                    <td className="py-2 px-2" style={{ background:'#FFF0F5' }}></td>
+                                                                    <td className="py-2 px-2 whitespace-nowrap" style={{ background:'#FFF0F5', color:'#AD1457' }}>
                                                                         ค่าเฉลี่ย (x̄)
                                                                     </td>
                                                                     {unitNames.flatMap(u => [
@@ -1006,13 +1129,36 @@ const StudentAnalytics = () => {
                                 {/* ─── TAB 4: SELF-PRACTICE SCORES ─── */}
                                 {activeTab === 'practice' && (
                                     <div>
-                                        <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                                             <h3 className="font-bold text-gray-700">🎯 คะแนนการฝึกทำโจทย์ตามความสนใจ</h3>
-                                            <button onClick={loadPracticeData} disabled={practiceLoading}
-                                                className="text-sm px-4 py-2 rounded-xl font-medium disabled:opacity-50"
-                                                style={{ background: '#fce7f3', color: '#be185d' }}>
-                                                {practiceLoading ? '⏳ โหลด...' : '🔄 รีเฟรช'}
-                                            </button>
+                                            <div className="flex gap-2 flex-wrap items-center">
+                                                <span className="text-xs text-gray-400">เรียงตาม:</span>
+                                                <SortBtn active={practiceSort==='no'}       onClick={()=>setPracticeSort('no')}>เลขที่</SortBtn>
+                                                <SortBtn active={practiceSort==='score'}    onClick={()=>setPracticeSort('score')}>คะแนนสูง↓</SortBtn>
+                                                <SortBtn active={practiceSort==='problems'} onClick={()=>setPracticeSort('problems')}>โจทย์เยอะ↓</SortBtn>
+                                                <button onClick={() => {
+                                                    const header = ['เลขที่','รหัส','ชื่อ-สกุล','โจทย์ที่ฝึก','คะแนนรวม','ง่าย','ปานกลาง','ยาก','คะแนนเฉลี่ย'];
+                                                    const rows = sortedPracticeEnrollments.map(enroll => {
+                                                        const sid = enroll.studentId;
+                                                        const st = students[sid];
+                                                        const code = st?.studentCode || st?.email?.split('@')[0] || '';
+                                                        const prac = practiceByStudent[sid] || { count:0, totalScore:0, items:[] };
+                                                        const byD = (d) => prac.items.filter(p=>p.difficulty===d).length;
+                                                        return [enroll.origIdx+1, code, st?.displayName||sid.slice(0,8), prac.count, prac.totalScore, byD('ง่าย'), byD('ปานกลาง'), byD('ยาก'), prac.count>0?Math.round(prac.totalScore/prac.count):0];
+                                                    });
+                                                    const csv = [header,...rows].map(r=>r.join(',')).join('\n');
+                                                    const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+                                                    const url = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a'); a.href=url; a.download='SelfPractice_scores.csv'; a.click();
+                                                    URL.revokeObjectURL(url);
+                                                }} style={{ padding:'4px 12px', borderRadius:'8px', fontSize:'12px', background:'#d1fae5', color:'#065f46', border:'none', cursor:'pointer', fontFamily:"'Prompt',sans-serif", fontWeight:600 }}>
+                                                    📥 Export CSV
+                                                </button>
+                                                <button onClick={loadPracticeData} disabled={practiceLoading}
+                                                    style={{ padding:'4px 12px', borderRadius:'8px', fontSize:'12px', background:'#fce7f3', color:'#be185d', border:'none', cursor:'pointer', fontFamily:"'Prompt',sans-serif" }}>
+                                                    {practiceLoading ? '⏳' : '🔄 รีเฟรช'}
+                                                </button>
+                                            </div>
                                         </div>
 
                                         {practiceLoading ? <Spinner /> : (
@@ -1040,20 +1186,22 @@ const StudentAnalytics = () => {
                                                         <table className="w-full text-sm">
                                                             <thead>
                                                                 <tr style={{ borderBottom: '2px solid #fce7f3' }}>
-                                                                    {['#', 'นักเรียน', 'โจทย์ที่ฝึก', 'คะแนนรวม', 'ง่าย', 'ปานกลาง', 'ยาก', 'คะแนนเฉลี่ย'].map(h => (
+                                                                    {['#', 'รหัส', 'นักเรียน', 'โจทย์ที่ฝึก', 'คะแนนรวม', 'ง่าย', 'ปานกลาง', 'ยาก', 'คะแนนเฉลี่ย'].map(h => (
                                                                         <th key={h} className="text-left py-3 px-2 text-xs font-semibold text-gray-500">{h}</th>
                                                                     ))}
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
-                                                                {enrollments.map((enroll, idx) => {
+                                                                {sortedPracticeEnrollments.map((enroll) => {
                                                                     const sid = enroll.studentId;
                                                                     const student = students[sid];
+                                                                    const code = student?.studentCode || student?.email?.split('@')[0] || '';
                                                                     const prac = practiceByStudent[sid] || { count: 0, totalScore: 0, items: [] };
                                                                     const byDiff = (d) => prac.items.filter(p => p.difficulty === d);
                                                                     return (
                                                                         <tr key={sid} style={{ borderBottom: '1px solid #fce7f3' }} className="hover:bg-pink-50">
-                                                                            <td className="py-2 px-2 text-gray-400 text-xs">{idx + 1}</td>
+                                                                            <td className="py-2 px-2 text-center text-gray-400 text-xs">{enroll.origIdx + 1}</td>
+                                                                            <td className="py-2 px-2 text-gray-500 text-xs whitespace-nowrap">{code}</td>
                                                                             <td className="py-2 px-2 font-medium text-gray-800">
                                                                                 {student?.displayName || sid.slice(0, 8)}
                                                                             </td>
