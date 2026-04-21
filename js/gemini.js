@@ -2,12 +2,24 @@
 // js/gemini.js - Google Gemini API wrapper
 // ============================================================
 
+const _GEMINI_ENDPOINTS = [
+    { endpoint: 'v1beta', model: 'gemini-2.5-flash' },
+    { endpoint: 'v1beta', model: 'gemini-2.5-flash-preview-04-17' },
+    { endpoint: 'v1beta', model: 'gemini-2.0-flash' },
+    { endpoint: 'v1beta', model: 'gemini-2.0-flash-001' },
+    { endpoint: 'v1',     model: 'gemini-2.5-flash' },
+    { endpoint: 'v1',     model: 'gemini-2.0-flash' },
+    { endpoint: 'v1',     model: 'gemini-1.5-flash' },
+    { endpoint: 'v1beta', model: 'gemini-1.5-flash' },
+];
+
+const _extractJSON = (text) =>
+    text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+
 const callGeminiApi = async (prompt, schema = null) => {
     if (!GEMINI_KEY || GEMINI_KEY.trim() === '') {
         throw new Error('ไม่พบ Gemini API Key กรุณาติดต่อผู้ดูแลระบบ');
     }
-
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
 
     const payload = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -19,47 +31,58 @@ const callGeminiApi = async (prompt, schema = null) => {
         payload.generationConfig.responseSchema = schema;
     }
 
-    let attempts = 0;
-    const maxAttempts = 3;
-    let delay = 1000;
+    let lastError = null;
 
-    while (attempts < maxAttempts) {
+    for (const { endpoint, model } of _GEMINI_ENDPOINTS) {
+        const url = `https://generativelanguage.googleapis.com/${endpoint}/models/${model}:generateContent?key=${GEMINI_KEY}`;
         try {
-            const response = await fetch(API_URL, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
+            const data = await response.json();
+
             if (response.ok) {
-                const result = await response.json();
-                if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    return schema ? JSON.parse(text) : text;
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) throw new Error('ได้รับการตอบกลับที่ไม่ถูกต้องจาก API');
+                if (schema) {
+                    try { return JSON.parse(_extractJSON(text)); }
+                    catch { throw new Error('ได้รับการตอบกลับที่ไม่ถูกต้องจาก API'); }
                 }
-                throw new Error('ได้รับการตอบกลับที่ไม่ถูกต้องจาก API');
-            } else {
-                if (response.status === 429)
-                    throw new Error('API Key ถูกใช้งานเกินขีดจำกัด กรุณารอสักครู่แล้วลองใหม่');
-                if (response.status === 400)
-                    throw new Error('API Key ไม่ถูกต้อง กรุณาติดต่อผู้ดูแลระบบ');
-                if (response.status >= 500) {
-                    attempts++;
-                    if (attempts >= maxAttempts) throw new Error('เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ภายหลัง');
-                    await new Promise(r => setTimeout(r, delay));
-                    delay *= 2;
-                    continue;
-                }
-                throw new Error(`เกิดข้อผิดพลาด (${response.status})`);
+                return text;
             }
-        } catch (error) {
-            if (attempts >= maxAttempts - 1) throw error;
-            attempts++;
-            await new Promise(r => setTimeout(r, delay));
-            delay *= 2;
+
+            const code = data.error?.code || response.status;
+            const msg  = data.error?.message || '';
+
+            // Key invalid — stop immediately, no point trying other models
+            if (code === 400 || code === 401 || code === 403 ||
+                msg.includes('API key not valid') || msg.includes('API_KEY_INVALID')) {
+                throw new Error('API Key ไม่ถูกต้อง กรุณาตรวจสอบ API Key และ Billing Account ใน Google Cloud Console');
+            }
+
+            // 429 / 503 / 404 → try next combo
+            lastError = new Error(msg || `HTTP ${code}`);
+            continue;
+
+        } catch (err) {
+            // Re-throw hard errors (invalid key)
+            if (err.message.startsWith('API Key ไม่ถูกต้อง') ||
+                err.message.startsWith('ไม่พบ Gemini') ||
+                err.message.startsWith('ได้รับการตอบกลับ')) throw err;
+            lastError = err;
+            // Network error — try next combo
         }
     }
-    throw new Error('ไม่สามารถเชื่อมต่อกับ AI API ได้');
+
+    // All combos exhausted
+    throw new Error(
+        'API Key ถูกใช้งานเกินขีดจำกัด หรือ model ไม่พร้อมใช้งาน\n' +
+        'แนวทางแก้ไข: ตรวจสอบ Billing Account ใน console.cloud.google.com/billing/projects ' +
+        'หรือรอสักครู่แล้วลองใหม่'
+    );
 };
 
 // Analyze code and return structured metrics + feedback
