@@ -31,6 +31,8 @@
     <!-- CodeMirror 5 — real-time syntax highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
@@ -38,6 +40,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/placeholder.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/activeline.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/comment-fold.min.js"></script>
 
     <!-- Firebase SDK v9 compat -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -252,6 +260,35 @@
         }
         .CodeMirror-scroll { min-height: inherit !important; }
         .CodeMirror-placeholder { color: #6a737d !important; }
+        /* Active line highlight (dracula-compatible) */
+        .CodeMirror-activeline-background { background: #2d2f3e !important; }
+        /* Fold gutter */
+        .CodeMirror-foldgutter { width: 14px; }
+        .CodeMirror-foldgutter-open, .CodeMirror-foldgutter-folded { color: #6272a4; cursor: pointer; padding-right: 2px; }
+        .CodeMirror-foldgutter-open::after { content: "▾"; }
+        .CodeMirror-foldgutter-folded::after { content: "▸"; }
+        .CodeMirror-foldmarker { color: #bd93f9; background: #44475a; border-radius: 3px; padding: 0 3px; font-size: 11px; cursor: pointer; }
+        /* Autocomplete popup — dracula dark theme */
+        .CodeMirror-hints {
+            background: #282a36 !important;
+            border: 1px solid #44475a !important;
+            border-radius: 8px !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5) !important;
+            font-family: 'JetBrains Mono', 'Consolas', monospace !important;
+            font-size: 13px !important;
+            max-height: 220px !important;
+            padding: 4px !important;
+            z-index: 9999 !important;
+        }
+        .CodeMirror-hint {
+            color: #f8f8f2 !important;
+            padding: 4px 10px !important;
+            border-radius: 4px !important;
+        }
+        .CodeMirror-hint-active {
+            background: #44475a !important;
+            color: #50fa7b !important;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">

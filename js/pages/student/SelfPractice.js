@@ -449,6 +449,11 @@ const SelfPractice = () => {
                                         {language === 'java' && (
                                             <span className="text-xs text-yellow-600">⚠️ Java: ใช้ class Main</span>
                                         )}
+                                        <button
+                                            onClick={() => setCode(formatCCode(code, language))}
+                                            title="จัดรูปแบบโค้ด (Alt+Shift+F)"
+                                            className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs hover:bg-gray-200 transition-colors"
+                                        >✨ Format</button>
                                         {submitting ? (
                                             <div className="flex items-center gap-2 text-xs text-pink-600">
                                                 <SpinIcon className="w-4 h-4" />

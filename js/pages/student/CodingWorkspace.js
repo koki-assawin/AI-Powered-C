@@ -493,6 +493,15 @@ const CodingWorkspace = () => {
                                         {LANGUAGES[lang].icon} {LANGUAGES[lang].name}
                                     </button>
                                 ))}
+                                {/* Format code button */}
+                                <button
+                                    onClick={() => setCode(formatCCode(code, selectedLanguage))}
+                                    title="จัดรูปแบบโค้ด (Alt+Shift+F)"
+                                    className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 flex items-center gap-1 transition-colors select-none"
+                                    style={{ border: '1px solid #E0E0E0' }}
+                                >
+                                    ✨ Format
+                                </button>
                                 {/* File attach button */}
                                 <label title="โหลดไฟล์โค้ด"
                                     className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 cursor-pointer flex items-center gap-1 transition-colors select-none"
