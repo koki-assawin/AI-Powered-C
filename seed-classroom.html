@@ -75,7 +75,29 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
       <button class="btn-gray" onclick="doSeedStudents()">2️⃣ สร้างบัญชีนักเรียนเท่านั้น</button>
       <button class="btn-gray" onclick="doSeedSubmissions()">3️⃣ สร้าง Submissions เท่านั้น</button>
       <button class="btn-gray" onclick="doSeedSelfPractice()">4️⃣ สร้าง SelfPractice History</button>
-      <button class="btn-gray" onclick="updateRawScores()" style="background:#7C3AED;color:white;border-color:#7C3AED">📊 อัปเดต rawScore โจทย์</button>
+      <button class="btn-gray" onclick="updateRawScores()" style="background:#7C3AED;color:white">📊 อัปเดต rawScore โจทย์</button>
+    </div>
+
+    <!-- ── Reset & Re-seed section ── -->
+    <div style="border-top:2px solid #fecaca;margin-top:14px;padding-top:14px">
+      <p style="font-size:0.82rem;font-weight:700;color:#dc2626;margin-bottom:4px">
+        🗑 Reset &amp; Seed ใหม่ — ลบข้อมูลเดิมใน Firestore แล้ว Seed ใหม่ทันที
+      </p>
+      <p style="font-size:0.75rem;color:#6b7280;margin-bottom:8px">
+        ใช้เมื่อ code ตัวอย่างเก่าถูก seed ไปแล้ว และต้องการให้ code ตรงโจทย์ใหม่ทั้งหมด
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn-red" id="resetSubBtn" onclick="doResetSubmissions()">
+          🔄 Reset Submissions + Grades แล้ว Seed ใหม่
+        </button>
+        <button class="btn-red" id="resetSpBtn" onclick="doResetSelfPractice()">
+          🔄 Reset SelfPractice แล้ว Seed ใหม่
+        </button>
+        <button id="fullResetBtn" onclick="doFullReset()"
+          style="padding:10px 20px;border:none;border-radius:8px;font-size:0.9rem;font-weight:700;cursor:pointer;background:#7f1d1d;color:white;">
+          💥 Full Reset + Seed ใหม่ทั้งหมด
+        </button>
+      </div>
     </div>
 
     <div id="progressArea" style="display:none">
@@ -1295,6 +1317,182 @@ async function doSeedSelfPractice() {
     log(`\n✅ SelfPractice รวม ${totalCreated} sessions สำหรับ ${Object.keys(studentUids).length - skipped} นักเรียน`, 'ok');
     log(`   (เฉลี่ย ${totalCreated > 0 ? (totalCreated/(Object.keys(studentUids).length-skipped)).toFixed(1) : 0} sessions/คน  |  ข้าม ${skipped} คนที่มีข้อมูลแล้ว)`, 'info');
     return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reset helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Show log panel and reset progress bar */
+function showLogPanel() {
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('log').style.display = 'block';
+    document.getElementById('progressArea').style.display = 'block';
+    document.getElementById('result').style.display = 'none';
+}
+
+/** Lock / unlock reset buttons */
+function setResetBtns(disabled) {
+    ['resetSubBtn','resetSpBtn','fullResetBtn','seedBtn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = disabled;
+    });
+}
+
+/**
+ * Batch-delete ALL docs in `collectionName` where `field == value`.
+ * Firestore batch max = 500; we use 400 to stay safe.
+ * Loops until no docs remain.
+ */
+async function deleteBatch(collectionName, field, value, label) {
+    let totalDeleted = 0;
+    while (true) {
+        const snap = await db.collection(collectionName)
+            .where(field, '==', value)
+            .limit(400).get();
+        if (snap.empty) break;
+
+        const batch = db.batch();
+        snap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        totalDeleted += snap.docs.length;
+        log(`  🗑 ลบ ${label}: ${totalDeleted} รายการ...`, 'wait');
+        await sleep(150);
+    }
+    log(`  ✅ ลบ ${label} เสร็จ: ${totalDeleted} รายการ`, 'ok');
+    return totalDeleted;
+}
+
+/** Ensure courseId + assignmentIds are loaded before any reset */
+async function ensureCourseLoaded() {
+    if (courseId && assignmentIds.length > 0) return true;
+    log('🔍 กำลังโหลดรายวิชาจาก Firestore...', 'wait');
+    const ok = await loadExistingCourseAndAssignments();
+    if (!ok) { showMsg('ไม่พบรายวิชาในระบบ — กรุณาสร้างรายวิชาก่อน', 'error'); }
+    return ok;
+}
+
+// ── Reset Submissions + Grades แล้ว Seed ใหม่ ────────────────────────────────
+async function doResetSubmissions() {
+    if (!confirm('⚠️ จะลบ Submissions และ Grades ทั้งหมดของรายวิชานี้ แล้ว Seed ใหม่\n\nยืนยัน?')) return;
+    showLogPanel();
+    setResetBtns(true);
+    try {
+        log('🗑 [1/3] ลบ Submissions + Grades...', 'wait');
+        if (!await ensureCourseLoaded()) return;
+
+        setProgress(5, 'กำลังลบ Submissions...');
+        const subDel = await deleteBatch('submissions', 'courseId', courseId, 'Submissions');
+
+        setProgress(30, 'กำลังลบ Grades...');
+        const gradeDel = await deleteBatch('grades', 'courseId', courseId, 'Grades');
+
+        log(`\n✅ ลบสำเร็จ: ${subDel} submissions, ${gradeDel} grades`, 'ok');
+        log('\n📊 [2/3] กำลัง Seed Submissions ใหม่...', 'wait');
+        setProgress(50, 'Seed Submissions...');
+        await doSeedSubmissions();
+
+        setProgress(100, '✅ Reset + Seed Submissions เสร็จสมบูรณ์!');
+        log('\n🎉 Reset + Seed Submissions เสร็จสมบูรณ์!', 'ok');
+    } catch(err) {
+        log(`❌ เกิดข้อผิดพลาด: ${err.message}`, 'err');
+        showMsg('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    } finally {
+        setResetBtns(false);
+    }
+}
+
+// ── Reset SelfPractice แล้ว Seed ใหม่ ────────────────────────────────────────
+async function doResetSelfPractice() {
+    if (!confirm('⚠️ จะลบ SelfPractice ทั้งหมดของรายวิชานี้ แล้ว Seed ใหม่\n\nยืนยัน?')) return;
+    showLogPanel();
+    setResetBtns(true);
+    try {
+        log('🗑 [1/2] ลบ SelfPractice...', 'wait');
+        if (!await ensureCourseLoaded()) return;
+
+        setProgress(10, 'กำลังลบ SelfPractice...');
+        const spDel = await deleteBatch('selfPracticeSubmissions', 'courseId', courseId, 'SelfPractice');
+
+        log(`\n✅ ลบสำเร็จ: ${spDel} self-practice sessions`, 'ok');
+        log('\n🎯 [2/2] กำลัง Seed SelfPractice ใหม่...', 'wait');
+        setProgress(50, 'Seed SelfPractice...');
+        await doSeedSelfPractice();
+
+        setProgress(100, '✅ Reset + Seed SelfPractice เสร็จสมบูรณ์!');
+        log('\n🎉 Reset + Seed SelfPractice เสร็จสมบูรณ์!', 'ok');
+    } catch(err) {
+        log(`❌ เกิดข้อผิดพลาด: ${err.message}`, 'err');
+        showMsg('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    } finally {
+        setResetBtns(false);
+    }
+}
+
+// ── Full Reset: ลบทั้งหมด แล้ว Seed Submissions + SelfPractice ใหม่ ───────────
+async function doFullReset() {
+    if (!confirm(
+        '💥 FULL RESET\n\n' +
+        'จะลบข้อมูลต่อไปนี้ทั้งหมดของรายวิชานี้:\n' +
+        '  • Submissions (~1,700 รายการ)\n' +
+        '  • Grades (~700 รายการ)\n' +
+        '  • SelfPractice (~200 รายการ)\n\n' +
+        'แล้ว Seed ข้อมูลทั้งหมดใหม่\n\n' +
+        'ยืนยัน?'
+    )) return;
+
+    showLogPanel();
+    setResetBtns(true);
+    try {
+        log('💥 Full Reset — ลบข้อมูลทั้งหมด...', 'wait');
+        if (!await ensureCourseLoaded()) return;
+
+        // ── Phase 1: Delete ────────────────────────────────────────────────
+        log('\n🗑 [1/6] ลบ Submissions...', 'wait');
+        setProgress(3, 'ลบ Submissions...');
+        const subDel = await deleteBatch('submissions', 'courseId', courseId, 'Submissions');
+
+        log('\n🗑 [2/6] ลบ Grades...', 'wait');
+        setProgress(18, 'ลบ Grades...');
+        const gradeDel = await deleteBatch('grades', 'courseId', courseId, 'Grades');
+
+        log('\n🗑 [3/6] ลบ SelfPractice...', 'wait');
+        setProgress(33, 'ลบ SelfPractice...');
+        const spDel = await deleteBatch('selfPracticeSubmissions', 'courseId', courseId, 'SelfPractice');
+
+        log(`\n✅ ลบทั้งหมด: ${subDel} submissions | ${gradeDel} grades | ${spDel} self-practice`, 'ok');
+        log('─────────────────────────────────────────────────────', 'info');
+
+        // ── Phase 2: Re-seed ───────────────────────────────────────────────
+        log('\n📊 [4/6] โหลด UID นักเรียน...', 'wait');
+        setProgress(45, 'โหลด UID นักเรียน...');
+        studentUids = {};  // force reload
+        for (const st of STUDENTS) {
+            const uid = await getUserUid(`${st.code}@triamudomsouth.ac.th`, '123456');
+            if (uid) studentUids[st.code] = uid;
+        }
+        log(`  ✅ โหลด UID ได้ ${Object.keys(studentUids).length} คน`, 'ok');
+
+        log('\n📊 [5/6] Seed Submissions + Grades ใหม่...', 'wait');
+        setProgress(50, 'Seed Submissions...');
+        await doSeedSubmissions();
+
+        log('\n🎯 [6/6] Seed SelfPractice ใหม่...', 'wait');
+        setProgress(85, 'Seed SelfPractice...');
+        await doSeedSelfPractice();
+
+        setProgress(100, '✅ Full Reset + Seed เสร็จสมบูรณ์!');
+        log('\n═══════════════════════════════════════', 'info');
+        log('🎉 Full Reset + Seed ใหม่ทั้งหมดเสร็จสมบูรณ์!', 'ok');
+        log(`  ลบ: ${subDel} submissions, ${gradeDel} grades, ${spDel} self-practice`, 'info');
+        log(`  สร้างใหม่: ~${STUDENTS.length * assignmentIds.length * 2}+ submissions + ~${STUDENTS.length * 5} self-practice`, 'info');
+    } catch(err) {
+        log(`❌ เกิดข้อผิดพลาด: ${err.message}`, 'err');
+        showMsg('เกิดข้อผิดพลาด: ' + err.message, 'error');
+        console.error(err);
+    } finally {
+        setResetBtns(false);
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
