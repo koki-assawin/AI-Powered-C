@@ -32,13 +32,9 @@ service cloud.firestore {
       );
     }
 
-    // Test cases — students see only non-hidden; teachers/admins see all
+    // Test cases — all authenticated users can read (grading is client-side; hidden flag controls UI only)
     match /testCases/{testCaseId} {
-      allow read: if request.auth != null && (
-        resource.data.isHidden == false ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-      );
+      allow read: if request.auth != null;
       allow write: if request.auth != null && (
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'

@@ -279,17 +279,30 @@ const CodingWorkspace = () => {
         }
     };
 
-    // Build assignment tree: { unitName: { groupName: [assignments] } }
+    // Build assignment tree: sorted array of { unitName, groups: sorted array of { groupName, assignments } }
     const assignmentTree = React.useMemo(() => {
-        const tree = {};
+        const unitMap = {};
         assignments.forEach(a => {
             const unit  = a.unitName  || '📂 ไม่มีหน่วย';
             const group = a.groupName || '📁 ไม่มีกลุ่ม';
-            if (!tree[unit]) tree[unit] = {};
-            if (!tree[unit][group]) tree[unit][group] = [];
-            tree[unit][group].push(a);
+            if (!unitMap[unit]) unitMap[unit] = {};
+            if (!unitMap[unit][group]) unitMap[unit][group] = [];
+            unitMap[unit][group].push(a);
         });
-        return tree;
+        const unitNum = (name) => parseInt((name || '').match(/\d+/)?.[0] || '999');
+        return Object.keys(unitMap)
+            .sort((a, b) => unitNum(a) - unitNum(b))
+            .map(unitName => ({
+                unitName,
+                groups: Object.keys(unitMap[unitName])
+                    .sort((a, b) => a.localeCompare(b, 'th'))
+                    .map(groupName => ({
+                        groupName,
+                        assignments: [...unitMap[unitName][groupName]].sort((a, b) =>
+                            (a.title || '').localeCompare(b.title || '', 'th')
+                        ),
+                    })),
+            }));
     }, [assignments]);
 
     const toggleUnit  = (u) => setCollapsedUnits(s => ({ ...s, [u]: !s[u] }));
@@ -394,7 +407,7 @@ const CodingWorkspace = () => {
                                 <p className="text-gray-400 text-sm">ยังไม่มีโจทย์</p>
                             </div>
                         ) : (
-                            Object.entries(assignmentTree).map(([unitName, groups]) => {
+                            assignmentTree.map(({ unitName, groups }) => {
                                 const unitCollapsed = collapsedUnits[unitName];
                                 return (
                                     <div key={unitName} className="mb-1">
@@ -410,7 +423,7 @@ const CodingWorkspace = () => {
                                             <span className="truncate">{unitName}</span>
                                         </button>
 
-                                        {!unitCollapsed && Object.entries(groups).map(([groupName, groupAssigns]) => {
+                                        {!unitCollapsed && groups.map(({ groupName, assignments: groupAssigns }) => {
                                             const groupKey = `${unitName}::${groupName}`;
                                             const groupCollapsed = collapsedGroups[groupKey];
                                             return (
