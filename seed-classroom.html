@@ -38,7 +38,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 <body>
 <div class="container">
   <h1>🌱 Seed Classroom — ว31281 ม.4/6</h1>
-  <p class="subtitle">สร้างโครงสร้างรายวิชา + บัญชีนักเรียน 41 คน + ประวัติการส่งงาน ตามข้อมูลการวิจัย ปี 2568</p>
+  <p class="subtitle">สร้างโครงสร้างรายวิชา + บัญชีนักเรียน 32 คน + ประวัติการส่งงาน ตามข้อมูลการวิจัย ปี 2568</p>
 
   <div id="loginSection">
     <label>อีเมล (บัญชีครูอัศวิน หรือ admin)</label>
@@ -56,7 +56,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
       <ol style="font-size:0.85rem;color:#374151;line-height:2;padding-left:18px">
         <li>สร้างรายวิชา ว31281 (ภาษา C, ม.4/6, เทอม 1/2568)</li>
         <li>สร้างโครงสร้าง 4 หน่วย × 4-5 โจทย์ = 17 โจทย์ + test cases</li>
-        <li>สร้างบัญชีนักเรียน 41 คน (email: รหัส@triamudomsouth.ac.th, pass: 123456)</li>
+        <li>สร้างบัญชีนักเรียน 32 คน (email: รหัส@triamudomsouth.ac.th, pass: 123456)</li>
         <li>ลงทะเบียนนักเรียนทุกคนในรายวิชา</li>
         <li>สร้างประวัติการส่งงานตามคะแนน E1 — หลายครั้งต่อโจทย์ (realistic attempts)</li>
         <li>สร้างประวัติ SelfPractice ตามความสนใจและระดับคะแนน (AI-generated problems)</li>
@@ -64,9 +64,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     </div>
 
     <div class="stats">
-      <div class="stat"><div class="num">41</div><div class="lbl">นักเรียน</div></div>
+      <div class="stat"><div class="num">32</div><div class="lbl">นักเรียน</div></div>
       <div class="stat"><div class="num">17</div><div class="lbl">โจทย์</div></div>
-      <div class="stat"><div class="num">~1,700</div><div class="lbl">submissions</div></div>
+      <div class="stat"><div class="num">~1,100</div><div class="lbl">submissions</div></div>
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
@@ -141,9 +141,7 @@ const PROJECT_ID = firebaseConfig.projectId;
 const TS = () => firebase.firestore.FieldValue.serverTimestamp();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Student data: 41 students, codes 11669-11710 (skipping 11690)
-// Names: best-effort decode from encoded document; teacher can fix via admin
-// Scores: u1/u2/u3/u4 = unit scores from E1 sheet (each /15, total /60)
+// Student data: 32 students, codes 11669-11701 (skipping 11690)
 // ─────────────────────────────────────────────────────────────────────────────
 const STUDENTS = [
   {code:'11669',name:'นาย อวิช ภูกระนก',         u1:11,u2:14,u3:14,u4:14},
@@ -178,15 +176,6 @@ const STUDENTS = [
   {code:'11699',name:'นางสาว กัณวรัณม์ หมื่อกราก',  u1:13,u2:10,u3:15,u4:13},
   {code:'11700',name:'นางสาว กัณกัณต์ กามกระกิษต์', u1:9, u2:14,u3:14,u4:13},
   {code:'11701',name:'นางสาว สุกิรา กอณรักษ์',      u1:10,u2:14,u3:13,u4:12},
-  {code:'11702',name:'นาย กิษตุณตศ์ ตื้วยกัณก',     u1:10,u2:14,u3:14,u4:13},
-  {code:'11703',name:'นาย กณกาณิ กูกอก',            u1:12,u2:12,u3:13,u4:12},
-  {code:'11704',name:'นาย กุวากัณต์ กาวเค้ว',       u1:11,u2:14,u3:12,u4:14},
-  {code:'11705',name:'นางสาว กา้กรี สุกสกาย',       u1:14,u2:11,u3:13,u4:11},
-  {code:'11706',name:'นางสาว กากา กัณสว้าก',        u1:12,u2:12,u3:12,u4:13},
-  {code:'11707',name:'นางสาว กากิสา กะกะ',          u1:12,u2:12,u3:13,u4:13},
-  {code:'11708',name:'นางสาว กุณยากุก กอณกัณ',      u1:13,u2:13,u3:14,u4:11},
-  {code:'11709',name:'นางสาว กิยณร กุณ์เวศต์',      u1:12,u2:9, u3:13,u4:13},
-  {code:'11710',name:'นางสาว มากิกา กอณสณต์',       u1:10,u2:13,u3:14,u4:13},
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -751,7 +740,7 @@ let studentUids = {}; // code -> uid
 
 async function doSeedStudents() {
     if(!courseId) { showMsg('กรุณาสร้างรายวิชาก่อน','error'); return false; }
-    log('\n👥 กำลังสร้างบัญชีนักเรียน 41 คน...','wait');
+    log('\n👥 กำลังสร้างบัญชีนักเรียน 32 คน...','wait');
 
     for(let i=0; i<STUDENTS.length; i++){
         const st = STUDENTS[i];
@@ -1450,8 +1439,8 @@ async function doFullReset() {
     if (!confirm(
         '💥 FULL RESET\n\n' +
         'จะลบข้อมูลต่อไปนี้ทั้งหมดของรายวิชานี้:\n' +
-        '  • Submissions (~1,700 รายการ)\n' +
-        '  • Grades (~700 รายการ)\n' +
+        '  • Submissions (~1,100 รายการ)\n' +
+        '  • Grades (~550 รายการ)\n' +
         '  • SelfPractice (~200 รายการ)\n\n' +
         'แล้ว Seed ข้อมูลทั้งหมดใหม่\n\n' +
         'ยืนยัน?'

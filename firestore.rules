@@ -45,10 +45,12 @@ service cloud.firestore {
       );
     }
 
-    // Submissions — students write own; teachers/admins read all
+    // Submissions — students write own; admin can write for seeding
     match /submissions/{submissionId} {
-      allow create: if request.auth != null &&
-        request.resource.data.studentId == request.auth.uid;
+      allow create: if request.auth != null && (
+        request.resource.data.studentId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
       allow read: if request.auth != null && (
         resource.data.studentId == request.auth.uid ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
