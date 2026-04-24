@@ -327,7 +327,12 @@ const AssignmentManager = () => {
                                     <p>ยังไม่มีโจทย์ กด "สร้างโจทย์ใหม่" เพื่อเริ่มต้น</p>
                                 </div>
                             )}
-                            {assignments.map(a => (
+                            {[...assignments].sort((a, b) => {
+                                const ua = parseInt((a.unitName || '').match(/\d+/)?.[0] || '0');
+                                const ub = parseInt((b.unitName || '').match(/\d+/)?.[0] || '0');
+                                if (ua !== ub) return ua - ub;
+                                return (a.title || '').localeCompare(b.title || '', 'th');
+                            }).map(a => (
                                 <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between">
                                     <div className="flex-1 min-w-0 mr-4">
                                         {(a.unitName || a.topicName) && (
@@ -467,19 +472,6 @@ const AssignmentManager = () => {
                             </div>
                         )}
 
-                        {/* Suggested structure hint */}
-                        <div className="mt-6 p-4 rounded-xl text-xs text-gray-500" style={{ background: '#F5F5F5', border: '1px dashed #E0E0E0' }}>
-                            <p className="font-semibold text-gray-600 mb-2">💡 ตัวอย่างโครงสร้าง ว31281 การเขียนโปรแกรมฯ:</p>
-                            <p>หน่วยที่ 1 พื้นฐาน → การแสดงผล, การรับข้อมูล, โครงสร้างโปรแกรม</p>
-                            <p>หน่วยที่ 2 ตัวแปร → ชนิดข้อมูลพื้นฐาน, การประกาศตัวแปร, การแปลงชนิด</p>
-                            <p>หน่วยที่ 3 นิพจน์ → ตัวดำเนินการคณิต, เปรียบเทียบ, ตรรกะ</p>
-                            <p>หน่วยที่ 4 การตัดสินใจ → if/else, if-else if, switch-case</p>
-                            <p>หน่วยที่ 5 การทำซ้ำ → for, while, do-while, Nested Loop, break/continue</p>
-                            <p>หน่วยที่ 6 ฟังก์ชัน → การนิยาม, การส่งค่า, Recursive</p>
-                            <p>หน่วยที่ 7 อาร์เรย์ → 1 มิติ, 2 มิติ, Searching, Sorting</p>
-                            <p>หน่วยที่ 8 สตริง → การใช้งาน, ฟังก์ชัน string.h, การประมวลผล</p>
-                            <p>หน่วยที่ 9 พอยน์เตอร์ → พอยน์เตอร์เบื้องต้น, Dynamic Memory</p>
-                        </div>
                     </div>
                 )}
 
