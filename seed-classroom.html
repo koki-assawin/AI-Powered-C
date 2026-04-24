@@ -647,11 +647,16 @@ async function doSeedCourse() {
     log('🏫 กำลังสร้างรายวิชา...','wait');
     setProgress(0,'สร้างรายวิชา...');
 
-    // Check if course already exists
-    const existing = await db.collection('courses')
+    // Check if course already exists (by teacher UID first, fallback by title+room)
+    let existing = await db.collection('courses')
         .where('teacherId','==',uid)
         .where('title','==',COURSE_INFO.title)
         .where('room','==','6').get();
+    if(existing.empty) {
+        existing = await db.collection('courses')
+            .where('title','==',COURSE_INFO.title)
+            .where('room','==','6').get();
+    }
 
     if(!existing.empty) {
         courseId = existing.docs[0].id;
@@ -823,10 +828,21 @@ async function doSeedStudents() {
 // ─────────────────────────────────────────────────────────────────────────────
 async function loadExistingCourseAndAssignments() {
     const uid = auth.currentUser.uid;
-    const snap = await db.collection('courses')
+
+    // Try with current user as teacher first
+    let snap = await db.collection('courses')
         .where('teacherId','==',uid)
         .where('title','==',COURSE_INFO.title)
         .where('room','==','6').get();
+
+    // Fallback: search by title+room only (works when logged in as admin)
+    if(snap.empty) {
+        log('ℹ️ ไม่พบ course ของ UID นี้ — ค้นหาโดย title+room (admin mode)','info');
+        snap = await db.collection('courses')
+            .where('title','==',COURSE_INFO.title)
+            .where('room','==','6').get();
+    }
+
     if(snap.empty) return false;
     courseId = snap.docs[0].id;
     log(`🔍 โหลดรายวิชาจาก Firestore: ${courseId}`,'info');
