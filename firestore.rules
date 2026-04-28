@@ -104,19 +104,25 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // Player stats — students read/write own; teachers/admins read all
+    // Player stats — students read/write own; admin can write any (for research seeding)
     match /playerStats/{uid} {
       allow read: if request.auth != null && (
         request.auth.uid == uid ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
-      allow write: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && (
+        request.auth.uid == uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
     }
 
-    // XP ledger — students create own entries; read own; teachers/admins read all
+    // XP ledger — students create own; admin can create any (for research seeding)
     match /xpLedger/{docId} {
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && (
+        request.resource.data.uid == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
       allow read: if request.auth != null && (
         resource.data.uid == request.auth.uid ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
@@ -137,9 +143,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Student achievements — students read own + create own; teachers/admins read all
+    // Student achievements — students create own; admin write any (seeding); teachers/admins read all
     match /studentAchievements/{docId} {
       allow create: if request.auth != null;
+      allow update, delete: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       allow read: if request.auth != null && (
         resource.data.uid == request.auth.uid ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
@@ -175,9 +183,12 @@ service cloud.firestore {
       );
     }
 
-    // Mini-game sessions — students create own; read own; teachers/admins read all
+    // Mini-game sessions — students create own; admin create any (seeding); read own; teachers/admins read all
     match /miniGameSessions/{docId} {
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && (
+        request.resource.data.uid == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
       allow read: if request.auth != null && (
         resource.data.uid == request.auth.uid ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||

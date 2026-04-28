@@ -195,7 +195,7 @@ const ResearchDataSeeder = () => {
             await gameBatch.commit();
         }
 
-        // ── studentAchievements ──
+        // ── studentAchievements (set with merge to allow re-seeding) ──
         const pool = ACHIEVEMENT_POOL[tier] || [];
         const earnCount = rng.int(cfg.badgeN[0], Math.min(cfg.badgeN[1], pool.length));
         if (earnCount > 0) {
@@ -204,6 +204,7 @@ const ResearchDataSeeder = () => {
             shuffled.forEach((achId) => {
                 const ts  = randomTimestamp(rng);
                 const ref = db.collection('studentAchievements').doc(`${uid}_${achId}`);
+                // merge:true → create if new, overwrite fields if exists (no permission error on update)
                 achBatch.set(ref, {
                     uid,
                     achievementId: achId,
@@ -212,7 +213,7 @@ const ResearchDataSeeder = () => {
                     coinAwarded: rng.int(5, 30),
                     crystalAwarded: rng.int(0, 2),
                     seeded: true,
-                });
+                }, { merge: true });
             });
             await achBatch.commit();
         }
@@ -227,14 +228,23 @@ const ResearchDataSeeder = () => {
         setProgress(0);
         setSummary(null);
 
+        // รหัสนักเรียน ว31281 ม.4/6 (11669–11701 = 33 ช่วง, ใช้จริง 32 คน)
+        const NUMBER_MIN = 11669;
+        const NUMBER_MAX = 11701;
+
         try {
             addLog('📥 โหลดรายชื่อนักเรียน...');
             const snap = await db.collection('users').where('role', '==', 'student').get();
-            const students = snap.docs
+            let students = snap.docs
                 .map(d => ({ uid: d.id, ...d.data() }))
-                .sort((a, b) => (Number(a.number) || 999) - (Number(b.number) || 999));
+                .filter(s => {
+                    const n = Number(s.number);
+                    return n >= NUMBER_MIN && n <= NUMBER_MAX;
+                })
+                .sort((a, b) => (Number(a.number) || 999) - (Number(b.number) || 999))
+                .slice(0, 32);
 
-            addLog(`พบนักเรียน ${students.length} คน (ต้องการ 32)`);
+            addLog(`กรองรหัส ${NUMBER_MIN}–${NUMBER_MAX}: พบนักเรียน ${students.length} คน`);
 
             const results = [];
             for (let i = 0; i < students.length; i++) {
