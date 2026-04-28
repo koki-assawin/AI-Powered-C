@@ -227,9 +227,15 @@ async function handleDailyStreak(uid) {
 async function updateLeaderboard(period = 'alltime') {
     try {
         const field = period === 'daily' ? 'dailyXP' : period === 'weekly' ? 'weeklyXP' : 'xp';
-        const snap = await db.collection('playerStats').get();
 
-        const raw = snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+        // Filter to role='student' only — exclude teacher/admin/test accounts
+        const studentSnap = await db.collection('users').where('role', '==', 'student').get();
+        const studentUIDs = new Set(studentSnap.docs.map(d => d.id));
+
+        const snap = await db.collection('playerStats').get();
+        const raw = snap.docs
+            .filter(doc => studentUIDs.has(doc.id))
+            .map(doc => ({ uid: doc.id, ...doc.data() }));
         raw.sort((a, b) => (b[field] || 0) - (a[field] || 0));
 
         const entries = await Promise.all(raw.map(async d => {

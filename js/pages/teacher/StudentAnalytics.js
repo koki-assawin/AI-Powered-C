@@ -1417,18 +1417,22 @@ const _GamificationTab = () => {
     const loadGamificationData = async () => {
         setLoading(true);
         try {
+            // Fetch students only — exclude teacher/admin/test accounts
+            const studentSnap = await db.collection('users').where('role', '==', 'student').get();
+            const studentMap = {};
+            studentSnap.docs.forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
+            const studentUIDs = new Set(Object.keys(studentMap));
+
             const snap = await db.collection('playerStats').orderBy('xp', 'desc').get();
-            const list = [];
-            for (const doc of snap.docs) {
-                let displayName = 'นักเรียน';
-                try {
-                    const u = await db.collection('users').doc(doc.id).get();
-                    if (u.exists) displayName = u.data().displayName || displayName;
-                } catch (_) {}
-                const d = doc.data();
-                const tier = typeof getRankFromXP === 'function' ? getRankFromXP(d.xp || 0) : { icon: '🥚', name: '-', color: '#9ca3af' };
-                list.push({ uid: doc.id, displayName, ...d, tier });
-            }
+            const list = snap.docs
+                .filter(doc => studentUIDs.has(doc.id))
+                .map(doc => {
+                    const d = doc.data();
+                    const tier = typeof getRankFromXP === 'function'
+                        ? getRankFromXP(d.xp || 0)
+                        : { icon: '🥚', name: '-', color: '#9ca3af' };
+                    return { uid: doc.id, displayName: studentMap[doc.id] || 'นักเรียน', ...d, tier };
+                });
             setStats(list);
         } catch (err) {
             console.warn('[GamificationTab]', err);
