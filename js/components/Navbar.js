@@ -7,15 +7,32 @@ const Navbar = ({ title, subtitle }) => {
     const { user, userDoc, role, logout } = useAuth();
     const [menuOpen, setMenuOpen] = React.useState(false);
     const [userDropOpen, setUserDropOpen] = React.useState(false);
+    const [playerStats, setPlayerStats] = React.useState(null);
+
+    // Fetch playerStats for students to show rank/XP in navbar
+    React.useEffect(() => {
+        if (role !== 'student' || !user?.uid) return;
+        let unsub = null;
+        try {
+            unsub = db.collection('playerStats').doc(user.uid)
+                .onSnapshot(snap => {
+                    if (snap.exists) setPlayerStats(snap.data());
+                }, () => {});
+        } catch (_) {}
+        return () => unsub && unsub();
+    }, [role, user?.uid]);
 
     const navLinks = {
         student: [
-            { hash: '#/student/dashboard', label: 'แดชบอร์ด',     icon: '🏠' },
-            { hash: '#/student/courses',   label: 'รายวิชา',       icon: '📚' },
-            { hash: '#/student/practice',  label: 'ฝึกเอง',        icon: '🎯' },
-            { hash: '#/student/gradebook', label: 'คะแนน',         icon: '📊' },
-            { hash: '#/student/history',   label: 'ประวัติ',        icon: '📋' },
-            { hash: '#/student/profile',   label: 'โปรไฟล์',       icon: '👤' },
+            { hash: '#/student/dashboard',     label: 'แดชบอร์ด',   icon: '🏠' },
+            { hash: '#/student/courses',        label: 'รายวิชา',     icon: '📚' },
+            { hash: '#/student/practice',       label: 'ฝึกเอง',      icon: '🎯' },
+            { hash: '#/student/gradebook',      label: 'คะแนน',       icon: '📊' },
+            { hash: '#/student/history',        label: 'ประวัติ',      icon: '📋' },
+            { hash: '#/student/leaderboard',    label: 'อันดับ',       icon: '🏆' },
+            { hash: '#/student/achievements',   label: 'ความสำเร็จ',   icon: '🏅' },
+            { hash: '#/student/games',          label: 'เกม',          icon: '🎮' },
+            { hash: '#/student/profile',        label: 'โปรไฟล์',     icon: '👤' },
         ],
         teacher: [
             { hash: '#/teacher/dashboard', label: 'แดชบอร์ด',      icon: '🏠' },
@@ -95,8 +112,29 @@ const Navbar = ({ title, subtitle }) => {
                         })}
                     </nav>
 
-                    {/* ── Right: role badge + user avatar ── */}
+                    {/* ── Right: XP mini + role badge + user avatar ── */}
                     <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+
+                        {/* Student XP mini-indicator */}
+                        {role === 'student' && playerStats && typeof getRankFromXP === 'function' && (() => {
+                            const tier = getRankFromXP(playerStats.xp || 0);
+                            return (
+                                <a href="#/student/leaderboard"
+                                    className="hidden sm:flex"
+                                    style={{
+                                        display:'flex', alignItems:'center', gap:6,
+                                        background:'#0f172a', borderRadius:20,
+                                        padding:'4px 10px', textDecoration:'none',
+                                        border:`1px solid ${tier.color}55`,
+                                    }}>
+                                    <span style={{ fontSize:16 }}>{tier.icon}</span>
+                                    <span style={{ fontSize:12, fontWeight:600, color: tier.color }}>
+                                        {(playerStats.xp || 0).toLocaleString()} XP
+                                    </span>
+                                </a>
+                            );
+                        })()}
+
                         {userDoc && (
                             <span className={`hidden sm:inline ${roleMeta[role]?.cls || ''}`}
                                 style={{ fontSize:'11px', fontWeight:600, padding:'4px 10px', borderRadius:'20px' }}>

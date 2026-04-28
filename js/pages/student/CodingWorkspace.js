@@ -44,6 +44,14 @@ const CodingWorkspace = () => {
     const [tabSwitchCount, setTabSwitchCount] = React.useState(0);
     const [examFinished, setExamFinished] = React.useState(false);
 
+    // Gamification state
+    const [xpReward, setXpReward] = React.useState(null);   // { xp, coin, crystal, didRankUp, newTier }
+    const [showXpToast, setShowXpToast] = React.useState(false);
+    const [newAchievements, setNewAchievements] = React.useState([]);
+    const [mindsetMessage, setMindsetMessage] = React.useState('');
+    const [challengeMessage, setChallengeMessage] = React.useState('');
+    const consecutiveFailRef = React.useRef(0);
+
     const [loading, setLoading] = React.useState(true);
     const [view, setView] = React.useState('problems'); // 'problems' | 'grade' | 'ai'
 
@@ -147,18 +155,27 @@ const CodingWorkspace = () => {
     };
 
     const handleHint = async () => {
-        if (!currentAssignment || !gradeResult) return;
+        if (!currentAssignment) return;
         const nextLevel = Math.min(hintLevel + 1, 3);
         setHintLevel(nextLevel);
         setHintLoading(true);
         setScaffoldHint('');
         try {
-            const failedTests = gradeResult.testResults.filter(r => !r.passed);
-            const hint = await getScaffoldingHint(
-                code, selectedLanguage,
-                currentAssignment.title, currentAssignment.description,
-                failedTests, nextLevel
-            );
+            // Use Socratic Coach (Phase 2) if available, else fall back to legacy
+            let hint;
+            if (typeof getSocraticHint === 'function') {
+                hint = await getSocraticHint(
+                    userDoc?.id, currentAssignment.title, currentAssignment.description,
+                    code, selectedLanguage, nextLevel
+                );
+            } else {
+                const failedTests = (gradeResult?.testResults || []).filter(r => !r.passed);
+                hint = await getScaffoldingHint(
+                    code, selectedLanguage,
+                    currentAssignment.title, currentAssignment.description,
+                    failedTests, nextLevel
+                );
+            }
             setScaffoldHint(hint);
         } catch (err) {
             setScaffoldHint('ขออภัย ไม่สามารถขอคำใบ้ได้: ' + err.message);
@@ -233,6 +250,98 @@ const CodingWorkspace = () => {
                 userDoc.id, currentAssignment.id, courseId, code, selectedLanguage
             );
             setGradeResult(result);
+
+            // ── Non-blocking gamification hook ───────────────────────────────
+            (async () => {
+                try {
+                    if (typeof awardXP !== 'function') return;
+                    const score = result?.score ?? 0;
+                    const passed = score >= 60;
+
+                    // Track consecutive fails for Mindset Coach
+                    if (!passed) {
+                        consecutiveFailRef.current += 1;
+                    } else {
+                        consecutiveFailRef.current = 0;
+                        setMindsetMessage('');
+                    }
+
+                    // ── Mindset Coach (Engage): trigger on 3+ consecutive fails ──
+                    if (!passed && consecutiveFailRef.current >= 3 && typeof getMindsetCoach === 'function') {
+                        getMindsetCoach(userDoc.id, currentAssignment.title, consecutiveFailRef.current)
+                            .then(msg => setMindsetMessage(msg))
+                            .catch(() => {});
+                    }
+
+                    const { xp, coin, crystal } = calculateSubmissionXP(score);
+                    let bonusXP = 0, bonusCoin = 0, bonusCrystal = 0;
+                    let isFirstSolve = false;
+
+                    // First-solve bonus (score ≥ 60%)
+                    if (passed && typeof checkIsFirstSolve === 'function') {
+                        isFirstSolve = await checkIsFirstSolve(userDoc.id, currentAssignment.id);
+                        if (isFirstSolve) { bonusXP = 20; bonusCoin = 5; bonusCrystal = 1; }
+                    }
+
+                    const rankResult = await awardXP(
+                        userDoc.id,
+                        xp + bonusXP, coin + bonusCoin, crystal + bonusCrystal,
+                        'submission_accepted',
+                        currentAssignment.id,
+                        { score, assignmentTitle: currentAssignment.title, firstSolve: isFirstSolve }
+                    );
+
+                    setXpReward({
+                        xp: xp + bonusXP, coin: coin + bonusCoin,
+                        crystal: crystal + bonusCrystal,
+                        firstSolve: isFirstSolve,
+                        didRankUp: rankResult?.didRankUp,
+                        newTier: rankResult?.newTier,
+                    });
+                    setShowXpToast(true);
+                    setTimeout(() => setShowXpToast(false), 6000);
+
+                    // ── Challenge Coach (Elaborate): score ≥ 90% ──
+                    if (score >= 90 && typeof getChallengeCoach === 'function') {
+                        getChallengeCoach(userDoc.id, currentAssignment.title, selectedLanguage, score)
+                            .then(msg => setChallengeMessage(msg))
+                            .catch(() => {});
+                    }
+
+                    // ── Achievement check ──
+                    if (typeof checkAndAwardAchievements === 'function') {
+                        const ctx = {
+                            event: 'submission',
+                            score,
+                            isFirstSolve,
+                            hintLevel,
+                            failCountBefore: consecutiveFailRef.current,
+                            difficulty: currentAssignment.difficulty || 'medium',
+                            timeSpentSeconds: 9999, // placeholder (Phase 4 will track)
+                            unitPassRate: 0,
+                            unitTotal: 0,
+                        };
+                        const awarded = await checkAndAwardAchievements(userDoc.id, ctx);
+                        if (awarded.length > 0) setNewAchievements(awarded);
+                    }
+
+                    // ── Rank-up achievement ──
+                    if (rankResult?.didRankUp && typeof checkAndAwardAchievements === 'function') {
+                        checkAndAwardAchievements(userDoc.id, {
+                            event: 'rankup',
+                            newRank: rankResult.newTier?.level || 0,
+                        }).catch(() => {});
+                    }
+
+                    // Update leaderboard asynchronously
+                    if (typeof updateLeaderboard === 'function') {
+                        updateLeaderboard().catch(() => {});
+                    }
+                } catch (gErr) {
+                    console.warn('[gamification] award error (non-blocking):', gErr);
+                }
+            })();
+            // ─────────────────────────────────────────────────────────────────
         } catch (err) {
             alert('เกิดข้อผิดพลาด: ' + err.message);
             setView('problems');
@@ -363,6 +472,114 @@ const CodingWorkspace = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navbar title="AI-Powered Coding Platform" subtitle={LANGUAGES[selectedLanguage]?.name} />
+
+            {/* XP Reward Toast */}
+            {showXpToast && xpReward && (
+                <div style={{
+                    position: 'fixed', top: 80, right: 20, zIndex: 9999,
+                    background: xpReward.didRankUp
+                        ? `linear-gradient(135deg, ${xpReward.newTier?.color || '#818cf8'}, #1e293b)`
+                        : 'linear-gradient(135deg, #1e293b, #0f172a)',
+                    border: `1.5px solid ${xpReward.newTier?.color || '#60a5fa'}`,
+                    borderRadius: 16, padding: '14px 20px',
+                    color: '#f1f5f9', fontFamily: "'Prompt',sans-serif",
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    minWidth: 220, maxWidth: 300,
+                    animation: 'slideIn 0.3s ease',
+                }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>
+                        {xpReward.didRankUp
+                            ? `🎉 เลื่อนระดับ! ${xpReward.newTier?.icon} ${xpReward.newTier?.name}`
+                            : '✨ ได้รับ XP!'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, fontSize: 13 }}>
+                        <span style={{ color: '#60a5fa' }}>+{xpReward.xp} XP</span>
+                        {xpReward.coin > 0 && <span style={{ color: '#fbbf24' }}>+{xpReward.coin} 🪙</span>}
+                        {xpReward.crystal > 0 && <span style={{ color: '#67e8f9' }}>+{xpReward.crystal} 💎</span>}
+                    </div>
+                    {xpReward.firstSolve && (
+                        <div style={{ marginTop: 4, fontSize: 12, color: '#a78bfa' }}>
+                            🌟 โบนัสแก้โจทย์ครั้งแรก!
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Achievement Toast (stacked below XP toast) */}
+            {newAchievements.length > 0 && (
+                <div style={{
+                    position: 'fixed', top: showXpToast ? 210 : 80, right: 20, zIndex: 9998,
+                    display: 'flex', flexDirection: 'column', gap: 8,
+                }}>
+                    {newAchievements.slice(0, 3).map(ach => (
+                        <div key={ach.id} style={{
+                            background: `linear-gradient(135deg, ${(typeof RARITY_COLOR !== 'undefined' ? RARITY_COLOR[ach.rarity] : '#60a5fa') || '#60a5fa'}33, #1e293b)`,
+                            border: `1.5px solid ${(typeof RARITY_COLOR !== 'undefined' ? RARITY_COLOR[ach.rarity] : '#60a5fa') || '#60a5fa'}`,
+                            borderRadius: 14, padding: '12px 16px',
+                            color: '#f1f5f9', fontFamily: "'Prompt',sans-serif",
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                            minWidth: 200, maxWidth: 280,
+                        }}>
+                            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
+                                {ach.icon} Badge ใหม่!
+                            </div>
+                            <div style={{ fontWeight: 600 }}>{ach.nameTh}</div>
+                            <div style={{ fontSize: 11, color: '#94a3b8' }}>{ach.desc}</div>
+                            {ach.xpReward > 0 && (
+                                <div style={{ fontSize: 12, color: '#60a5fa', marginTop: 4 }}>+{ach.xpReward} XP</div>
+                            )}
+                        </div>
+                    ))}
+                    <button onClick={() => setNewAchievements([])}
+                        style={{ fontSize: 11, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'right' }}>
+                        ปิด ✕
+                    </button>
+                </div>
+            )}
+
+            {/* Mindset Coach Message (Engage — shown below grade result) */}
+            {mindsetMessage && (
+                <div style={{
+                    position: 'fixed', bottom: 24, right: 20, zIndex: 9997,
+                    background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+                    border: '1.5px solid #f97316',
+                    borderRadius: 16, padding: '14px 18px',
+                    color: '#f1f5f9', fontFamily: "'Prompt',sans-serif",
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    maxWidth: 320,
+                }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, color: '#f97316' }}>
+                        🧡 AI Coach พูดว่า...
+                    </div>
+                    <p style={{ fontSize: 13, lineHeight: 1.6, margin: 0 }}>{mindsetMessage}</p>
+                    <button onClick={() => setMindsetMessage('')}
+                        style={{ marginTop: 8, fontSize: 11, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        ขอบคุณ ✕
+                    </button>
+                </div>
+            )}
+
+            {/* Challenge Coach Message (Elaborate — shown for high scores) */}
+            {challengeMessage && (
+                <div style={{
+                    position: 'fixed', bottom: 24, left: 20, zIndex: 9997,
+                    background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+                    border: '1.5px solid #a78bfa',
+                    borderRadius: 16, padding: '14px 18px',
+                    color: '#f1f5f9', fontFamily: "'Prompt',sans-serif",
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    maxWidth: 320,
+                }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, color: '#a78bfa' }}>
+                        🚀 Challenge Coach
+                    </div>
+                    <p style={{ fontSize: 13, lineHeight: 1.6, margin: 0 }}>{challengeMessage}</p>
+                    <button onClick={() => setChallengeMessage('')}
+                        style={{ marginTop: 8, fontSize: 11, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        รับทราบ ✕
+                    </button>
+                </div>
+            )}
 
             {/* Exam Mode Banner */}
             {isExamMode && examStarted && (

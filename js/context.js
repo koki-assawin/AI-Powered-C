@@ -31,6 +31,11 @@ const AuthProvider = ({ children }) => {
                         snap = await db.collection('users').doc(firebaseUser.uid).get();
                     }
                     setUserDoc({ id: firebaseUser.uid, ...snap.data() });
+
+                    // Non-blocking: initialize player stats + award daily streak
+                    if (typeof handleDailyStreak === 'function') {
+                        handleDailyStreak(firebaseUser.uid).catch(() => {});
+                    }
                 } catch (err) {
                     console.error('Failed to load user doc:', err);
                 }

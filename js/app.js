@@ -38,6 +38,18 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(SelfPractice));
         if (route === '#/student/profile')
             return guard(React.createElement(StudentProfile));
+        if (route === '#/student/leaderboard')
+            return guard(React.createElement(Leaderboard));
+        if (route === '#/student/achievements')
+            return guard(React.createElement(AchievementsPage));
+        if (route === '#/student/games/quiz')
+            return guard(React.createElement(QuizBlitz));
+        if (route === '#/student/games/autopsy')
+            return guard(React.createElement(CodeAutopsy));
+        if (route === '#/student/games/bughunt')
+            return guard(React.createElement(BugHunt));
+        if (route.startsWith('#/student/games'))
+            return guard(React.createElement(MiniGameHub));
 
         // Default student route
         return guard(React.createElement(StudentDashboard));
@@ -60,6 +72,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(StudentAnalytics));
         if (route.startsWith('#/teacher/students'))
             return guard(React.createElement(StudentManagement));
+        if (route.startsWith('#/teacher/gamification'))
+            return guard(React.createElement(GamificationAdmin));
 
         return guard(React.createElement(TeacherDashboard));
     }

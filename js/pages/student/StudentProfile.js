@@ -4,6 +4,14 @@ const GRADE_OPTIONS_P = ['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'];
 
 const StudentProfile = () => {
     const { user, userDoc } = useAuth();
+    const [playerStats, setPlayerStats] = React.useState(null);
+
+    React.useEffect(() => {
+        if (!user?.uid) return;
+        const unsub = db.collection('playerStats').doc(user.uid)
+            .onSnapshot(snap => { if (snap.exists) setPlayerStats(snap.data()); }, () => {});
+        return () => unsub();
+    }, [user?.uid]);
 
     // ── Profile form ──
     const [profileForm, setProfileForm] = React.useState({
@@ -170,6 +178,22 @@ const StudentProfile = () => {
                         </button>
                     </form>
                 </div>
+
+                {/* ── Game Stats card ── */}
+                {typeof XPBar !== 'undefined' && (
+                    <div className="rounded-2xl p-6 mb-6 shadow-sm" style={{
+                        background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+                        border: '1px solid #334155',
+                    }}>
+                        <h3 className="font-bold mb-4" style={{ color: '#f1f5f9' }}>🎮 สถิติการเล่นเกม</h3>
+                        <XPBar stats={playerStats} />
+                        {!playerStats && (
+                            <p style={{ color: '#64748b', fontSize: 13, marginTop: 12 }}>
+                                ยังไม่มีข้อมูล — ส่งงานเพื่อรับ XP แรกของคุณ!
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 {/* ── Password change card ── */}
                 <div className="bg-white rounded-2xl border p-6 shadow-sm" style={{ borderColor: '#FFD1DC' }}>

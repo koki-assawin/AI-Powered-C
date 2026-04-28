@@ -518,6 +518,7 @@ const StudentAnalytics = () => {
                                     { key: 'summary',   label: '📋 สรุปคะแนนทุกคน' },
                                     { key: 'practice',  label: '🎯 คะแนนฝึกเอง' },
                                     { key: 'aireport',  label: '🤖 รายงาน AI' },
+                                    { key: 'gamification', label: '🎮 Gamification' },
                                 ].map(t => (
                                     <button key={t.key} style={TAB_STYLE(t.key)} onClick={() => setActiveTab(t.key)}>
                                         {t.label}
@@ -1387,11 +1388,175 @@ const StudentAnalytics = () => {
                                     </div>
                                 )}
 
+                                {/* ─── TAB 6: GAMIFICATION ─── */}
+                                {activeTab === 'gamification' && (
+                                    <_GamificationTab selectedCourse={selectedCourse} />
+                                )}
+
                             </div>
                         </div>
                     </>
                 )}
             </main>
+        </div>
+    );
+};
+
+// ── Gamification Tab Component ────────────────────────────────────────────────
+const _GamificationTab = () => {
+    const [stats, setStats] = React.useState([]);
+    const [coachLogs, setCoachLogs] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
+    const [coachLoading, setCoachLoading] = React.useState(false);
+    const [coachFilter, setCoachFilter] = React.useState('all');
+
+    React.useEffect(() => {
+        loadGamificationData();
+    }, []);
+
+    const loadGamificationData = async () => {
+        setLoading(true);
+        try {
+            const snap = await db.collection('playerStats').orderBy('xp', 'desc').get();
+            const list = [];
+            for (const doc of snap.docs) {
+                let displayName = 'นักเรียน';
+                try {
+                    const u = await db.collection('users').doc(doc.id).get();
+                    if (u.exists) displayName = u.data().displayName || displayName;
+                } catch (_) {}
+                const d = doc.data();
+                const tier = typeof getRankFromXP === 'function' ? getRankFromXP(d.xp || 0) : { icon: '🥚', name: '-', color: '#9ca3af' };
+                list.push({ uid: doc.id, displayName, ...d, tier });
+            }
+            setStats(list);
+        } catch (err) {
+            console.warn('[GamificationTab]', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadCoachLogs = async () => {
+        setCoachLoading(true);
+        try {
+            const snap = await db.collection('coachInteractions').orderBy('createdAt', 'desc').limit(50).get();
+            setCoachLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        } catch (_) {} finally { setCoachLoading(false); }
+    };
+
+    const exportJSON = () => {
+        const data = { playerStats: stats, coachInteractions: coachLogs, exportedAt: new Date().toISOString() };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `gamification_export_${Date.now()}.json`; a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const COACH_COLORS = {
+        mindset: '#f97316', socratic: '#60a5fa',
+        analytics: '#a78bfa', diagnostic: '#34d399', challenge: '#fbbf24',
+    };
+    const filteredLogs = coachFilter === 'all' ? coachLogs : coachLogs.filter(l => l.coachRole === coachFilter);
+
+    return (
+        <div style={{ color: '#1f2937' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h3 className="text-lg font-bold text-gray-700">🎮 ข้อมูล Gamification ทั้งชั้น</h3>
+                <button onClick={exportJSON} className="k-btn-pink px-4 py-2 text-sm">
+                    📥 Export JSON (วิจัย)
+                </button>
+            </div>
+
+            {/* XP ranking table */}
+            {loading ? (
+                <div className="text-center py-8 text-gray-400">กำลังโหลด...</div>
+            ) : (
+                <div className="overflow-x-auto rounded-xl border border-gray-100 mb-8">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr style={{ background: '#fdf2f8' }}>
+                                {['อันดับ', 'ชื่อ', 'Rank', 'XP', 'CodeCoin', 'Crystal', 'Streak'].map(h => (
+                                    <th key={h} className="px-4 py-3 text-left font-bold text-gray-600 whitespace-nowrap">{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {stats.map((s, idx) => (
+                                <tr key={s.uid} className="border-t border-gray-50 hover:bg-gray-50">
+                                    <td className="px-4 py-3 font-bold text-gray-500">
+                                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                                    </td>
+                                    <td className="px-4 py-3 font-medium">{s.displayName}</td>
+                                    <td className="px-4 py-3">
+                                        <span style={{ color: s.tier?.color || '#9ca3af' }}>
+                                            {s.tier?.icon} {s.tier?.name}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 font-bold text-blue-600">{(s.xp || 0).toLocaleString()}</td>
+                                    <td className="px-4 py-3 text-yellow-600">🪙 {s.codeCoin || 0}</td>
+                                    <td className="px-4 py-3 text-cyan-600">💎 {s.crystal || 0}</td>
+                                    <td className="px-4 py-3">🔥 {s.streakDays || 0} วัน</td>
+                                </tr>
+                            ))}
+                            {stats.length === 0 && (
+                                <tr><td colSpan={7} className="text-center py-8 text-gray-400">ยังไม่มีข้อมูล</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Coach Interactions log */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h4 className="font-bold text-gray-700">🤖 Coach Interactions Log (ข้อมูลวิจัย)</h4>
+                <button onClick={loadCoachLogs} disabled={coachLoading} className="k-btn-pink px-3 py-1 text-xs">
+                    {coachLoading ? 'โหลด...' : '🔄 โหลด Log'}
+                </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                {['all', 'mindset', 'socratic', 'analytics', 'diagnostic', 'challenge'].map(role => (
+                    <button key={role} onClick={() => setCoachFilter(role)} style={{
+                        padding: '4px 12px', borderRadius: 20, fontSize: 12, border: 'none', cursor: 'pointer',
+                        background: coachFilter === role ? (COACH_COLORS[role] || '#ec4899') : '#f3f4f6',
+                        color: coachFilter === role ? '#fff' : '#6b7280',
+                        fontFamily: "'Prompt',sans-serif",
+                    }}>
+                        {role === 'all' ? 'ทั้งหมด' : role}
+                    </button>
+                ))}
+            </div>
+
+            <div style={{ maxHeight: 400, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {filteredLogs.length === 0 ? (
+                    <div className="text-center py-8 text-gray-400">
+                        {coachLogs.length === 0 ? 'กด "โหลด Log" เพื่อดูข้อมูล' : 'ไม่มีข้อมูลในหมวดนี้'}
+                    </div>
+                ) : filteredLogs.map(log => (
+                    <div key={log.id} style={{
+                        background: '#f9fafb',
+                        borderLeft: `3px solid ${COACH_COLORS[log.coachRole] || '#9ca3af'}`,
+                        borderRadius: 10, padding: '10px 14px', fontSize: 12,
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <span style={{ fontWeight: 700, color: COACH_COLORS[log.coachRole] || '#6b7280' }}>
+                                {(log.coachRole || '').toUpperCase()}
+                            </span>
+                            <span style={{ color: '#9ca3af' }}>
+                                {log.createdAt?.toDate ? log.createdAt.toDate().toLocaleString('th-TH') : ''}
+                            </span>
+                        </div>
+                        <div style={{ color: '#374151', marginBottom: 4, fontSize: 11 }}>
+                            <strong>Trigger:</strong> {log.triggerEvent} {log.relatedId ? `| ${log.relatedId}` : ''}
+                        </div>
+                        <div style={{ color: '#6b7280', fontStyle: 'italic' }}>
+                            {(log.response || '').slice(0, 150)}{(log.response || '').length > 150 ? '...' : ''}
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };
