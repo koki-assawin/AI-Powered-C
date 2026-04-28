@@ -228,9 +228,13 @@ async function updateLeaderboard(period = 'alltime') {
     try {
         const field = period === 'daily' ? 'dailyXP' : period === 'weekly' ? 'weeklyXP' : 'xp';
 
-        // Filter to role='student' only — exclude teacher/admin/test accounts
+        // Filter to class students only: role='student' AND number in 11669–11701
         const studentSnap = await db.collection('users').where('role', '==', 'student').get();
-        const studentUIDs = new Set(studentSnap.docs.map(d => d.id));
+        const studentUIDs = new Set(
+            studentSnap.docs
+                .filter(d => { const n = Number(d.data().number); return n >= 11669 && n <= 11701; })
+                .map(d => d.id)
+        );
 
         const snap = await db.collection('playerStats').get();
         const raw = snap.docs

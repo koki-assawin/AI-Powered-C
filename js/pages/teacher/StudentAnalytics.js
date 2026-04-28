@@ -1417,10 +1417,12 @@ const _GamificationTab = () => {
     const loadGamificationData = async () => {
         setLoading(true);
         try {
-            // Fetch students only — exclude teacher/admin/test accounts
+            // Fetch class students only: role='student' AND number in 11669–11701
             const studentSnap = await db.collection('users').where('role', '==', 'student').get();
             const studentMap = {};
-            studentSnap.docs.forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
+            studentSnap.docs
+                .filter(d => { const n = Number(d.data().number); return n >= 11669 && n <= 11701; })
+                .forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
             const studentUIDs = new Set(Object.keys(studentMap));
 
             const snap = await db.collection('playerStats').orderBy('xp', 'desc').get();
