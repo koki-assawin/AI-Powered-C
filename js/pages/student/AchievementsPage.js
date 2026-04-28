@@ -16,12 +16,14 @@ const AchievementsPage = () => {
     }, [user]);
 
     const earnedIds = new Set(earnedList.map(e => e.achievementId));
-    const filtered = (typeof ACHIEVEMENTS !== 'undefined' ? ACHIEVEMENTS : [])
-        .filter(a => filter === 'all' || a.category === filter);
+    const allAch = typeof ACHIEVEMENTS !== 'undefined' ? ACHIEVEMENTS : [];
+    // Count only IDs that actually exist in ACHIEVEMENTS (ignore stale/unknown IDs)
+    const validEarnedCount = allAch.filter(a => earnedIds.has(a.id)).length;
+    const filtered = allAch.filter(a => filter === 'all' || a.category === filter);
 
     const earned = filtered.filter(a => earnedIds.has(a.id));
     const unearned = filtered.filter(a => !earnedIds.has(a.id));
-    const pct = Math.round((earnedIds.size / (ACHIEVEMENTS?.length || 1)) * 100);
+    const pct = Math.round((validEarnedCount / (allAch.length || 1)) * 100);
 
     const CATEGORY_LABELS = { skill: '⚔️ ทักษะ', special: '✨ พิเศษ' };
     const RARITY_LABELS = { common: 'ทั่วไป', uncommon: 'หายาก', rare: 'หายากมาก', epic: 'Epic', legendary: 'Legendary' };
@@ -40,7 +42,7 @@ const AchievementsPage = () => {
                     {/* Progress bar */}
                     <div style={{ margin: '16px auto', maxWidth: 300 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>
-                            <span>สะสมแล้ว {earnedIds.size}/{ACHIEVEMENTS?.length || 0}</span>
+                            <span>สะสมแล้ว {validEarnedCount}/{allAch.length || 0}</span>
                             <span>{pct}%</span>
                         </div>
                         <div style={{ height: 8, borderRadius: 4, background: '#1e293b', overflow: 'hidden' }}>

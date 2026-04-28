@@ -37,12 +37,12 @@ const TIER_CONFIG = {
     5: { label:'น้อยมาก', xp:[50,200],    qR:[0,2],   aR:[0,2],   bR:[0,1],   spR:[0,2],   badgeN:[0,1],   streak:[0,1],   e1:[35,52], noise:10 },
 };
 
-// Achievement IDs available to award
+// Achievement IDs — must match ACHIEVEMENTS array in achievementEngine.js exactly
 const ACHIEVEMENT_POOL = {
-    1: ['first_blood','perfect_10','no_hint_hero','streak_3','streak_7','speed_demon','unit_master_1','unit_master_2','unit_master_3','unit_master_4','rank_up_5','rank_up_10','all_assignments'],
-    2: ['first_blood','perfect_10','streak_3','speed_demon','unit_master_1','unit_master_2','unit_master_3','rank_up_5'],
-    3: ['first_blood','streak_3','unit_master_1','unit_master_2'],
-    4: ['first_blood'],
+    1: ['first_blood','perfect_score','no_hint_hero','speed_demon','comeback_kid','streak_3','streak_7','all_assignments','rank_up_5','rank_up_10','bug_exterminator','quiz_master','autopsy_expert'],
+    2: ['first_blood','perfect_score','streak_3','speed_demon','streak_7','rank_up_5','quiz_master','all_assignments'],
+    3: ['first_blood','streak_3','speed_demon','rank_up_5'],
+    4: ['first_blood','streak_3'],
     5: [],
 };
 
@@ -195,7 +195,19 @@ const ResearchDataSeeder = () => {
             await gameBatch.commit();
         }
 
-        // ── studentAchievements (set with merge to allow re-seeding) ──
+        // ── studentAchievements: delete old seeded docs first, then create fresh ──
+        // Filter seeded=true in JS to avoid needing composite index on uid+seeded
+        const oldAchSnap = await db.collection('studentAchievements')
+            .where('uid', '==', uid)
+            .get();
+        if (!oldAchSnap.empty) {
+            const delBatch = db.batch();
+            oldAchSnap.docs
+                .filter(d => d.data().seeded === true)
+                .forEach(d => delBatch.delete(d.ref));
+            await delBatch.commit();
+        }
+
         const pool = ACHIEVEMENT_POOL[tier] || [];
         const earnCount = rng.int(cfg.badgeN[0], Math.min(cfg.badgeN[1], pool.length));
         if (earnCount > 0) {
@@ -204,7 +216,6 @@ const ResearchDataSeeder = () => {
             shuffled.forEach((achId) => {
                 const ts  = randomTimestamp(rng);
                 const ref = db.collection('studentAchievements').doc(`${uid}_${achId}`);
-                // merge:true → create if new, overwrite fields if exists (no permission error on update)
                 achBatch.set(ref, {
                     uid,
                     achievementId: achId,
@@ -213,7 +224,7 @@ const ResearchDataSeeder = () => {
                     coinAwarded: rng.int(5, 30),
                     crystalAwarded: rng.int(0, 2),
                     seeded: true,
-                }, { merge: true });
+                });
             });
             await achBatch.commit();
         }
