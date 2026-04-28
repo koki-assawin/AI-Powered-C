@@ -228,11 +228,12 @@ async function updateLeaderboard(period = 'alltime') {
     try {
         const field = period === 'daily' ? 'dailyXP' : period === 'weekly' ? 'weeklyXP' : 'xp';
 
-        // Filter to class students only: role='student' AND number in 11669–11701
+        // Filter to class students only: role='student' AND studentCode in 11669–11701
+        // (number = เลขที่ 1-32, studentCode = รหัสนักเรียน 11669-11701)
         const studentSnap = await db.collection('users').where('role', '==', 'student').get();
         const studentUIDs = new Set(
             studentSnap.docs
-                .filter(d => { const n = Number(d.data().number); return n >= 11669 && n <= 11701; })
+                .filter(d => { const n = Number(d.data().studentCode); return n >= 11669 && n <= 11701; })
                 .map(d => d.id)
         );
 

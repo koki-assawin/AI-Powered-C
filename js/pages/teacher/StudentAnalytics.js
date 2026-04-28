@@ -1417,11 +1417,12 @@ const _GamificationTab = () => {
     const loadGamificationData = async () => {
         setLoading(true);
         try {
-            // Fetch class students only: role='student' AND number in 11669–11701
+            // Fetch class students only: role='student' AND studentCode in 11669–11701
+            // (number = เลขที่ 1-32, studentCode = รหัสนักเรียน 11669-11701)
             const studentSnap = await db.collection('users').where('role', '==', 'student').get();
             const studentMap = {};
             studentSnap.docs
-                .filter(d => { const n = Number(d.data().number); return n >= 11669 && n <= 11701; })
+                .filter(d => { const n = Number(d.data().studentCode); return n >= 11669 && n <= 11701; })
                 .forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
             const studentUIDs = new Set(Object.keys(studentMap));
 
