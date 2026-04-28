@@ -7,6 +7,19 @@ const SCHOOL_LOGO = 'https://www.triamudomsouth.ac.th/images/theme/150x150.png';
 const _NavGroup = ({ group, currentHash, closeAll, openGroup, setOpenGroup }) => {
     const isActive = group.children.some(c => currentHash.startsWith(c.hash));
     const isOpen = openGroup === group.label;
+    const closeTimer = React.useRef(null);
+
+    // Delay close by 150ms so mouse can travel from button into dropdown without gap-firing onMouseLeave
+    const handleOpen = () => {
+        clearTimeout(closeTimer.current);
+        setOpenGroup(group.label);
+    };
+    const handleClose = () => {
+        closeTimer.current = setTimeout(() => {
+            setOpenGroup(cur => cur === group.label ? null : cur);
+        }, 150);
+    };
+    React.useEffect(() => () => clearTimeout(closeTimer.current), []);
 
     const btnStyle = {
         display: 'flex', alignItems: 'center', gap: 5,
@@ -21,8 +34,8 @@ const _NavGroup = ({ group, currentHash, closeAll, openGroup, setOpenGroup }) =>
 
     return (
         <div style={{ position: 'relative' }}
-            onMouseEnter={() => setOpenGroup(group.label)}
-            onMouseLeave={() => setOpenGroup(null)}>
+            onMouseEnter={handleOpen}
+            onMouseLeave={handleClose}>
             <button
                 style={btnStyle}
                 onClick={() => setOpenGroup(isOpen ? null : group.label)}
@@ -35,34 +48,39 @@ const _NavGroup = ({ group, currentHash, closeAll, openGroup, setOpenGroup }) =>
             </button>
 
             {isOpen && (
-                <div style={{
-                    position: 'absolute', top: 'calc(100% + 4px)', left: 0,
-                    background: 'white', borderRadius: 14, border: '1px solid #fce7f3',
-                    boxShadow: '0 8px 28px rgba(236,72,153,.15)',
-                    minWidth: 170, padding: '6px 0', zIndex: 200,
-                }}>
-                    {group.children.map(link => {
-                        const active = currentHash.startsWith(link.hash);
-                        return (
-                            <a key={link.hash} href={link.hash}
-                                onClick={() => { setOpenGroup(null); closeAll(); }}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: 8,
-                                    padding: '9px 16px', fontSize: '13px', textDecoration: 'none',
-                                    fontWeight: active ? 600 : 400,
-                                    color: active ? '#ec4899' : '#4b5563',
-                                    background: active ? '#fdf2f8' : 'transparent',
-                                    borderLeft: active ? '3px solid #ec4899' : '3px solid transparent',
-                                    transition: 'background .15s',
-                                }}
-                                onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#fdf2f8'; }}
-                                onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
-                            >
-                                <span style={{ fontSize: 15 }}>{link.icon}</span>
-                                <span>{link.label}</span>
-                            </a>
-                        );
-                    })}
+                // Wrapper at top:100% with paddingTop acts as invisible bridge over the visual gap,
+                // keeping the mouse inside the parent div while travelling button→dropdown box.
+                <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: '6px', zIndex: 200 }}
+                    onMouseEnter={handleOpen}
+                    onMouseLeave={handleClose}>
+                    <div style={{
+                        background: 'white', borderRadius: 14, border: '1px solid #fce7f3',
+                        boxShadow: '0 8px 28px rgba(236,72,153,.15)',
+                        minWidth: 170, padding: '6px 0',
+                    }}>
+                        {group.children.map(link => {
+                            const active = currentHash.startsWith(link.hash);
+                            return (
+                                <a key={link.hash} href={link.hash}
+                                    onClick={() => { setOpenGroup(null); closeAll(); }}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        padding: '9px 16px', fontSize: '13px', textDecoration: 'none',
+                                        fontWeight: active ? 600 : 400,
+                                        color: active ? '#ec4899' : '#4b5563',
+                                        background: active ? '#fdf2f8' : 'transparent',
+                                        borderLeft: active ? '3px solid #ec4899' : '3px solid transparent',
+                                        transition: 'background .15s',
+                                    }}
+                                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#fdf2f8'; }}
+                                    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                                >
+                                    <span style={{ fontSize: 15 }}>{link.icon}</span>
+                                    <span>{link.label}</span>
+                                </a>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>
