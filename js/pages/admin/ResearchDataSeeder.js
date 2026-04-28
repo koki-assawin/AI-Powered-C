@@ -64,12 +64,20 @@ function todayStr() {
 // ── Main seeder ───────────────────────────────────────────────────────────────
 const ResearchDataSeeder = () => {
     const { role } = useAuth();
-    const [phase, setPhase]       = React.useState('idle'); // idle|running|done|error
-    const [logs, setLogs]         = React.useState([]);
-    const [progress, setProgress] = React.useState(0);
-    const [summary, setSummary]   = React.useState(null);
+    const [phase, setPhase]           = React.useState('idle'); // idle|running|done|error
+    const [logs, setLogs]             = React.useState([]);
+    const [progress, setProgress]     = React.useState(0);
+    const [summary, setSummary]       = React.useState(null);
+    const [classes, setClasses]       = React.useState([]);
+    const [selectedClassId, setSelectedClassId] = React.useState('');
 
     const addLog = (msg) => setLogs(p => [...p, msg]);
+
+    React.useEffect(() => {
+        db.collection('classes').get()
+            .then(snap => setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+            .catch(() => {});
+    }, []);
 
     // ── Seed one student ──────────────────────────────────────────────────────
     const seedStudent = async (student, idx) => {
@@ -239,23 +247,24 @@ const ResearchDataSeeder = () => {
         setProgress(0);
         setSummary(null);
 
-        // รหัสนักเรียน ว31281 ม.4/6 (11669–11701 = 33 ช่วง, ใช้จริง 32 คน)
-        const NUMBER_MIN = 11669;
-        const NUMBER_MAX = 11701;
-
         try {
             addLog('📥 โหลดรายชื่อนักเรียน...');
-            const snap = await db.collection('users').where('role', '==', 'student').get();
-            const allStudents = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
-            // Filter by studentCode (รหัสนักเรียน) first; fallback to number (เลขที่ 1-32); last resort: all students
-            let students = allStudents.filter(s => { const n = Number(s.studentCode); return n >= NUMBER_MIN && n <= NUMBER_MAX; });
-            if (students.length === 0) students = allStudents.filter(s => { const n = Number(s.number); return n >= 1 && n <= 32; });
-            if (students.length === 0) students = allStudents;
+            let students;
+            if (selectedClassId) {
+                const snap = await db.collection('users').where('classId', '==', selectedClassId).get();
+                students = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+                addLog(`ใช้ Class ID: ${selectedClassId} — พบนักเรียน ${students.length} คน`);
+            } else {
+                const snap = await db.collection('users').where('role', '==', 'student').get();
+                const allStudents = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+                students = allStudents.filter(s => { const n = Number(s.studentCode); return n >= 11669 && n <= 11701; });
+                if (students.length === 0) students = allStudents.filter(s => { const n = Number(s.number); return n >= 1 && n <= 32; });
+                if (students.length === 0) students = allStudents;
+                addLog(`ไม่ได้เลือก Class — กรองจาก studentCode/number: พบนักเรียน ${students.length} คน`);
+            }
             students = students
                 .sort((a, b) => (Number(a.number) || Number(a.studentCode) || 999) - (Number(b.number) || Number(b.studentCode) || 999))
-                .slice(0, 32);
-
-            addLog(`กรองรหัส ${NUMBER_MIN}–${NUMBER_MAX}: พบนักเรียน ${students.length} คน`);
+                .slice(0, 64);
 
             const results = [];
             for (let i = 0; i < students.length; i++) {
@@ -386,6 +395,11 @@ const ResearchDataSeeder = () => {
             {/* Control */}
             {card(<>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'center' }}>
+                    <select value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}
+                        style={{ border:'1.5px solid #e2e8f0', borderRadius:8, padding:'9px 12px', fontFamily:"'Prompt',sans-serif", fontSize:13, outline:'none', cursor:'pointer' }}>
+                        <option value="">— Seed ตาม studentCode (ไม่แยก Class) —</option>
+                        {classes.map(c => <option key={c.id} value={c.id}>{c.name} ({c.year || '-'}) · {c.studentCount || 0} คน</option>)}
+                    </select>
                     <button
                         onClick={runSeed}
                         disabled={phase === 'running'}

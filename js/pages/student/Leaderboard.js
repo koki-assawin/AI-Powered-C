@@ -1,5 +1,4 @@
-// js/pages/student/Leaderboard.js — Phase 4: Full 3-tab Leaderboard + Season banner
-// Reads directly from playerStats (filtered to class 11669-11701) — no snapshot dependency
+// js/pages/student/Leaderboard.js — class-aware leaderboard (reads playerStats directly)
 
 const Leaderboard = () => {
     const { user } = useAuth();
@@ -8,19 +7,39 @@ const Leaderboard = () => {
     const [dataLoading, setDataLoading] = React.useState(true);
     const [myStats, setMyStats] = React.useState(null);
     const [season, setSeason] = React.useState(null);
+    const [myClassName, setMyClassName] = React.useState('');
 
-    // Load directly from playerStats filtered by class studentCode range
+    // Load classmates from user's classId, then fetch their playerStats
     const loadEntries = React.useCallback(async () => {
+        if (!user?.uid) return;
         setDataLoading(true);
         try {
-            const studentSnap = await db.collection('users').where('role', '==', 'student').get();
+            // 1. Get current user's classId
+            const userSnap = await db.collection('users').doc(user.uid).get();
+            const myClassId = userSnap.data()?.classId;
+
+            // 2. Load class name for display
+            if (myClassId) {
+                db.collection('classes').doc(myClassId).get()
+                    .then(cs => { if (cs.exists) setMyClassName(cs.data().name || ''); })
+                    .catch(() => {});
+            }
+
+            // 3. Get classmates
+            let classmates;
+            if (myClassId) {
+                const snap = await db.collection('users').where('classId', '==', myClassId).get();
+                classmates = snap.docs;
+            } else {
+                // No class assigned — show all role='student' users as fallback
+                const snap = await db.collection('users').where('role', '==', 'student').get();
+                classmates = snap.docs;
+            }
             const studentMap = {};
-            let classDocs = studentSnap.docs.filter(d => { const n = Number(d.data().studentCode); return n >= 11669 && n <= 11701; });
-            if (classDocs.length === 0) classDocs = studentSnap.docs.filter(d => { const n = Number(d.data().number); return n >= 1 && n <= 32; });
-            if (classDocs.length === 0) classDocs = studentSnap.docs;
-            classDocs.forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
+            classmates.forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
             const studentUIDs = new Set(Object.keys(studentMap));
 
+            // 4. Fetch playerStats and filter to classmates
             const statsSnap = await db.collection('playerStats').get();
             const list = statsSnap.docs
                 .filter(d => studentUIDs.has(d.id))
@@ -46,7 +65,7 @@ const Leaderboard = () => {
         } finally {
             setDataLoading(false);
         }
-    }, []);
+    }, [user?.uid]);
 
     React.useEffect(() => { loadEntries(); }, []);
 
@@ -77,7 +96,7 @@ const Leaderboard = () => {
 
     return (
         <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f1f5f9', fontFamily: "'Prompt', sans-serif" }}>
-            <Navbar title="อันดับชั้นเรียน" subtitle="Leaderboard" />
+            <Navbar title="อันดับชั้นเรียน" subtitle={myClassName || 'Leaderboard'} />
 
             <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
 

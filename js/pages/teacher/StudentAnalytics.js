@@ -1409,21 +1409,28 @@ const _GamificationTab = () => {
     const [loading, setLoading] = React.useState(true);
     const [coachLoading, setCoachLoading] = React.useState(false);
     const [coachFilter, setCoachFilter] = React.useState('all');
+    const [classes, setClasses] = React.useState([]);
+    const [selectedClassId, setSelectedClassId] = React.useState('');
 
     React.useEffect(() => {
-        loadGamificationData();
+        db.collection('classes').get()
+            .then(snap => setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+            .catch(() => {});
+        loadGamificationData('');
     }, []);
 
-    const loadGamificationData = async () => {
+    const loadGamificationData = async (classId) => {
         setLoading(true);
         try {
-            // Fetch class students only: role='student' AND studentCode in 11669–11701
-            // (number = เลขที่ 1-32, studentCode = รหัสนักเรียน 11669-11701)
-            const studentSnap = await db.collection('users').where('role', '==', 'student').get();
+            let classDocs;
+            if (classId) {
+                const snap = await db.collection('users').where('classId', '==', classId).get();
+                classDocs = snap.docs;
+            } else {
+                const snap = await db.collection('users').where('role', '==', 'student').get();
+                classDocs = snap.docs;
+            }
             const studentMap = {};
-            let classDocs = studentSnap.docs.filter(d => { const n = Number(d.data().studentCode); return n >= 11669 && n <= 11701; });
-            if (classDocs.length === 0) classDocs = studentSnap.docs.filter(d => { const n = Number(d.data().number); return n >= 1 && n <= 32; });
-            if (classDocs.length === 0) classDocs = studentSnap.docs;
             classDocs.forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
             const studentUIDs = new Set(Object.keys(studentMap));
 
@@ -1470,11 +1477,19 @@ const _GamificationTab = () => {
 
     return (
         <div style={{ color: '#1f2937' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h3 className="text-lg font-bold text-gray-700">🎮 ข้อมูล Gamification ทั้งชั้น</h3>
-                <button onClick={exportJSON} className="k-btn-pink px-4 py-2 text-sm">
-                    📥 Export JSON (วิจัย)
-                </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                <h3 className="text-lg font-bold text-gray-700">🎮 ข้อมูล Gamification</h3>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <select value={selectedClassId}
+                        onChange={e => { setSelectedClassId(e.target.value); loadGamificationData(e.target.value); }}
+                        style={{ border: '1.5px solid #fce7f3', borderRadius: 8, padding: '6px 10px', fontFamily: "'Prompt',sans-serif", fontSize: 13, cursor: 'pointer', outline: 'none' }}>
+                        <option value="">— ทุก Class —</option>
+                        {classes.map(c => <option key={c.id} value={c.id}>{c.name} ({c.year || '-'})</option>)}
+                    </select>
+                    <button onClick={exportJSON} className="k-btn-pink px-4 py-2 text-sm">
+                        📥 Export JSON
+                    </button>
+                </div>
             </div>
 
             {/* XP ranking table */}

@@ -87,9 +87,10 @@ const TeacherDashboard = () => {
                         {/* Quick links */}
                         <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
                             {[
-                                { href: '#/teacher/analytics', icon: '📊', label: 'วิเคราะห์นักเรียน', bg: '#1e293b', color: '#f1f5f9' },
-                                { href: '#/teacher/students',  icon: '👥', label: 'จัดการนักเรียน',    bg: '#1e293b', color: '#f1f5f9' },
-                                { href: '#/teacher/gamification', icon: '🎮', label: 'Gamification Admin', bg: 'linear-gradient(135deg,#065f46,#047857)', color: '#d1fae5' },
+                                { href: '#/teacher/analytics',     icon: '📊', label: 'วิเคราะห์นักเรียน',  bg: '#1e293b', color: '#f1f5f9' },
+                                { href: '#/teacher/students',      icon: '👥', label: 'จัดการนักเรียน',     bg: '#1e293b', color: '#f1f5f9' },
+                                { href: '#/teacher/classes',       icon: '🏫', label: 'จัดการชั้นเรียน',    bg: 'linear-gradient(135deg,#1e3a5f,#1d4ed8)', color: '#bfdbfe' },
+                                { href: '#/teacher/gamification',  icon: '🎮', label: 'Gamification Admin', bg: 'linear-gradient(135deg,#065f46,#047857)', color: '#d1fae5' },
                             ].map(l => (
                                 <a key={l.href} href={l.href} style={{
                                     flex: '1 1 auto', textAlign: 'center', padding: '10px 16px',

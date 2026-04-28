@@ -28,6 +28,8 @@ const GamificationAdmin = () => {
     const [manualXP, setManualXP] = React.useState({ uid: '', xp: '', reason: '' });
     const [students, setStudents] = React.useState([]);
     const [toast, setToast] = React.useState('');
+    const [classes, setClasses] = React.useState([]);
+    const [selectedClassId, setSelectedClassId] = React.useState('');
 
     const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -35,6 +37,9 @@ const GamificationAdmin = () => {
         loadSeason();
         db.collection('users').where('role', '==', 'student').orderBy('displayName').get()
             .then(snap => setStudents(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+            .catch(() => {});
+        db.collection('classes').get()
+            .then(snap => setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
             .catch(() => {});
     }, []);
 
@@ -97,8 +102,8 @@ const GamificationAdmin = () => {
     const handleRefreshLeaderboard = async () => {
         setRefreshing(true);
         try {
-            await updateAllLeaderboards();
-            showToast('✅ อัปเดต Leaderboard ทั้งหมดแล้ว');
+            await updateAllLeaderboards(selectedClassId || null);
+            showToast('✅ อัปเดต Leaderboard' + (selectedClassId ? ' (class นี้)' : ' ทั้งหมด') + ' แล้ว');
         } catch (err) {
             showToast('❌ ' + err.message);
         } finally { setRefreshing(false); }
@@ -253,14 +258,21 @@ const GamificationAdmin = () => {
                         <div style={{ background: 'white', borderRadius: 16, border: '1px solid #fce7f3', padding: 20 }}>
                             <h3 style={{ margin: '0 0 8px', color: '#be185d', fontSize: 15 }}>🔄 อัปเดต Leaderboard</h3>
                             <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
-                                อัปเดต 3 Leaderboard (Daily/Weekly/Alltime) ด้วยข้อมูล playerStats ล่าสุด
+                                อัปเดต 3 Leaderboard (Daily/Weekly/Alltime) — เลือก Class หรือปล่อยว่างเพื่ออัปเดตทั้งหมด
                             </p>
+                            <select value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}
+                                style={{ ...inputStyle, marginBottom: 10 }}>
+                                <option value="">— ทุก Class (ไม่แยก) —</option>
+                                {classes.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name} ({c.year || '-'})</option>
+                                ))}
+                            </select>
                             <button onClick={handleRefreshLeaderboard} disabled={refreshing} style={{
                                 padding: '9px 20px', borderRadius: 10, border: 'none', cursor: 'pointer',
                                 background: '#1e293b', color: '#f1f5f9', fontFamily: "'Prompt',sans-serif",
                                 fontWeight: 600, fontSize: 13, opacity: refreshing ? .6 : 1,
                             }}>
-                                {refreshing ? '⏳ กำลังอัปเดต...' : '🔄 Refresh ทุก Leaderboard'}
+                                {refreshing ? '⏳ กำลังอัปเดต...' : '🔄 Refresh Leaderboard'}
                             </button>
                         </div>
                     </div>

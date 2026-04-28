@@ -224,20 +224,22 @@ async function handleDailyStreak(uid) {
 }
 
 // ── Leaderboard update (all-time / weekly / daily) ────────────────────────────
-async function updateLeaderboard(period = 'alltime') {
+// classId: if provided, filter to that class; writes to '{classId}_{period}' doc
+async function updateLeaderboard(period = 'alltime', classId = null) {
     try {
         const field = period === 'daily' ? 'dailyXP' : period === 'weekly' ? 'weeklyXP' : 'xp';
 
-        // Filter to class students only: role='student' AND studentCode in 11669–11701
-        // (number = เลขที่ 1-32, studentCode = รหัสนักเรียน 11669-11701)
-        const studentSnap = await db.collection('users').where('role', '==', 'student').get();
-        let classDocs = studentSnap.docs.filter(d => { const n = Number(d.data().studentCode); return n >= 11669 && n <= 11701; });
-        if (classDocs.length === 0) classDocs = studentSnap.docs.filter(d => { const n = Number(d.data().number); return n >= 1 && n <= 32; });
-        if (classDocs.length === 0) classDocs = studentSnap.docs;
-        const studentUIDs = new Set(classDocs.map(d => d.id));
+        let studentUIDs;
+        if (classId) {
+            const snap = await db.collection('users').where('classId', '==', classId).get();
+            studentUIDs = new Set(snap.docs.map(d => d.id));
+        } else {
+            const snap = await db.collection('users').where('role', '==', 'student').get();
+            studentUIDs = new Set(snap.docs.map(d => d.id));
+        }
 
-        const snap = await db.collection('playerStats').get();
-        const raw = snap.docs
+        const statsSnap = await db.collection('playerStats').get();
+        const raw = statsSnap.docs
             .filter(doc => studentUIDs.has(doc.id))
             .map(doc => ({ uid: doc.id, ...doc.data() }));
         raw.sort((a, b) => (b[field] || 0) - (a[field] || 0));
@@ -260,8 +262,9 @@ async function updateLeaderboard(period = 'alltime') {
             };
         }));
 
-        await db.collection('leaderboardSnapshots').doc(period).set({
-            period, entries,
+        const docId = classId ? `${classId}_${period}` : period;
+        await db.collection('leaderboardSnapshots').doc(docId).set({
+            period, classId: classId || null, entries,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
     } catch (err) {
@@ -269,12 +272,12 @@ async function updateLeaderboard(period = 'alltime') {
     }
 }
 
-// Update all 3 periods at once (called from GamificationAdmin)
-async function updateAllLeaderboards() {
+// Update all 3 periods for a specific class (or global if classId omitted)
+async function updateAllLeaderboards(classId = null) {
     await Promise.all([
-        updateLeaderboard('alltime'),
-        updateLeaderboard('weekly'),
-        updateLeaderboard('daily'),
+        updateLeaderboard('alltime', classId),
+        updateLeaderboard('weekly', classId),
+        updateLeaderboard('daily', classId),
     ]);
 }
 
