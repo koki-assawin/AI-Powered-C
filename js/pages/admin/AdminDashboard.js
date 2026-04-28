@@ -76,11 +76,12 @@ const AdminDashboard = () => {
                             ))}
                         </div>
 
-                        <div className="grid md:grid-cols-3 gap-4 mb-8">
+                        <div className="grid md:grid-cols-4 gap-4 mb-8">
                             {[
-                                { href: '#/admin/users',      label: 'จัดการผู้ใช้',   icon: '👥', desc: 'อนุมัติครู เปลี่ยนสิทธิ์',    bg: '#FFF0F5', border: '#FFD1DC', color: '#AD1457' },
-                                { href: '#/admin/settings',   label: 'ตั้งค่าระบบ',    icon: '⚙️', desc: 'API Keys & Grader settings', bg: '#F5F0FF', border: '#DDD6FE', color: '#6D28D9' },
-                                { href: '#/teacher/analytics',label: 'วิเคราะห์ข้อมูล',icon: '📊', desc: 'สถิติการส่งงาน',            bg: '#FFF7ED', border: '#FED7AA', color: '#C2410C' },
+                                { href: '#/admin/users',      label: 'จัดการผู้ใช้',    icon: '👥', desc: 'อนุมัติครู เปลี่ยนสิทธิ์',    bg: '#FFF0F5', border: '#FFD1DC', color: '#AD1457' },
+                                { href: '#/admin/settings',   label: 'ตั้งค่าระบบ',     icon: '⚙️', desc: 'API Keys & Grader settings', bg: '#F5F0FF', border: '#DDD6FE', color: '#6D28D9' },
+                                { href: '#/teacher/analytics',label: 'วิเคราะห์ข้อมูล', icon: '📊', desc: 'สถิติการส่งงาน',            bg: '#FFF7ED', border: '#FED7AA', color: '#C2410C' },
+                                { href: '#/admin/seed',       label: 'Research Seeder', icon: '🔬', desc: 'สร้างข้อมูลวิจัย 32 คน',   bg: '#F0FDF4', border: '#BBF7D0', color: '#166534' },
                             ].map(link => (
                                 <a key={link.href} href={link.href}
                                     className="rounded-xl p-5 shadow-sm transition-opacity hover:opacity-80"

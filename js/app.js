@@ -85,6 +85,8 @@ const renderRoute = (route, role) => {
 
         if (route === '#/admin/dashboard')
             return guard(React.createElement(AdminDashboard));
+        if (route === '#/admin/seed')
+            return guard(React.createElement(ResearchDataSeeder));
         if (route === '#/admin/users')
             return guard(React.createElement(UserManager));
         if (route === '#/admin/settings')
