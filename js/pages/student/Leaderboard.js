@@ -1,24 +1,53 @@
 // js/pages/student/Leaderboard.js — Phase 4: Full 3-tab Leaderboard + Season banner
+// Reads directly from playerStats (filtered to class 11669-11701) — no snapshot dependency
 
 const Leaderboard = () => {
     const { user } = useAuth();
     const [tab, setTab] = React.useState('alltime');
-    const [entries, setEntries] = React.useState({ alltime: [], weekly: [], daily: [] });
-    const [loading, setLoading] = React.useState({ alltime: true, weekly: true, daily: true });
+    const [allEntries, setAllEntries] = React.useState([]);
+    const [dataLoading, setDataLoading] = React.useState(true);
     const [myStats, setMyStats] = React.useState(null);
     const [season, setSeason] = React.useState(null);
 
-    // Listen to all 3 leaderboard snapshots
-    React.useEffect(() => {
-        const unsubs = ['alltime', 'weekly', 'daily'].map(period =>
-            db.collection('leaderboardSnapshots').doc(period)
-                .onSnapshot(snap => {
-                    setEntries(prev => ({ ...prev, [period]: snap.exists ? (snap.data().entries || []) : [] }));
-                    setLoading(prev => ({ ...prev, [period]: false }));
-                }, () => setLoading(prev => ({ ...prev, [period]: false })))
-        );
-        return () => unsubs.forEach(u => u());
+    // Load directly from playerStats filtered by class studentCode range
+    const loadEntries = React.useCallback(async () => {
+        setDataLoading(true);
+        try {
+            const studentSnap = await db.collection('users').where('role', '==', 'student').get();
+            const studentMap = {};
+            studentSnap.docs
+                .filter(d => { const n = Number(d.data().studentCode); return n >= 11669 && n <= 11701; })
+                .forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
+            const studentUIDs = new Set(Object.keys(studentMap));
+
+            const statsSnap = await db.collection('playerStats').get();
+            const list = statsSnap.docs
+                .filter(d => studentUIDs.has(d.id))
+                .map(d => {
+                    const s = d.data();
+                    const tier = getRankFromXP(s.xp || 0);
+                    return {
+                        uid: d.id,
+                        displayName: studentMap[d.id] || 'นักเรียน',
+                        xp: s.xp || 0,
+                        dailyXP: s.dailyXP || 0,
+                        weeklyXP: s.weeklyXP || 0,
+                        codeCoin: s.codeCoin || 0,
+                        streakDays: s.streakDays || 0,
+                        rank: tier.level,
+                        rankName: tier.name,
+                        rankIcon: tier.icon,
+                    };
+                });
+            setAllEntries(list);
+        } catch (err) {
+            console.warn('[Leaderboard] load error:', err);
+        } finally {
+            setDataLoading(false);
+        }
     }, []);
+
+    React.useEffect(() => { loadEntries(); }, []);
 
     React.useEffect(() => {
         if (user?.uid) getPlayerStats(user.uid).then(setMyStats).catch(() => {});
@@ -32,8 +61,9 @@ const Leaderboard = () => {
     ];
 
     const currentTab = tabs.find(t => t.key === tab);
-    const currentEntries = entries[tab] || [];
-    const isLoading = loading[tab];
+    const field = currentTab?.field || 'xp';
+    const currentEntries = [...allEntries].sort((a, b) => (b[field] || 0) - (a[field] || 0));
+    const isLoading = dataLoading;
     const myTier = myStats ? getRankFromXP(myStats.xp || 0) : null;
     const myEntry = currentEntries.find(e => e.uid === user?.uid);
     const myRank = myEntry ? currentEntries.indexOf(myEntry) + 1 : null;
