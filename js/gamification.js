@@ -231,11 +231,10 @@ async function updateLeaderboard(period = 'alltime') {
         // Filter to class students only: role='student' AND studentCode in 11669–11701
         // (number = เลขที่ 1-32, studentCode = รหัสนักเรียน 11669-11701)
         const studentSnap = await db.collection('users').where('role', '==', 'student').get();
-        const studentUIDs = new Set(
-            studentSnap.docs
-                .filter(d => { const n = Number(d.data().studentCode); return n >= 11669 && n <= 11701; })
-                .map(d => d.id)
-        );
+        let classDocs = studentSnap.docs.filter(d => { const n = Number(d.data().studentCode); return n >= 11669 && n <= 11701; });
+        if (classDocs.length === 0) classDocs = studentSnap.docs.filter(d => { const n = Number(d.data().number); return n >= 1 && n <= 32; });
+        if (classDocs.length === 0) classDocs = studentSnap.docs;
+        const studentUIDs = new Set(classDocs.map(d => d.id));
 
         const snap = await db.collection('playerStats').get();
         const raw = snap.docs

@@ -246,13 +246,13 @@ const ResearchDataSeeder = () => {
         try {
             addLog('📥 โหลดรายชื่อนักเรียน...');
             const snap = await db.collection('users').where('role', '==', 'student').get();
-            let students = snap.docs
-                .map(d => ({ uid: d.id, ...d.data() }))
-                .filter(s => {
-                    const n = Number(s.number);
-                    return n >= NUMBER_MIN && n <= NUMBER_MAX;
-                })
-                .sort((a, b) => (Number(a.number) || 999) - (Number(b.number) || 999))
+            const allStudents = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+            // Filter by studentCode (รหัสนักเรียน) first; fallback to number (เลขที่ 1-32); last resort: all students
+            let students = allStudents.filter(s => { const n = Number(s.studentCode); return n >= NUMBER_MIN && n <= NUMBER_MAX; });
+            if (students.length === 0) students = allStudents.filter(s => { const n = Number(s.number); return n >= 1 && n <= 32; });
+            if (students.length === 0) students = allStudents;
+            students = students
+                .sort((a, b) => (Number(a.number) || Number(a.studentCode) || 999) - (Number(b.number) || Number(b.studentCode) || 999))
                 .slice(0, 32);
 
             addLog(`กรองรหัส ${NUMBER_MIN}–${NUMBER_MAX}: พบนักเรียน ${students.length} คน`);

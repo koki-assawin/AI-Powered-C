@@ -1421,9 +1421,10 @@ const _GamificationTab = () => {
             // (number = เลขที่ 1-32, studentCode = รหัสนักเรียน 11669-11701)
             const studentSnap = await db.collection('users').where('role', '==', 'student').get();
             const studentMap = {};
-            studentSnap.docs
-                .filter(d => { const n = Number(d.data().studentCode); return n >= 11669 && n <= 11701; })
-                .forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
+            let classDocs = studentSnap.docs.filter(d => { const n = Number(d.data().studentCode); return n >= 11669 && n <= 11701; });
+            if (classDocs.length === 0) classDocs = studentSnap.docs.filter(d => { const n = Number(d.data().number); return n >= 1 && n <= 32; });
+            if (classDocs.length === 0) classDocs = studentSnap.docs;
+            classDocs.forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
             const studentUIDs = new Set(Object.keys(studentMap));
 
             const snap = await db.collection('playerStats').orderBy('xp', 'desc').get();
