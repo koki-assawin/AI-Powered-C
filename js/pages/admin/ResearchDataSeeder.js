@@ -257,6 +257,19 @@ const ResearchDataSeeder = () => {
             }
 
             setSummary(results);
+
+            // Refresh all leaderboard snapshots so rankings show seeded XP immediately
+            addLog('');
+            addLog('📊 กำลัง refresh Leaderboard snapshots...');
+            try {
+                if (typeof updateAllLeaderboards === 'function') {
+                    await updateAllLeaderboards();
+                    addLog('✅ Leaderboard อัพเดทแล้ว — อันดับสะท้อน XP ที่ Seed');
+                }
+            } catch (lErr) {
+                addLog(`⚠️ Leaderboard refresh failed (ไม่กระทบ data): ${lErr.message}`);
+            }
+
             setPhase('done');
             addLog('');
             addLog('🎉 Seed ข้อมูลวิจัยเสร็จสิ้น! ดูผลได้ด้านล่าง');

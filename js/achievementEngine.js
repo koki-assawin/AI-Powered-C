@@ -201,11 +201,17 @@ async function checkAndAwardAchievements(uid, context) {
 
 async function getStudentAchievements(uid) {
     try {
+        // No orderBy: sort client-side to avoid needing composite index while it builds
         const snap = await db.collection('studentAchievements')
             .where('uid', '==', uid)
-            .orderBy('earnedAt', 'desc')
             .get();
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        return snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => {
+                const ta = a.earnedAt?.toMillis?.() ?? 0;
+                const tb = b.earnedAt?.toMillis?.() ?? 0;
+                return tb - ta;
+            });
     } catch (_) { return []; }
 }
 
