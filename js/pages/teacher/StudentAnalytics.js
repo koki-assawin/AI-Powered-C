@@ -1409,30 +1409,32 @@ const _GamificationTab = () => {
     const [loading, setLoading] = React.useState(true);
     const [coachLoading, setCoachLoading] = React.useState(false);
     const [coachFilter, setCoachFilter] = React.useState('all');
-    const [classes, setClasses] = React.useState([]);
-    const [selectedClassId, setSelectedClassId] = React.useState('');
+    const [courses, setCourses] = React.useState([]);
+    const [selectedCourseId, setSelectedCourseId] = React.useState('');
 
     React.useEffect(() => {
-        db.collection('classes').get()
-            .then(snap => setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+        db.collection('courses').get()
+            .then(snap => setCourses(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
             .catch(() => {});
         loadGamificationData('');
     }, []);
 
-    const loadGamificationData = async (classId) => {
+    const loadGamificationData = async (courseId) => {
         setLoading(true);
         try {
-            let classDocs;
-            if (classId) {
-                const snap = await db.collection('users').where('classId', '==', classId).get();
-                classDocs = snap.docs;
+            let studentUIDs;
+            if (courseId) {
+                const snap = await db.collection('enrollments').where('courseId', '==', courseId).get();
+                studentUIDs = new Set(snap.docs.map(d => d.data().studentId));
             } else {
                 const snap = await db.collection('users').where('role', '==', 'student').get();
-                classDocs = snap.docs;
+                studentUIDs = new Set(snap.docs.map(d => d.id));
             }
+            // Resolve names
+            const userSnap = await db.collection('users').where('role', '==', 'student').get();
             const studentMap = {};
-            classDocs.forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
-            const studentUIDs = new Set(Object.keys(studentMap));
+            userSnap.docs.filter(d => studentUIDs.has(d.id))
+                .forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
 
             const snap = await db.collection('playerStats').orderBy('xp', 'desc').get();
             const list = snap.docs
@@ -1480,11 +1482,11 @@ const _GamificationTab = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
                 <h3 className="text-lg font-bold text-gray-700">🎮 ข้อมูล Gamification</h3>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <select value={selectedClassId}
-                        onChange={e => { setSelectedClassId(e.target.value); loadGamificationData(e.target.value); }}
+                    <select value={selectedCourseId}
+                        onChange={e => { setSelectedCourseId(e.target.value); loadGamificationData(e.target.value); }}
                         style={{ border: '1.5px solid #fce7f3', borderRadius: 8, padding: '6px 10px', fontFamily: "'Prompt',sans-serif", fontSize: 13, cursor: 'pointer', outline: 'none' }}>
-                        <option value="">— ทุก Class —</option>
-                        {classes.map(c => <option key={c.id} value={c.id}>{c.name} ({c.year || '-'})</option>)}
+                        <option value="">— ทุกรายวิชา —</option>
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                     </select>
                     <button onClick={exportJSON} className="k-btn-pink px-4 py-2 text-sm">
                         📥 Export JSON

@@ -224,15 +224,15 @@ async function handleDailyStreak(uid) {
 }
 
 // ── Leaderboard update (all-time / weekly / daily) ────────────────────────────
-// classId: if provided, filter to that class; writes to '{classId}_{period}' doc
-async function updateLeaderboard(period = 'alltime', classId = null) {
+// courseId: filter to enrolled students in that course; writes to '{courseId}_{period}' doc
+async function updateLeaderboard(period = 'alltime', courseId = null) {
     try {
         const field = period === 'daily' ? 'dailyXP' : period === 'weekly' ? 'weeklyXP' : 'xp';
 
         let studentUIDs;
-        if (classId) {
-            const snap = await db.collection('users').where('classId', '==', classId).get();
-            studentUIDs = new Set(snap.docs.map(d => d.id));
+        if (courseId) {
+            const snap = await db.collection('enrollments').where('courseId', '==', courseId).get();
+            studentUIDs = new Set(snap.docs.map(d => d.data().studentId));
         } else {
             const snap = await db.collection('users').where('role', '==', 'student').get();
             studentUIDs = new Set(snap.docs.map(d => d.id));
@@ -262,9 +262,9 @@ async function updateLeaderboard(period = 'alltime', classId = null) {
             };
         }));
 
-        const docId = classId ? `${classId}_${period}` : period;
+        const docId = courseId ? `${courseId}_${period}` : period;
         await db.collection('leaderboardSnapshots').doc(docId).set({
-            period, classId: classId || null, entries,
+            period, courseId: courseId || null, entries,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
     } catch (err) {
@@ -272,12 +272,12 @@ async function updateLeaderboard(period = 'alltime', classId = null) {
     }
 }
 
-// Update all 3 periods for a specific class (or global if classId omitted)
-async function updateAllLeaderboards(classId = null) {
+// Update all 3 periods for a course (or global if courseId omitted)
+async function updateAllLeaderboards(courseId = null) {
     await Promise.all([
-        updateLeaderboard('alltime', classId),
-        updateLeaderboard('weekly', classId),
-        updateLeaderboard('daily', classId),
+        updateLeaderboard('alltime', courseId),
+        updateLeaderboard('weekly', courseId),
+        updateLeaderboard('daily', courseId),
     ]);
 }
 

@@ -68,14 +68,14 @@ const ResearchDataSeeder = () => {
     const [logs, setLogs]             = React.useState([]);
     const [progress, setProgress]     = React.useState(0);
     const [summary, setSummary]       = React.useState(null);
-    const [classes, setClasses]       = React.useState([]);
-    const [selectedClassId, setSelectedClassId] = React.useState('');
+    const [courses, setCourses]           = React.useState([]);
+    const [selectedCourseId, setSelectedCourseId] = React.useState('');
 
     const addLog = (msg) => setLogs(p => [...p, msg]);
 
     React.useEffect(() => {
-        db.collection('classes').get()
-            .then(snap => setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+        db.collection('courses').get()
+            .then(snap => setCourses(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
             .catch(() => {});
     }, []);
 
@@ -250,10 +250,13 @@ const ResearchDataSeeder = () => {
         try {
             addLog('📥 โหลดรายชื่อนักเรียน...');
             let students;
-            if (selectedClassId) {
-                const snap = await db.collection('users').where('classId', '==', selectedClassId).get();
-                students = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
-                addLog(`ใช้ Class ID: ${selectedClassId} — พบนักเรียน ${students.length} คน`);
+            if (selectedCourseId) {
+                const enrollSnap = await db.collection('enrollments').where('courseId', '==', selectedCourseId).get();
+                const enrolledUIDs = enrollSnap.docs.map(d => d.data().studentId).filter(Boolean);
+                const userSnaps = await Promise.all(enrolledUIDs.map(uid => db.collection('users').doc(uid).get()));
+                students = userSnaps.filter(s => s.exists).map(s => ({ uid: s.id, ...s.data() }));
+                const courseName = courses.find(c => c.id === selectedCourseId)?.title || selectedCourseId;
+                addLog(`ใช้รายวิชา: ${courseName} — พบนักเรียน ${students.length} คน`);
             } else {
                 const snap = await db.collection('users').where('role', '==', 'student').get();
                 const allStudents = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
@@ -395,10 +398,10 @@ const ResearchDataSeeder = () => {
             {/* Control */}
             {card(<>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'center' }}>
-                    <select value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}
+                    <select value={selectedCourseId} onChange={e => setSelectedCourseId(e.target.value)}
                         style={{ border:'1.5px solid #e2e8f0', borderRadius:8, padding:'9px 12px', fontFamily:"'Prompt',sans-serif", fontSize:13, outline:'none', cursor:'pointer' }}>
-                        <option value="">— Seed ตาม studentCode (ไม่แยก Class) —</option>
-                        {classes.map(c => <option key={c.id} value={c.id}>{c.name} ({c.year || '-'}) · {c.studentCount || 0} คน</option>)}
+                        <option value="">— Seed ตาม studentCode (ไม่แยก รายวิชา) —</option>
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                     </select>
                     <button
                         onClick={runSeed}
