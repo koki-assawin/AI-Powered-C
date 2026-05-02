@@ -30,6 +30,18 @@ const TeacherDashboard = () => {
                     db.collection('enrollments').where('courseId', 'in', courseIds.slice(0, 10)).get(),
                     db.collection('submissions').where('courseId', 'in', courseIds.slice(0, 10)).get(),
                 ]);
+
+                // Build per-course unique student count (deduplicated)
+                const perCourse = {};
+                enrollSnaps.docs.forEach(d => {
+                    const { courseId, studentId } = d.data();
+                    if (!perCourse[courseId]) perCourse[courseId] = new Set();
+                    perCourse[courseId].add(studentId);
+                });
+                // Patch courseList with correct counts
+                courseList.forEach(c => { c.enrollmentCount = (perCourse[c.id]?.size) || 0; });
+                setCourses([...courseList]);
+
                 totalStudents = new Set(enrollSnaps.docs.map(d => d.data().studentId)).size;
                 totalSubs = subSnaps.size;
                 subSnaps.docs.forEach(d => {
