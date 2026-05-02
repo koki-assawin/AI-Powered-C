@@ -1403,21 +1403,16 @@ const StudentAnalytics = () => {
 };
 
 // ── Gamification Tab Component ────────────────────────────────────────────────
-const _GamificationTab = () => {
+const _GamificationTab = ({ selectedCourse }) => {
     const [stats, setStats] = React.useState([]);
     const [coachLogs, setCoachLogs] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [coachLoading, setCoachLoading] = React.useState(false);
     const [coachFilter, setCoachFilter] = React.useState('all');
-    const [courses, setCourses] = React.useState([]);
-    const [selectedCourseId, setSelectedCourseId] = React.useState('');
 
     React.useEffect(() => {
-        db.collection('courses').get()
-            .then(snap => setCourses(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-            .catch(() => {});
-        loadGamificationData('');
-    }, []);
+        loadGamificationData(selectedCourse || '');
+    }, [selectedCourse]);
 
     const loadGamificationData = async (courseId) => {
         setLoading(true);
@@ -1481,17 +1476,9 @@ const _GamificationTab = () => {
         <div style={{ color: '#1f2937' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
                 <h3 className="text-lg font-bold text-gray-700">🎮 ข้อมูล Gamification</h3>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <select value={selectedCourseId}
-                        onChange={e => { setSelectedCourseId(e.target.value); loadGamificationData(e.target.value); }}
-                        style={{ border: '1.5px solid #fce7f3', borderRadius: 8, padding: '6px 10px', fontFamily: "'Prompt',sans-serif", fontSize: 13, cursor: 'pointer', outline: 'none' }}>
-                        <option value="">— ทุกรายวิชา —</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                    </select>
-                    <button onClick={exportJSON} className="k-btn-pink px-4 py-2 text-sm">
-                        📥 Export JSON
-                    </button>
-                </div>
+                <button onClick={exportJSON} className="k-btn-pink px-4 py-2 text-sm">
+                    📥 Export JSON
+                </button>
             </div>
 
             {/* XP ranking table */}
