@@ -72,9 +72,7 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(StudentAnalytics));
         if (route.startsWith('#/teacher/students'))
             return guard(React.createElement(StudentManagement));
-        if (route.startsWith('#/teacher/classes'))
-            return guard(React.createElement(ClassManager));
-        if (route.startsWith('#/teacher/gamification'))
+if (route.startsWith('#/teacher/gamification'))
             return guard(React.createElement(GamificationAdmin));
 
         return guard(React.createElement(TeacherDashboard));
