@@ -113,7 +113,7 @@ const SetPasswordModal = ({ user, onClose, onSuccess }) => {
                         <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>กำลังขอยืนยันตัวตน...</div>
                         <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
                             หน้าต่าง Google Sign-In จะปรากฏขึ้น<br />
-                            กรุณาเลือกบัญชี <strong>Google ที่เป็น Admin</strong> ของโปรเจกต์
+                            กรุณาเลือกบัญชี <strong style={{color:'#1a73e8'}}>koki.assawin@gmail.com</strong>
                         </div>
                     </div>
                 ) : (
@@ -164,7 +164,7 @@ const SetPasswordModal = ({ user, onClose, onSuccess }) => {
 
                         {/* How it works note */}
                         <div style={{ marginBottom: 14, padding: '8px 12px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, fontSize: 11, color: '#166534' }}>
-                            ℹ️ ระบบจะเปิด Google Sign-In popup เพื่อยืนยันสิทธิ์ผู้ดูแล — เลือกบัญชี Google ที่เป็นเจ้าของโปรเจกต์นี้
+                            ℹ️ ระบบจะเปิด Google Sign-In popup — ให้เลือกบัญชี <strong>koki.assawin@gmail.com</strong> (เจ้าของโปรเจกต์ Firebase)
                         </div>
 
                         {/* Error */}
