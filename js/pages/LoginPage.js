@@ -3,10 +3,16 @@
 const SCHOOL_LOGO = 'https://www.triamudomsouth.ac.th/images/theme/150x150.png';
 
 const LoginPage = () => {
-    const [email, setEmail] = React.useState('');
+    const [email, setEmail]       = React.useState('');
     const [password, setPassword] = React.useState('');
-    const [loading, setLoading] = React.useState(false);
-    const [error, setError] = React.useState('');
+    const [loading, setLoading]   = React.useState(false);
+    const [error, setError]       = React.useState('');
+
+    // Forgot password states
+    const [showForgot, setShowForgot]   = React.useState(false);
+    const [forgotEmail, setForgotEmail] = React.useState('');
+    const [forgotLoading, setForgotLoading] = React.useState(false);
+    const [forgotMsg, setForgotMsg]     = React.useState(''); // '' | 'sent' | 'error:...'
 
     const redirectAfterLogin = async (uid) => {
         const snap = await db.collection('users').doc(uid).get();
@@ -31,6 +37,27 @@ const LoginPage = () => {
             };
             setError(msgs[err.code] || err.message);
         } finally { setLoading(false); }
+    };
+
+    const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        setForgotMsg('');
+        const trimmed = forgotEmail.trim();
+        if (!trimmed) return;
+        setForgotLoading(true);
+        try {
+            await auth.sendPasswordResetEmail(trimmed);
+            setForgotMsg('sent');
+        } catch (err) {
+            const msgs = {
+                'auth/user-not-found': 'ไม่พบบัญชีอีเมลนี้ในระบบ',
+                'auth/invalid-email':  'รูปแบบอีเมลไม่ถูกต้อง',
+                'auth/too-many-requests': 'ส่งคำขอบ่อยเกินไป กรุณารอสักครู่',
+            };
+            setForgotMsg('error:' + (msgs[err.code] || err.message));
+        } finally {
+            setForgotLoading(false);
+        }
     };
 
     const s = {
@@ -84,11 +111,72 @@ const LoginPage = () => {
                             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                                 required placeholder="your@email.com" className="k-input" />
                         </div>
-                        <div style={{ marginBottom:'20px' }}>
-                            <label style={s.label}>🔑 รหัสผ่าน</label>
+                        <div style={{ marginBottom:'8px' }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
+                                <label style={s.label}>🔑 รหัสผ่าน</label>
+                                <button type="button" onClick={() => { setShowForgot(f => !f); setForgotMsg(''); }}
+                                    style={{ background:'none', border:'none', cursor:'pointer', fontSize:'12px', color:'#ec4899', fontWeight:600, padding:0 }}>
+                                    {showForgot ? '✕ ปิด' : 'ลืมรหัสผ่าน?'}
+                                </button>
+                            </div>
                             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                                 required placeholder="••••••••" className="k-input" />
                         </div>
+
+                        {/* ── Forgot Password Panel ── */}
+                        {showForgot && (
+                            <div style={{
+                                marginBottom:'16px', padding:'16px', borderRadius:'12px',
+                                background:'#fdf2f8', border:'1px solid #fbcfe8',
+                            }}>
+                                {forgotMsg === 'sent' ? (
+                                    <div style={{ textAlign:'center' }}>
+                                        <div style={{ fontSize:'32px', marginBottom:'8px' }}>📬</div>
+                                        <p style={{ fontSize:'14px', fontWeight:700, color:'#be185d', margin:'0 0 4px' }}>
+                                            ส่งลิงก์รีเซทแล้ว!
+                                        </p>
+                                        <p style={{ fontSize:'12px', color:'#9ca3af', margin:'0 0 12px' }}>
+                                            ตรวจสอบอีเมล <strong>{forgotEmail}</strong><br/>
+                                            กดลิงก์ในอีเมลเพื่อตั้งรหัสผ่านใหม่
+                                        </p>
+                                        <button type="button" onClick={() => { setForgotMsg(''); setForgotEmail(''); }}
+                                            style={{ fontSize:'12px', color:'#ec4899', background:'none', border:'none', cursor:'pointer', fontWeight:600 }}>
+                                            ส่งอีกครั้ง
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <form onSubmit={handleForgotPassword}>
+                                        <p style={{ fontSize:'13px', color:'#6b7280', margin:'0 0 10px' }}>
+                                            กรอกอีเมลที่ใช้สมัครสมาชิก — ระบบจะส่งลิงก์เปลี่ยนรหัสผ่านให้
+                                        </p>
+                                        <input
+                                            type="email"
+                                            value={forgotEmail}
+                                            onChange={e => setForgotEmail(e.target.value)}
+                                            placeholder="your@email.com"
+                                            required
+                                            className="k-input"
+                                            style={{ marginBottom:'10px' }}
+                                        />
+                                        {forgotMsg.startsWith('error:') && (
+                                            <div style={{ fontSize:'12px', color:'#dc2626', marginBottom:'8px', padding:'8px 10px', background:'#fef2f2', borderRadius:'8px', border:'1px solid #fecaca' }}>
+                                                ❌ {forgotMsg.replace('error:', '')}
+                                            </div>
+                                        )}
+                                        <button type="submit" disabled={forgotLoading}
+                                            style={{
+                                                width:'100%', padding:'10px', borderRadius:'10px', border:'none',
+                                                background: forgotLoading ? '#f9a8d4' : '#ec4899',
+                                                color:'white', fontSize:'13px', fontWeight:700, cursor: forgotLoading ? 'not-allowed' : 'pointer',
+                                            }}>
+                                            {forgotLoading ? '⏳ กำลังส่ง...' : '📧 ส่งลิงก์รีเซทรหัสผ่าน'}
+                                        </button>
+                                    </form>
+                                )}
+                            </div>
+                        )}
+
+                        <div style={{ marginBottom:'20px' }} />
                         <button type="submit" disabled={loading} className="k-btn-pink"
                             style={{ width:'100%', padding:'13px', fontSize:'15px' }}>
                             {loading ? '⏳ กำลังเข้าสู่ระบบ...' : '✨ เข้าสู่ระบบ'}
