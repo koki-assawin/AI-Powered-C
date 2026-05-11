@@ -50,6 +50,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(BugHunt));
         if (route.startsWith('#/student/games'))
             return guard(React.createElement(MiniGameHub));
+        if (route === '#/student/editor')
+            return guard(React.createElement(FreeEditor));
 
         // Default student route
         return guard(React.createElement(StudentDashboard));
@@ -72,8 +74,10 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(StudentAnalytics));
         if (route.startsWith('#/teacher/students'))
             return guard(React.createElement(StudentManagement));
-if (route.startsWith('#/teacher/gamification'))
+        if (route.startsWith('#/teacher/gamification'))
             return guard(React.createElement(GamificationAdmin));
+        if (route === '#/teacher/editor')
+            return guard(React.createElement(FreeEditor));
 
         return guard(React.createElement(TeacherDashboard));
     }

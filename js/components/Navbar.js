@@ -114,8 +114,9 @@ const Navbar = ({ title, subtitle }) => {
         {
             label: 'เรียน', icon: '📖',
             children: [
-                { hash: '#/student/courses',  label: 'รายวิชา', icon: '📚' },
-                { hash: '#/student/practice', label: 'ฝึกเอง',  icon: '🎯' },
+                { hash: '#/student/courses',  label: 'รายวิชา',  icon: '📚' },
+                { hash: '#/student/practice', label: 'ฝึกเอง',   icon: '🎯' },
+                { hash: '#/student/editor',   label: 'Code Editor', icon: '💻' },
             ],
         },
         {
@@ -143,6 +144,7 @@ const Navbar = ({ title, subtitle }) => {
             { hash: '#/teacher/students',     label: 'จัดการนักเรียน',    icon: '👥' },
             { hash: '#/teacher/analytics',    label: 'วิเคราะห์นักเรียน', icon: '📊' },
             { hash: '#/teacher/gamification', label: 'Gamification',      icon: '🎮' },
+            { hash: '#/teacher/editor',       label: 'Code Editor',       icon: '💻' },
         ],
         admin: [
             { hash: '#/admin/dashboard', label: 'แดชบอร์ด',      icon: '🏠' },
