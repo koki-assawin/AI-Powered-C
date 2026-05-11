@@ -45,11 +45,9 @@ const CourseViewer = () => {
     const isEnrolled = (courseId) => (userDoc?.enrolledCourses || []).includes(courseId);
 
     const doEnroll = async (courseId) => {
-        // Add course to user's enrolledCourses array
         await db.collection('users').doc(userDoc.id).update({
             enrolledCourses: arrayUnion(courseId),
         });
-        // Create enrollment document
         await db.collection('enrollments').add({
             studentId: userDoc.id,
             courseId,
@@ -57,10 +55,6 @@ const CourseViewer = () => {
             progress: 0,
             completedLessons: [],
             lastAccessedAt: serverTimestamp(),
-        });
-        // Increment course enrollment count
-        await db.collection('courses').doc(courseId).update({
-            enrollmentCount: increment(1),
         });
     };
 
