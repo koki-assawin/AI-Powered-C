@@ -1,30 +1,88 @@
-// js/pages/admin/UserManager.js - Manage users, roles, and password reset (v5.0)
+// js/pages/admin/UserManager.js - Manage users, roles, and password reset (v5.1)
+
+// Session-cached Google OAuth2 access token (with cloud-platform scope)
+// Used to call the Firebase Identity Platform Admin REST API
+let _adminToken = null;
+let _adminTokenExpiry = 0;
+
+const getAdminToken = async () => {
+    if (_adminToken && Date.now() < _adminTokenExpiry) return _adminToken;
+
+    // Open a secondary Firebase app instance so current admin session is undisturbed
+    const cfg = firebase.app().options;
+    const tmpName = 'adminPwTool_' + Date.now();
+    const tmpApp = firebase.initializeApp(cfg, tmpName);
+
+    try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        // Request the cloud-platform scope so we can call Identity Platform Admin API
+        provider.addScope('https://www.googleapis.com/auth/cloud-platform');
+        // Force account-picker so admin can confirm which Google account to use
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        const result = await tmpApp.auth().signInWithPopup(provider);
+        _adminToken = result.credential.accessToken;
+        _adminTokenExpiry = Date.now() + 55 * 60 * 1000; // cache ~55 min (token lives 1 hr)
+        return _adminToken;
+    } finally {
+        await tmpApp.delete();
+    }
+};
 
 // Set-password modal component
 const SetPasswordModal = ({ user, onClose, onSuccess }) => {
-    const [pw, setPw] = React.useState('');
+    const [pw, setPw]   = React.useState('');
     const [pw2, setPw2] = React.useState('');
     const [saving, setSaving] = React.useState(false);
-    const [err, setErr] = React.useState('');
-    const [show, setShow] = React.useState(false);
+    const [step, setStep]     = React.useState('form'); // 'form' | 'confirm_google' | 'done'
+    const [err, setErr]       = React.useState('');
+    const [show, setShow]     = React.useState(false);
+
+    const validate = () => {
+        if (pw.length < 6) { setErr('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'); return false; }
+        if (pw !== pw2)    { setErr('รหัสผ่านทั้งสองช่องไม่ตรงกัน'); return false; }
+        return true;
+    };
 
     const handleSave = async () => {
         setErr('');
-        if (pw.length < 6) { setErr('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'); return; }
-        if (pw !== pw2)    { setErr('รหัสผ่านทั้งสองช่องไม่ตรงกัน'); return; }
+        if (!validate()) return;
         setSaving(true);
+        setStep('confirm_google');
         try {
-            const fn = functions.httpsCallable('adminSetPassword');
-            await fn({ uid: user.id, password: pw });
+            // Step 1: get Google OAuth2 token with cloud-platform scope
+            const token = await getAdminToken();
+
+            // Step 2: call Firebase Identity Platform Admin REST API
+            const projectId = firebase.app().options.projectId;
+            const res = await fetch(
+                `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ localId: user.id, password: pw }),
+                }
+            );
+            const data = await res.json();
+            if (!res.ok) {
+                // Token might be stale — clear cache so next attempt re-authenticates
+                if (res.status === 401 || res.status === 403) _adminToken = null;
+                throw new Error(data.error?.message || `HTTP ${res.status}`);
+            }
+
             onSuccess(`✅ กำหนดรหัสผ่านให้ "${user.displayName}" สำเร็จแล้ว`);
             onClose();
         } catch (e) {
-            // Cloud Functions not available on Spark plan → show terminal command as fallback
-            if (e.code === 'functions/not-found' || e.code === 'functions/unavailable' ||
-                e.message?.includes('NOT_FOUND') || e.message?.includes('unavailable')) {
-                setErr('NEEDS_BLAZE');
+            setStep('form');
+            if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+                setErr('ยกเลิกการยืนยันตัวตน');
+            } else if (e.code === 'auth/popup-blocked') {
+                setErr('Popup ถูกบล็อก — กรุณาอนุญาต popup สำหรับเว็บไซต์นี้แล้วลองใหม่');
             } else {
-                setErr('❌ ' + (e.message || 'เกิดข้อผิดพลาด'));
+                setErr(e.message || 'เกิดข้อผิดพลาด');
             }
         } finally {
             setSaving(false);
@@ -34,88 +92,100 @@ const SetPasswordModal = ({ user, onClose, onSuccess }) => {
     return (
         <div style={{
             position: 'fixed', inset: 0, zIndex: 9999,
-            background: 'rgba(0,0,0,0.5)',
+            background: 'rgba(0,0,0,0.55)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: 360, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-                <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#1e293b' }}>
+            padding: 16,
+        }} onClick={e => { if (!saving && e.target === e.currentTarget) onClose(); }}>
+            <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.25)', maxWidth: '100%' }}>
+
+                {/* Header */}
+                <h3 style={{ margin: '0 0 2px', fontSize: 17, fontWeight: 700, color: '#1e293b' }}>
                     🔐 กำหนดรหัสผ่านใหม่
                 </h3>
                 <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748b' }}>
-                    สำหรับ: <strong>{user.displayName}</strong> ({user.email})
+                    {user.displayName} · <span style={{ fontFamily: 'monospace' }}>{user.email}</span>
                 </p>
 
-                <div style={{ marginBottom: 12 }}>
-                    <label style={{ fontSize: 12, color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                        รหัสผ่านใหม่
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                        <input
-                            type={show ? 'text' : 'password'}
-                            value={pw}
-                            onChange={e => setPw(e.target.value)}
-                            placeholder="อย่างน้อย 6 ตัวอักษร"
-                            style={{ width: '100%', padding: '9px 38px 9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
-                        />
-                        <button onClick={() => setShow(s => !s)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#94a3b8' }}>
-                            {show ? '🙈' : '👁'}
-                        </button>
-                    </div>
-                </div>
-
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontSize: 12, color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                        ยืนยันรหัสผ่าน
-                    </label>
-                    <input
-                        type={show ? 'text' : 'password'}
-                        value={pw2}
-                        onChange={e => setPw2(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
-                        placeholder="กรอกรหัสผ่านอีกครั้ง"
-                        style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
-                    />
-                </div>
-
-                {err === 'NEEDS_BLAZE' ? (
-                    <div style={{ marginBottom: 12, padding: '12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, fontSize: 12, color: '#92400E' }}>
-                        <div style={{ fontWeight: 700, marginBottom: 6 }}>⚠️ ต้อง Upgrade เป็น Blaze Plan ก่อนใช้ฟีเจอร์นี้ผ่านเว็บ</div>
-                        <div style={{ marginBottom: 8 }}>ระหว่างนี้ใช้คำสั่ง Terminal แทนได้ทันที:</div>
-                        <code style={{ display: 'block', background: '#1e293b', color: '#34d399', padding: '8px 10px', borderRadius: 6, fontFamily: 'monospace', fontSize: 11, wordBreak: 'break-all', userSelect: 'all' }}>
-                            node admin-set-password.js {user.email} {pw || 'รหัสผ่านใหม่'}
-                        </code>
-                        <div style={{ marginTop: 6, fontSize: 11, color: '#b45309' }}>
-                            * ต้องวาง serviceAccountKey.json ในโฟลเดอร์โปรเจกต์ก่อน
+                {/* Google auth info banner */}
+                {step === 'confirm_google' ? (
+                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                        <div style={{ fontSize: 36, marginBottom: 12 }}>🔑</div>
+                        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>กำลังขอยืนยันตัวตน...</div>
+                        <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+                            หน้าต่าง Google Sign-In จะปรากฏขึ้น<br />
+                            กรุณาเลือกบัญชี <strong>Google ที่เป็น Admin</strong> ของโปรเจกต์
                         </div>
                     </div>
-                ) : err ? (
-                    <div style={{ marginBottom: 12, padding: '8px 12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontSize: 13, color: '#DC2626' }}>
-                        {err}
-                    </div>
-                ) : null}
+                ) : (
+                    <>
+                        {/* Password field */}
+                        <div style={{ marginBottom: 12 }}>
+                            <label style={{ fontSize: 12, color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>รหัสผ่านใหม่</label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type={show ? 'text' : 'password'}
+                                    value={pw}
+                                    onChange={e => { setPw(e.target.value); setErr(''); }}
+                                    placeholder="อย่างน้อย 6 ตัวอักษร"
+                                    autoFocus
+                                    style={{ width: '100%', padding: '9px 38px 9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                                />
+                                <button onClick={() => setShow(s => !s)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#94a3b8' }}>
+                                    {show ? '🙈' : '👁'}
+                                </button>
+                            </div>
+                        </div>
 
-                {/* Quick password suggestions */}
-                <div style={{ marginBottom: 16 }}>
-                    <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6 }}>เลือกรหัสผ่านตัวอย่าง:</p>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {['student1234', 'triamudom2567', 'password123'].map(p => (
-                            <button key={p} onClick={() => { setPw(p); setPw2(p); }}
-                                style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: '#F1F5F9', border: '1px solid #E2E8F0', cursor: 'pointer', color: '#475569', fontFamily: 'monospace' }}>
-                                {p}
+                        {/* Confirm password field */}
+                        <div style={{ marginBottom: 14 }}>
+                            <label style={{ fontSize: 12, color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>ยืนยันรหัสผ่าน</label>
+                            <input
+                                type={show ? 'text' : 'password'}
+                                value={pw2}
+                                onChange={e => { setPw2(e.target.value); setErr(''); }}
+                                onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
+                                placeholder="กรอกรหัสผ่านอีกครั้ง"
+                                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                            />
+                        </div>
+
+                        {/* Quick suggestions */}
+                        <div style={{ marginBottom: 14 }}>
+                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 6px' }}>รหัสผ่านตัวอย่าง:</p>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                {['student1234', 'triamudom01', 'coding2567'].map(p => (
+                                    <button key={p} onClick={() => { setPw(p); setPw2(p); setErr(''); }}
+                                        style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: '#F1F5F9', border: '1px solid #E2E8F0', cursor: 'pointer', color: '#475569', fontFamily: 'monospace' }}>
+                                        {p}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* How it works note */}
+                        <div style={{ marginBottom: 14, padding: '8px 12px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, fontSize: 11, color: '#166534' }}>
+                            ℹ️ ระบบจะเปิด Google Sign-In popup เพื่อยืนยันสิทธิ์ผู้ดูแล — เลือกบัญชี Google ที่เป็นเจ้าของโปรเจกต์นี้
+                        </div>
+
+                        {/* Error */}
+                        {err && (
+                            <div style={{ marginBottom: 14, padding: '8px 12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontSize: 13, color: '#DC2626' }}>
+                                ❌ {err}
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={onClose} style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748b', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>
+                                ยกเลิก
                             </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={onClose} style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748b', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>
-                        ยกเลิก
-                    </button>
-                    <button onClick={handleSave} disabled={saving}
-                        style={{ flex: 2, padding: '9px 0', borderRadius: 8, border: 'none', background: saving ? '#94a3b8' : '#EC407A', color: '#fff', fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 700 }}>
-                        {saving ? '⏳ กำลังบันทึก...' : '🔐 บันทึกรหัสผ่าน'}
-                    </button>
-                </div>
+                            <button onClick={handleSave} disabled={saving}
+                                style={{ flex: 2, padding: '9px 0', borderRadius: 8, border: 'none', background: '#EC407A', color: '#fff', fontSize: 14, cursor: 'pointer', fontWeight: 700 }}>
+                                🔐 บันทึกรหัสผ่าน
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
