@@ -30,3 +30,7 @@ npm-debug.log*
 firebase-debug.log
 .firebase/
 firebaseConfig.js
+
+# Cloud Functions dependencies
+functions/node_modules/
+functions/package-lock.json
