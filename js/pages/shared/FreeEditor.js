@@ -1,5 +1,15 @@
-// js/pages/shared/FreeEditor.js — Standalone Code Editor v6.0
-// Wandbox API · CodeMirror · AI Analysis · Interactive Terminal · File Import
+// js/pages/shared/FreeEditor.js — Standalone Code Editor v6.1
+// Wandbox API · CodeMirror · AI Analysis · Interactive Terminal · File Import · Font Picker
+
+const CODING_FONTS = [
+    { value: 'Consolas',        label: 'Consolas',         google: false, desc: 'Windows built-in · ไม่มี ligature' },
+    { value: 'Source Code Pro', label: 'Source Code Pro',  google: true,  desc: 'Adobe · อ่านง่าย · ไม่มี ligature' },
+    { value: 'IBM Plex Mono',   label: 'IBM Plex Mono',    google: true,  desc: 'IBM · ทันสมัย · ไม่มี ligature' },
+    { value: 'Inconsolata',     label: 'Inconsolata',      google: true,  desc: 'Classic · เบาบาง · ไม่มี ligature' },
+    { value: 'JetBrains Mono',  label: 'JetBrains Mono',   google: true,  desc: 'JetBrains · มี ligature (!=→≠)' },
+    { value: 'Fira Code',       label: 'Fira Code',        google: true,  desc: 'Mozilla · มี ligature (!=→≠)' },
+    { value: 'Courier New',     label: 'Courier New',      google: false, desc: 'Classic · ทุกระบบ' },
+];
 
 const FreeEditor = () => {
     const { role } = useAuth();
@@ -40,6 +50,8 @@ const FreeEditor = () => {
     const [execTime,         setExecTime]         = React.useState(null);
     const [filename,         setFilename]         = React.useState('main');
     const [fontSize,         setFontSize]         = React.useState(14);
+    const [fontFamily,       setFontFamily]       = React.useState('Consolas');
+    const [ligatures,        setLigatures]        = React.useState(false);
     const [copied,           setCopied]           = React.useState(false);
     const [aiText,           setAiText]           = React.useState('');
     const [analyzing,        setAnalyzing]        = React.useState(false);
@@ -54,6 +66,18 @@ const FreeEditor = () => {
     const fileInputRef  = React.useRef(null);
     const inputLineRef  = React.useRef(null);
     const prevLangRef   = React.useRef('c');
+
+    // ── Load Google Font on demand ──────────────────────────────────────────
+    React.useEffect(() => {
+        const info = CODING_FONTS.find(f => f.value === fontFamily);
+        if (!info || !info.google) return;
+        const id = 'gf-' + fontFamily.replace(/\s+/g, '-').toLowerCase();
+        if (document.getElementById(id)) return;
+        const link = document.createElement('link');
+        link.id = id; link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}:ital,wght@0,400;0,700&display=swap`;
+        document.head.appendChild(link);
+    }, [fontFamily]);
 
     // Strip comments before scanning for input calls
     const stripComments = (src, lang) => src
@@ -372,7 +396,13 @@ const FreeEditor = () => {
             <style>{`
                 @keyframes termBlink { 0%,100%{opacity:1} 50%{opacity:0} }
                 .fe-editor-wrap .CodeMirror,
-                .fe-editor-wrap .CodeMirror-scroll { font-size: ${fontSize}px !important; line-height: 1.6 !important; }
+                .fe-editor-wrap .CodeMirror-scroll {
+                    font-size: ${fontSize}px !important;
+                    font-family: '${fontFamily}', Consolas, 'Courier New', monospace !important;
+                    line-height: 1.6 !important;
+                    font-feature-settings: ${ligatures ? '"liga" 1, "calt" 1' : '"liga" 0, "calt" 0'} !important;
+                    font-variant-ligatures: ${ligatures ? 'normal' : 'none'} !important;
+                }
             `}</style>
             <Navbar title={isTeacher ? 'Code Editor — ครู' : 'Code Editor — นักเรียน'}
                     subtitle={isTeacher ? 'เขียนและสาธิตโค้ดให้นักเรียน' : 'เขียนโค้ดทดลองและดาวน์โหลด'} />
@@ -402,6 +432,20 @@ const FreeEditor = () => {
                     <button onClick={() => setFontSize(f => Math.min(24, f + 1))}
                         style={btn({ background: bg, color: '#94a3b8', border: `1px solid ${border}`, padding: '5px 10px' })}>A+</button>
                 </div>
+
+                {/* Font picker */}
+                <select value={fontFamily} onChange={e => setFontFamily(e.target.value)} title="เลือกฟอนต์"
+                    style={{ background: bg, color: '#94a3b8', border: `1px solid ${border}`, borderRadius: 8, padding: '5px 8px', fontFamily: "'Prompt',sans-serif", fontSize: 12, cursor: 'pointer', outline: 'none', maxWidth: 150 }}>
+                    {CODING_FONTS.map(f => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                </select>
+
+                {/* Ligature toggle */}
+                <button onClick={() => setLigatures(l => !l)} title={ligatures ? 'ปิด Ligature (!=→!=)' : 'เปิด Ligature (!=→≠)'}
+                    style={btn({ background: ligatures ? '#7c3aed33' : bg, color: ligatures ? '#a78bfa' : '#64748b', border: `1px solid ${ligatures ? '#7c3aed88' : border}`, padding: '5px 10px', fontSize: 12 })}>
+                    {ligatures ? 'fi≠' : 'fi!='}
+                </button>
 
                 {language !== 'python' && (
                     <button onClick={formatCode} style={btn({ background: bg, color: '#94a3b8', border: `1px solid ${border}` })}>✨ จัดรูปแบบ</button>
