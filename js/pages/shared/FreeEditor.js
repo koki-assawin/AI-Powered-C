@@ -1,4 +1,4 @@
-// js/pages/shared/FreeEditor.js — Standalone Code Editor v5.7
+// js/pages/shared/FreeEditor.js — Standalone Code Editor v5.8
 // Wandbox API · CodeMirror · AI Analysis · Interactive Terminal · File Import
 
 const FreeEditor = () => {
@@ -150,11 +150,17 @@ const FreeEditor = () => {
 
     // ── Terminal panel ───────────────────────────────────────────────────────
     const renderTerminal = () => {
+        const stdinMissing = codeNeedsInput && !stdin.trim() && output;
+        const termBorder = output
+            ? (runStatus === 'error' ? '#f8717155' : '#34d39955')
+            : (codeNeedsInput && !stdin.trim() ? '#fbbf2466' : border);
+
         const termStyle = {
             flex: 1, background: '#020617', borderRadius: 12, display: 'flex',
             flexDirection: 'column', overflow: 'hidden', minHeight: 0,
-            border: `1px solid ${output ? (runStatus === 'error' ? '#f8717155' : '#34d39955') : border}`,
+            border: `1px solid ${termBorder}`,
         };
+
         const termHeader = (
             <div style={{ padding: '7px 14px', borderBottom: '1px solid #0f172a', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                 <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
@@ -163,82 +169,82 @@ const FreeEditor = () => {
                 <span style={{ marginLeft: 8, fontSize: 11, color: '#475569', fontFamily: 'monospace' }}>
                     {filename || 'main'}.{EXTENSIONS[language]}
                 </span>
-                {output && (
-                    <button onClick={clearAll} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 12 }}>✕ ล้าง</button>
-                )}
                 {output && execTime !== null && (
-                    <span style={{ fontSize: 11, color: '#475569', marginLeft: output ? 0 : 'auto' }}>{execTime} ms</span>
+                    <span style={{ fontSize: 11, color: '#475569', marginLeft: 'auto' }}>{execTime} ms</span>
+                )}
+                {output && (
+                    <button onClick={clearAll} style={{ marginLeft: output && execTime !== null ? 8 : 'auto', background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 12 }}>✕ ล้าง</button>
                 )}
             </div>
         );
 
-        // Running state
-        if (running) return (
-            <div style={termStyle}>
-                {termHeader}
+        // ── Stdin section — ALWAYS pinned at top when code needs input ──────
+        const stdinSection = codeNeedsInput && (
+            <div style={{ flexShrink: 0, borderBottom: '1px solid #1e293b', background: '#070d1a', padding: '8px 14px 10px' }}>
+                <div style={{ fontSize: 11, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ display: 'inline-block', width: 7, height: 12, background: stdinMissing ? '#f87171' : '#fbbf24', animation: 'termBlink 1s step-start infinite', verticalAlign: 'middle' }} />
+                    <span style={{ color: stdinMissing ? '#f87171' : '#fbbf24', fontWeight: 600 }}>
+                        {stdinMissing ? '⚠️ รันโดยไม่ได้กรอก Input — ค่าอาจผิดพลาด' : '📥 stdin — กรอกค่าก่อนรัน (แต่ละบรรทัด = 1 ค่า)'}
+                    </span>
+                </div>
+                <textarea
+                    value={stdin}
+                    onChange={e => setStdin(e.target.value)}
+                    placeholder={'เช่น:\n5\nhello world'}
+                    rows={3}
+                    style={{
+                        width: '100%', background: '#0f172a', color: '#34d399',
+                        border: `1px solid ${stdinMissing ? '#f8717155' : (stdin.trim() ? '#22c55e55' : '#334155')}`,
+                        borderRadius: 8, padding: '7px 12px',
+                        fontFamily: 'JetBrains Mono, monospace', fontSize: 12,
+                        resize: 'none', outline: 'none',
+                        boxSizing: 'border-box', lineHeight: 1.6, caretColor: '#34d399',
+                    }}
+                />
+            </div>
+        );
+
+        // ── Output / idle / running area ─────────────────────────────────────
+        const bodyArea = () => {
+            if (running) return (
                 <div style={{ flex: 1, padding: '12px 16px', fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#94a3b8' }}>
                     <span style={{ color: '#34d399' }}>$ </span>
-                    <span style={{ color: '#e2e8f0' }}>กำลังประมวลผล...</span>
+                    <span>กำลังประมวลผล...</span>
                     <span style={{ display: 'inline-block', width: 8, height: 14, background: '#34d399', marginLeft: 4, verticalAlign: 'middle', animation: 'termBlink 1s step-start infinite' }} />
                 </div>
-            </div>
-        );
+            );
 
-        // Has output
-        if (output) return (
-            <div style={termStyle}>
-                {termHeader}
-                <div style={{ flex: 1, padding: '12px 16px', overflowY: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: runStatus === 'error' ? '#f87171' : '#e2e8f0' }}>
-                    {/* Show stdin lines as typed input */}
-                    {stdin.trim() && stdin.trim().split('\n').map((line, i) => (
+            if (output) return (
+                <div style={{ flex: 1, padding: '12px 16px', overflowY: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                    {/* stdin echo — only when stdin section above is NOT showing it */}
+                    {!codeNeedsInput && stdin.trim() && stdin.trim().split('\n').map((line, i) => (
                         <div key={i} style={{ color: '#64748b' }}>
                             <span style={{ color: '#475569', userSelect: 'none' }}>{'> '}</span>{line}
                         </div>
                     ))}
-                    {stdin.trim() && <div style={{ marginBottom: 6 }} />}
+                    {!codeNeedsInput && stdin.trim() && <div style={{ marginBottom: 6 }} />}
                     <span style={{ color: runStatus === 'error' ? '#f87171' : '#e2e8f0' }}>{output}</span>
                 </div>
-            </div>
-        );
+            );
 
-        // Idle state
+            // Idle
+            return (
+                <div style={{ flex: 1, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'JetBrains Mono, monospace', fontSize: 13 }}>
+                    <span style={{ color: '#34d399' }}>$</span>
+                    <span style={{ color: '#64748b' }}>
+                        {codeNeedsInput && !stdin.trim() ? 'กรอก Input ด้านบน แล้วกด ' : 'กด '}
+                    </span>
+                    <span style={{ color: accent, fontWeight: 700 }}>▶ รันโค้ด</span>
+                    <span style={{ display: 'inline-block', width: 8, height: 14, background: '#475569', animation: 'termBlink 1s step-start infinite', verticalAlign: 'middle', marginLeft: 2 }} />
+                </div>
+            );
+        };
+
         return (
             <div style={termStyle}>
                 {termHeader}
-                <div style={{ flex: 1, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {/* stdin input area — shown automatically when code needs it */}
-                    {codeNeedsInput && (
-                        <div>
-                            <div style={{ fontSize: 11, color: '#fbbf24', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ display: 'inline-block', width: 7, height: 14, background: '#fbbf24', animation: 'termBlink 1s step-start infinite', verticalAlign: 'middle' }} />
-                                โปรแกรมนี้ต้องการ Input — กรอกค่าก่อนรัน (แต่ละบรรทัด = 1 ค่า)
-                            </div>
-                            <textarea
-                                value={stdin}
-                                onChange={e => setStdin(e.target.value)}
-                                placeholder={'เช่น:\n5\nhello world'}
-                                rows={4}
-                                style={{
-                                    width: '100%', background: '#0f172a', color: '#34d399',
-                                    border: '1px solid #334155', borderRadius: 8,
-                                    padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace',
-                                    fontSize: 13, resize: 'vertical', outline: 'none',
-                                    boxSizing: 'border-box', lineHeight: 1.6, caretColor: '#34d399',
-                                }}
-                            />
-                        </div>
-                    )}
-
-                    {/* Prompt line */}
-                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ color: '#34d399' }}>$</span>
-                        <span style={{ color: '#64748b' }}>{codeNeedsInput ? 'พร้อมรัน — กด ' : 'กด '}</span>
-                        <span style={{ color: accent, fontWeight: 700 }}>▶ รันโค้ด</span>
-                        {!codeNeedsInput && (
-                            <span style={{ display: 'inline-block', width: 8, height: 14, background: '#475569', animation: 'termBlink 1s step-start infinite', verticalAlign: 'middle', marginLeft: 4 }} />
-                        )}
-                    </div>
-                </div>
+                {stdinSection}
+                {bodyArea()}
             </div>
         );
     };
