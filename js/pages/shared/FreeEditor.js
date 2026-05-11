@@ -1,5 +1,5 @@
-// js/pages/shared/FreeEditor.js — Standalone Code Editor v5.5
-// Wandbox API · CodeMirror · AI Analysis · Interactive Terminal
+// js/pages/shared/FreeEditor.js — Standalone Code Editor v5.6
+// Wandbox API · CodeMirror · AI Analysis · Interactive Terminal · File Import
 
 const FreeEditor = () => {
     const { role } = useAuth();
@@ -35,23 +35,13 @@ const FreeEditor = () => {
     const [analyzing, setAnalyzing] = React.useState(false);
     const [showAI,    setShowAI]    = React.useState(false);
 
-    const editorWrapRef = React.useRef(null);
+    const fileInputRef  = React.useRef(null);
     const prevLangRef   = React.useRef('c');
 
     // ── Detect if code reads stdin ──────────────────────────────────────────
     const codeNeedsInput = React.useMemo(() => {
         return (INPUT_PATTERNS[language] || []).some(p => p.test(code));
     }, [code, language]);
-
-    // ── Fix: font size → find CM instance via DOM and call refresh() ────────
-    React.useEffect(() => {
-        if (!editorWrapRef.current) return;
-        const cmEl = editorWrapRef.current.querySelector('.CodeMirror');
-        if (!cmEl) return;
-        cmEl.style.fontSize   = fontSize + 'px';
-        cmEl.style.lineHeight = '1.6';
-        if (cmEl.CodeMirror) cmEl.CodeMirror.refresh();
-    }, [fontSize]);
 
     // ── Language change ─────────────────────────────────────────────────────
     const handleLanguageChange = (lang) => {
@@ -123,6 +113,29 @@ const FreeEditor = () => {
     const copyCode   = () => { navigator.clipboard.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); };
     const formatCode = () => { if (typeof formatCCode === 'function') setCode(formatCCode(code, language)); };
     const clearAll   = () => { setOutput(''); setRunStatus(null); setExecTime(null); };
+
+    const EXT_TO_LANG = { c: 'c', cpp: 'cpp', cc: 'cpp', cxx: 'cpp', py: 'python' };
+    const openFile = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const ext = file.name.split('.').pop().toLowerCase();
+        const detectedLang = EXT_TO_LANG[ext];
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const text = ev.target.result;
+            setCode(text);
+            const baseName = file.name.replace(/\.[^.]+$/, '');
+            setFilename(baseName);
+            if (detectedLang && detectedLang !== language) {
+                prevLangRef.current = detectedLang;
+                setLanguage(detectedLang);
+            }
+            setOutput(''); setRunStatus(null); setStdin('');
+            setAiText(''); setShowAI(false);
+        };
+        reader.readAsText(file, 'UTF-8');
+        e.target.value = '';
+    };
 
     const isTeacher = role === 'teacher' || role === 'admin';
     const bg = '#0f172a', panel = '#1e293b', border = '#334155';
@@ -272,6 +285,15 @@ const FreeEditor = () => {
                     {analyzing ? '⏳ วิเคราะห์...' : '🤖 วิเคราะห์โค้ด AI'}
                 </button>
 
+                {/* Hidden file input for import */}
+                <input ref={fileInputRef} type="file" accept=".c,.cpp,.cc,.cxx,.py,.txt"
+                    style={{ display: 'none' }} onChange={openFile} />
+
+                <button onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                    style={btn({ background: bg, color: '#fbbf24', border: '1px solid #fbbf24' })}>
+                    📂 เปิดไฟล์
+                </button>
+
                 <button onClick={copyCode}
                     style={btn({ background: copied ? '#10b981' : bg, color: copied ? '#fff' : '#94a3b8', border: `1px solid ${copied ? '#10b981' : border}` })}>
                     {copied ? '✓ คัดลอกแล้ว' : '📋 คัดลอก'}
@@ -299,10 +321,10 @@ const FreeEditor = () => {
                             <span>📝 Editor — {LANG_LABELS[language]}</span>
                             <span style={{ color: '#334155' }}>Shift+Alt+F: Format · Ctrl+/: Comment</span>
                         </div>
-                        <div ref={editorWrapRef} className="free-editor-wrap"
-                            style={{ flex: 1, borderRadius: 12, overflow: 'hidden', border: `1px solid ${border}` }}>
+                        <div style={{ flex: 1, borderRadius: 12, overflow: 'hidden', border: `1px solid ${border}` }}>
                             <CodeEditor value={code} onChange={setCode} language={language}
-                                minHeight="100%" placeholder={`// เขียนโค้ด ${LANG_LABELS[language]} ที่นี่`} />
+                                fontSize={fontSize} minHeight="100%"
+                                placeholder={`// เขียนโค้ด ${LANG_LABELS[language]} ที่นี่`} />
                         </div>
                     </div>
 

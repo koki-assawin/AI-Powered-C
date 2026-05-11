@@ -198,7 +198,7 @@ const EDITOR_MODES = {
     python: 'python',
 };
 
-const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px' }) => {
+const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px', fontSize = 14 }) => {
     const containerRef = React.useRef(null);
     const cmRef        = React.useRef(null);
     const suppressRef  = React.useRef(false);
@@ -355,6 +355,15 @@ const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px
         if (!cmRef.current) return;
         cmRef.current.setOption('mode', EDITOR_MODES[language] || 'text/x-csrc');
     }, [language]);
+
+    // Sync font size
+    React.useEffect(() => {
+        if (!cmRef.current) return;
+        const wrapper = cmRef.current.getWrapperElement();
+        wrapper.style.fontSize = fontSize + 'px';
+        wrapper.style.lineHeight = '1.6';
+        cmRef.current.refresh();
+    }, [fontSize]);
 
     return (
         <div
