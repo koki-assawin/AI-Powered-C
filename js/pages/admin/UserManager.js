@@ -1,4 +1,125 @@
-// js/pages/admin/UserManager.js - Manage users, roles, and password reset (v4.6)
+// js/pages/admin/UserManager.js - Manage users, roles, and password reset (v5.0)
+
+// Set-password modal component
+const SetPasswordModal = ({ user, onClose, onSuccess }) => {
+    const [pw, setPw] = React.useState('');
+    const [pw2, setPw2] = React.useState('');
+    const [saving, setSaving] = React.useState(false);
+    const [err, setErr] = React.useState('');
+    const [show, setShow] = React.useState(false);
+
+    const handleSave = async () => {
+        setErr('');
+        if (pw.length < 6) { setErr('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'); return; }
+        if (pw !== pw2)    { setErr('รหัสผ่านทั้งสองช่องไม่ตรงกัน'); return; }
+        setSaving(true);
+        try {
+            const fn = functions.httpsCallable('adminSetPassword');
+            await fn({ uid: user.id, password: pw });
+            onSuccess(`✅ กำหนดรหัสผ่านให้ "${user.displayName}" สำเร็จแล้ว`);
+            onClose();
+        } catch (e) {
+            // Cloud Functions not available on Spark plan → show terminal command as fallback
+            if (e.code === 'functions/not-found' || e.code === 'functions/unavailable' ||
+                e.message?.includes('NOT_FOUND') || e.message?.includes('unavailable')) {
+                setErr('NEEDS_BLAZE');
+            } else {
+                setErr('❌ ' + (e.message || 'เกิดข้อผิดพลาด'));
+            }
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+            <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: 360, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#1e293b' }}>
+                    🔐 กำหนดรหัสผ่านใหม่
+                </h3>
+                <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748b' }}>
+                    สำหรับ: <strong>{user.displayName}</strong> ({user.email})
+                </p>
+
+                <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 12, color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        รหัสผ่านใหม่
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            type={show ? 'text' : 'password'}
+                            value={pw}
+                            onChange={e => setPw(e.target.value)}
+                            placeholder="อย่างน้อย 6 ตัวอักษร"
+                            style={{ width: '100%', padding: '9px 38px 9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                        />
+                        <button onClick={() => setShow(s => !s)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#94a3b8' }}>
+                            {show ? '🙈' : '👁'}
+                        </button>
+                    </div>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 12, color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        ยืนยันรหัสผ่าน
+                    </label>
+                    <input
+                        type={show ? 'text' : 'password'}
+                        value={pw2}
+                        onChange={e => setPw2(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
+                        placeholder="กรอกรหัสผ่านอีกครั้ง"
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                    />
+                </div>
+
+                {err === 'NEEDS_BLAZE' ? (
+                    <div style={{ marginBottom: 12, padding: '12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, fontSize: 12, color: '#92400E' }}>
+                        <div style={{ fontWeight: 700, marginBottom: 6 }}>⚠️ ต้อง Upgrade เป็น Blaze Plan ก่อนใช้ฟีเจอร์นี้ผ่านเว็บ</div>
+                        <div style={{ marginBottom: 8 }}>ระหว่างนี้ใช้คำสั่ง Terminal แทนได้ทันที:</div>
+                        <code style={{ display: 'block', background: '#1e293b', color: '#34d399', padding: '8px 10px', borderRadius: 6, fontFamily: 'monospace', fontSize: 11, wordBreak: 'break-all', userSelect: 'all' }}>
+                            node admin-set-password.js {user.email} {pw || 'รหัสผ่านใหม่'}
+                        </code>
+                        <div style={{ marginTop: 6, fontSize: 11, color: '#b45309' }}>
+                            * ต้องวาง serviceAccountKey.json ในโฟลเดอร์โปรเจกต์ก่อน
+                        </div>
+                    </div>
+                ) : err ? (
+                    <div style={{ marginBottom: 12, padding: '8px 12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontSize: 13, color: '#DC2626' }}>
+                        {err}
+                    </div>
+                ) : null}
+
+                {/* Quick password suggestions */}
+                <div style={{ marginBottom: 16 }}>
+                    <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6 }}>เลือกรหัสผ่านตัวอย่าง:</p>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {['student1234', 'triamudom2567', 'password123'].map(p => (
+                            <button key={p} onClick={() => { setPw(p); setPw2(p); }}
+                                style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: '#F1F5F9', border: '1px solid #E2E8F0', cursor: 'pointer', color: '#475569', fontFamily: 'monospace' }}>
+                                {p}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={onClose} style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748b', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>
+                        ยกเลิก
+                    </button>
+                    <button onClick={handleSave} disabled={saving}
+                        style={{ flex: 2, padding: '9px 0', borderRadius: 8, border: 'none', background: saving ? '#94a3b8' : '#EC407A', color: '#fff', fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 700 }}>
+                        {saving ? '⏳ กำลังบันทึก...' : '🔐 บันทึกรหัสผ่าน'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const UserManager = () => {
     const [users, setUsers] = React.useState([]);
@@ -8,6 +129,7 @@ const UserManager = () => {
     const [saving, setSaving] = React.useState(null);
     const [resetting, setResetting] = React.useState(null);
     const [msg, setMsg] = React.useState('');
+    const [setPwUser, setSetPwUser] = React.useState(null);
     const [expandedUser, setExpandedUser] = React.useState(null);
 
     const showMsg = (m) => { setMsg(m); setTimeout(() => setMsg(''), 3000); };
@@ -98,6 +220,13 @@ const UserManager = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            {setPwUser && (
+                <SetPasswordModal
+                    user={setPwUser}
+                    onClose={() => setSetPwUser(null)}
+                    onSuccess={m => { showMsg(m); setSetPwUser(null); }}
+                />
+            )}
             <Navbar title="AI-Powered Coding Platform" subtitle="จัดการผู้ใช้" />
             <main className="max-w-6xl mx-auto px-4 py-8">
                 <div className="flex items-center justify-between mb-6">
@@ -227,12 +356,19 @@ const UserManager = () => {
                                                 </select>
                                             </div>
 
-                                            {/* Reset password */}
+                                            {/* Set password directly */}
+                                            <button onClick={() => setSetPwUser(u)}
+                                                className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1"
+                                                style={{ background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0' }}>
+                                                🔐 กำหนดรหัสผ่าน
+                                            </button>
+
+                                            {/* Reset password via email */}
                                             <button onClick={() => resetPassword(u)}
                                                 disabled={resetting === u.id}
                                                 className="text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-50 flex items-center gap-1"
                                                 style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE' }}>
-                                                {resetting === u.id ? '⏳ กำลังส่ง...' : '🔑 Reset รหัสผ่าน'}
+                                                {resetting === u.id ? '⏳ กำลังส่ง...' : '📧 ส่งเมล Reset'}
                                             </button>
 
                                             {/* Delete */}
@@ -250,7 +386,7 @@ const UserManager = () => {
                 )}
 
                 <div className="mt-5 p-4 rounded-xl text-xs" style={{ background: '#FEF3C7', border: '1px solid #FDE68A', color: '#92400E' }}>
-                    ⚠️ การลบผู้ใช้จะลบเฉพาะข้อมูลใน Firestore · "Reset รหัสผ่าน" จะส่งอีเมลให้ผู้ใช้ตั้งรหัสผ่านใหม่ผ่าน Firebase Auth · หากต้องการลบบัญชีถาวรให้ทำใน Firebase Console
+                    ⚠️ การลบผู้ใช้จะลบเฉพาะข้อมูลใน Firestore · "🔐 กำหนดรหัสผ่าน" ตั้งรหัสผ่านใหม่ให้นักเรียนได้ทันที · "📧 ส่งเมล Reset" ส่งลิงก์รีเซทไปยังอีเมลนักเรียน · หากต้องการลบบัญชีถาวรให้ทำใน Firebase Console
                 </div>
             </main>
         </div>

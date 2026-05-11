@@ -20,9 +20,10 @@ if (!firebase.apps.length) {
 }
 
 // Export service instances as globals (accessible by all subsequent scripts)
-const db   = firebase.firestore();
-const auth = firebase.auth();
-const rtdb = firebase.database();
+const db        = firebase.firestore();
+const auth      = firebase.auth();
+const rtdb      = firebase.database();
+const functions = firebase.functions('asia-southeast1');
 
 // Google Auth Provider
 const googleProvider = new firebase.auth.GoogleAuthProvider();
