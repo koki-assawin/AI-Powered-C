@@ -1,4 +1,4 @@
-// js/pages/shared/FreeEditor.js — Standalone Code Editor v5.6
+// js/pages/shared/FreeEditor.js — Standalone Code Editor v5.7
 // Wandbox API · CodeMirror · AI Analysis · Interactive Terminal · File Import
 
 const FreeEditor = () => {
@@ -245,7 +245,11 @@ const FreeEditor = () => {
 
     return (
         <div style={{ minHeight: '100vh', background: bg, color: '#f1f5f9', fontFamily: "'Prompt', sans-serif", display: 'flex', flexDirection: 'column' }}>
-            <style>{`@keyframes termBlink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
+            <style>{`
+                @keyframes termBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+                .fe-editor-wrap .CodeMirror,
+                .fe-editor-wrap .CodeMirror-scroll { font-size: ${fontSize}px !important; line-height: 1.6 !important; }
+            `}</style>
             <Navbar title={isTeacher ? 'Code Editor — ครู' : 'Code Editor — นักเรียน'}
                     subtitle={isTeacher ? 'เขียนและสาธิตโค้ดให้นักเรียน' : 'เขียนโค้ดทดลองและดาวน์โหลด'} />
 
@@ -321,7 +325,7 @@ const FreeEditor = () => {
                             <span>📝 Editor — {LANG_LABELS[language]}</span>
                             <span style={{ color: '#334155' }}>Shift+Alt+F: Format · Ctrl+/: Comment</span>
                         </div>
-                        <div style={{ flex: 1, borderRadius: 12, overflow: 'hidden', border: `1px solid ${border}` }}>
+                        <div className="fe-editor-wrap" style={{ flex: 1, borderRadius: 12, overflow: 'hidden', border: `1px solid ${border}` }}>
                             <CodeEditor value={code} onChange={setCode} language={language}
                                 fontSize={fontSize} minHeight="100%"
                                 placeholder={`// เขียนโค้ด ${LANG_LABELS[language]} ที่นี่`} />

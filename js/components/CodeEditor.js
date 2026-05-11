@@ -356,13 +356,16 @@ const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px
         cmRef.current.setOption('mode', EDITOR_MODES[language] || 'text/x-csrc');
     }, [language]);
 
-    // Sync font size
+    // Sync font size — force reflow so CM measures the new size before refresh
     React.useEffect(() => {
         if (!cmRef.current) return;
-        const wrapper = cmRef.current.getWrapperElement();
+        const cm = cmRef.current;
+        const wrapper = cm.getWrapperElement();
         wrapper.style.fontSize = fontSize + 'px';
         wrapper.style.lineHeight = '1.6';
-        cmRef.current.refresh();
+        void wrapper.offsetHeight;   // force synchronous browser reflow
+        cm.refresh();
+        cm.setSize(null, null);      // re-measure gutter + char dimensions
     }, [fontSize]);
 
     return (
