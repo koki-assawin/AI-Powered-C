@@ -1,40 +1,39 @@
-// js/pages/student/CourseViewer.js - Browse and enroll in courses
+// js/pages/student/CourseViewer.js - Join by code + show enrolled courses only
 
 const CourseViewer = () => {
     const { userDoc } = useAuth();
-    const [allCourses, setAllCourses] = React.useState([]);
+    const [enrolledCourses, setEnrolledCourses] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
-    const [enrolling, setEnrolling] = React.useState(null);
-    const [msg, setMsg] = React.useState('');
     const [joinCode, setJoinCode] = React.useState('');
     const [joining, setJoining] = React.useState(false);
     const [joinMsg, setJoinMsg] = React.useState('');
+    const [confirmUnenroll, setConfirmUnenroll] = React.useState(null); // courseId to confirm
+    const [unenrolling, setUnenrolling] = React.useState(null);
 
     React.useEffect(() => {
-        loadCourses();
         // Check for ?join=CODE in URL
         const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
         const codeFromUrl = params.get('join');
-        if (codeFromUrl) {
-            setJoinCode(codeFromUrl.toUpperCase().trim());
-        }
+        if (codeFromUrl) setJoinCode(codeFromUrl.toUpperCase().trim());
     }, []);
 
-    // Auto-trigger join when userDoc is ready and code is in URL
+    // Load enrolled courses when userDoc is ready
     React.useEffect(() => {
         if (!userDoc) return;
         const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
         const codeFromUrl = params.get('join');
-        if (codeFromUrl) {
-            handleJoinByCode(codeFromUrl.toUpperCase().trim());
-        }
+        if (codeFromUrl) handleJoinByCode(codeFromUrl.toUpperCase().trim());
+        loadEnrolledCourses();
     }, [userDoc]);
 
-    const loadCourses = async () => {
+    const loadEnrolledCourses = async () => {
         setLoading(true);
         try {
-            const snap = await db.collection('courses').where('isPublished', '==', true).get();
-            setAllCourses(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            const ids = userDoc?.enrolledCourses || [];
+            if (!ids.length) { setEnrolledCourses([]); return; }
+            // Firestore 'in' supports up to 30 items; for small class size this is fine
+            const snap = await db.collection('courses').where(firebase.firestore.FieldPath.documentId(), 'in', ids).get();
+            setEnrolledCourses(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         } catch (err) {
             console.error(err);
         } finally {
@@ -58,22 +57,28 @@ const CourseViewer = () => {
         });
     };
 
-    const handleEnroll = async (courseId) => {
-        if (isEnrolled(courseId)) {
-            window.location.hash = `#/student/workspace?course=${courseId}`;
-            return;
-        }
-        setEnrolling(courseId);
+    const doUnenroll = async (courseId) => {
+        setUnenrolling(courseId);
         try {
-            await doEnroll(courseId);
-            setMsg('ลงทะเบียนสำเร็จ!');
-            setTimeout(() => {
-                window.location.hash = `#/student/workspace?course=${courseId}`;
-            }, 1000);
+            // Remove from user's enrolledCourses
+            await db.collection('users').doc(userDoc.id).update({
+                enrolledCourses: arrayRemove(courseId),
+            });
+            // Delete enrollment doc
+            const snap = await db.collection('enrollments')
+                .where('studentId', '==', userDoc.id)
+                .where('courseId', '==', courseId)
+                .get();
+            const batch = db.batch();
+            snap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            // Update local state
+            setEnrolledCourses(prev => prev.filter(c => c.id !== courseId));
+            setConfirmUnenroll(null);
         } catch (err) {
-            setMsg('เกิดข้อผิดพลาด: ' + err.message);
+            alert('เกิดข้อผิดพลาด: ' + err.message);
         } finally {
-            setEnrolling(null);
+            setUnenrolling(null);
         }
     };
 
@@ -107,6 +112,8 @@ const CourseViewer = () => {
             }
             await doEnroll(courseId);
             setJoinMsg('เข้าร่วมสำเร็จ! กำลังพาไปยังห้องเรียน...');
+            // Refresh enrolled list
+            await loadEnrolledCourses();
             setTimeout(() => {
                 window.location.hash = `#/student/workspace?course=${courseId}`;
             }, 1000);
@@ -119,8 +126,8 @@ const CourseViewer = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI-Powered Coding Platform" subtitle="ค้นหารายวิชา" />
-            <main className="max-w-7xl mx-auto px-4 py-8">
+            <Navbar title="AI-Powered Coding Platform" subtitle="ห้องเรียนของฉัน" />
+            <main className="max-w-5xl mx-auto px-4 py-8">
 
                 {/* Join by Code */}
                 <div className="mb-8 rounded-2xl p-6" style={{
@@ -138,7 +145,7 @@ const CourseViewer = () => {
                             maxLength={6}
                             placeholder="เช่น AB12CD"
                             className="flex-1 px-4 py-3 rounded-xl font-mono text-lg font-bold tracking-widest text-center outline-none bg-white"
-                            style={{ border: '1.5px solid #FFB6C8', color: '#AD1457', boxShadow: '0 0 0 0 transparent', transition: 'box-shadow .2s' }}
+                            style={{ border: '1.5px solid #FFB6C8', color: '#AD1457', transition: 'box-shadow .2s' }}
                             onFocus={e => e.target.style.boxShadow = '0 0 0 3px rgba(236,64,122,.15)'}
                             onBlur={e => e.target.style.boxShadow = '0 0 0 0 transparent'}
                         />
@@ -156,53 +163,68 @@ const CourseViewer = () => {
                     )}
                 </div>
 
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">📚 รายวิชาที่เปิดสอน</h2>
-                    {msg && <span className="text-green-600 text-sm font-medium">{msg}</span>}
-                </div>
+                {/* Enrolled Courses */}
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">📚 วิชาที่ลงทะเบียนไว้</h2>
 
-                {loading ? <Spinner /> : allCourses.length === 0 ? (
+                {loading ? <Spinner /> : enrolledCourses.length === 0 ? (
                     <div className="text-center py-16 text-gray-400">
                         <div className="text-5xl mb-3">📭</div>
-                        <p className="text-lg">ยังไม่มีรายวิชาที่เปิดสอน</p>
+                        <p className="text-lg font-medium">ยังไม่ได้ลงทะเบียนวิชาใด</p>
+                        <p className="text-sm mt-1">กรอกรหัสจากครูด้านบนเพื่อเข้าร่วมห้องเรียน</p>
                     </div>
                 ) : (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {allCourses.map(course => {
+                        {enrolledCourses.map(course => {
                             const lang = LANGUAGES[course.language];
-                            const enrolled = isEnrolled(course.id);
+                            const confirming = confirmUnenroll === course.id;
                             return (
                                 <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                                    {/* Course card top strip */}
                                     <div className="h-2" style={{ background: lang?.color || '#6b7280' }}></div>
                                     <div className="p-5">
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="text-3xl">{lang?.icon || '📚'}</div>
-                                            {enrolled && (
-                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                                                    ลงทะเบียนแล้ว
-                                                </span>
-                                            )}
+                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                                                ลงทะเบียนแล้ว
+                                            </span>
                                         </div>
                                         <h3 className="font-bold text-gray-800 text-lg mb-1 leading-snug">{course.title}</h3>
-                                        {/* Grade / room / semester / year info */}
                                         <div className="flex flex-wrap gap-1 mb-2">
                                             {course.grade && <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded">{course.grade}</span>}
                                             {course.room && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">ห้อง {course.room}</span>}
                                             {course.semester && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">เทอม {course.semester}/{course.academicYear || ''}</span>}
                                         </div>
-                                        <p className="text-sm text-gray-500 mb-3 line-clamp-2">{course.description}</p>
-                                        <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
-                                            <span className="bg-gray-100 px-2 py-1 rounded">{lang?.name}</span>
-                                            <span>👥 {course.enrollmentCount || 0} คน</span>
-                                        </div>
+                                        <p className="text-sm text-gray-500 mb-4 line-clamp-2">{course.description}</p>
+
                                         <button
-                                            onClick={() => handleEnroll(course.id)}
-                                            disabled={enrolling === course.id}
-                                            className={`w-full py-2 rounded-lg font-medium text-sm transition-all disabled:opacity-50 ${enrolled ? 'bg-green-500 text-white hover:bg-green-600' : 'k-btn-pink'}`}
-                                        >
-                                            {enrolling === course.id ? 'กำลังลงทะเบียน...' : enrolled ? 'เข้าเรียน →' : 'ลงทะเบียน'}
+                                            onClick={() => { window.location.hash = `#/student/workspace?course=${course.id}`; }}
+                                            className="w-full py-2 rounded-lg font-medium text-sm bg-green-500 text-white hover:bg-green-600 transition-all mb-2">
+                                            เข้าเรียน →
                                         </button>
+
+                                        {!confirming ? (
+                                            <button
+                                                onClick={() => setConfirmUnenroll(course.id)}
+                                                className="w-full py-1.5 rounded-lg text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-200">
+                                                ยกเลิกการลงทะเบียน
+                                            </button>
+                                        ) : (
+                                            <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                                                <p className="text-xs text-red-700 text-center mb-2 font-medium">ยืนยันยกเลิกลงทะเบียนวิชานี้?</p>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setConfirmUnenroll(null)}
+                                                        className="flex-1 py-1.5 rounded-lg text-xs bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
+                                                        ไม่ใช่
+                                                    </button>
+                                                    <button
+                                                        onClick={() => doUnenroll(course.id)}
+                                                        disabled={unenrolling === course.id}
+                                                        className="flex-1 py-1.5 rounded-lg text-xs bg-red-500 text-white hover:bg-red-600 disabled:opacity-50">
+                                                        {unenrolling === course.id ? 'กำลังยกเลิก...' : 'ยืนยัน'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );
