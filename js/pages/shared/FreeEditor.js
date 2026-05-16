@@ -1,5 +1,5 @@
-// js/pages/shared/FreeEditor.js — Standalone Code Editor v6.1
-// Wandbox API · CodeMirror · AI Analysis · Interactive Terminal · File Import · Font Picker
+// js/pages/shared/FreeEditor.js — v7.0
+// Added: Editor Theme Picker · Drawing/Annotation Canvas Overlay
 
 const CODING_FONTS = [
     { value: 'Consolas',        label: 'Consolas',         google: false, desc: 'Windows built-in · ไม่มี ligature' },
@@ -9,6 +9,26 @@ const CODING_FONTS = [
     { value: 'JetBrains Mono',  label: 'JetBrains Mono',   google: true,  desc: 'JetBrains · มี ligature (!=→≠)' },
     { value: 'Fira Code',       label: 'Fira Code',        google: true,  desc: 'Mozilla · มี ligature (!=→≠)' },
     { value: 'Courier New',     label: 'Courier New',      google: false, desc: 'Classic · ทุกระบบ' },
+];
+
+const CM_THEMES = [
+    { value: 'dracula',                 label: '🟣 Dracula',              dark: true  },
+    { value: 'monokai',                 label: '🟢 Monokai',              dark: true  },
+    { value: 'one-dark',                label: '🔵 One Dark',             dark: true  },
+    { value: 'material-darker',         label: '⚫ Material Darker',      dark: true  },
+    { value: 'tomorrow-night-eighties', label: '🌆 Tomorrow Night 80s',   dark: true  },
+    { value: 'nord',                    label: '🧊 Nord',                 dark: true  },
+    { value: 'ayu-dark',                label: '🌙 Ayu Dark',             dark: true  },
+    { value: 'cobalt',                  label: '💙 Cobalt',               dark: true  },
+    { value: 'lucario',                 label: '⚡ Lucario',              dark: true  },
+    { value: 'blackboard',              label: '🖤 Blackboard',           dark: true  },
+    { value: 'eclipse',                 label: '☀️ Eclipse (สว่าง)',     dark: false },
+    { value: 'default',                 label: '📄 Default (สว่าง)',     dark: false },
+];
+
+const DRAW_COLORS = [
+    '#ef4444','#f97316','#eab308','#22c55e','#3b82f6',
+    '#a855f7','#ec4899','#ffffff','#000000',
 ];
 
 const FreeEditor = () => {
@@ -30,7 +50,6 @@ const FreeEditor = () => {
         python: [/\binput\s*\(/],
     };
 
-    // Count input calls (strips comments to avoid false positives)
     const countInputCalls = (src, lang) => {
         const stripped = stripComments(src, lang);
         const pat = {
@@ -42,32 +61,49 @@ const FreeEditor = () => {
     };
 
     // ── State ───────────────────────────────────────────────────────────────
-    const [language,         setLanguage]         = React.useState('c');
-    const [code,             setCode]             = React.useState(STARTERS.c);
-    const [output,           setOutput]           = React.useState('');
-    const [running,          setRunning]          = React.useState(false);
-    const [runStatus,        setRunStatus]        = React.useState(null);
-    const [execTime,         setExecTime]         = React.useState(null);
-    const [filename,         setFilename]         = React.useState('main');
-    const [fontSize,         setFontSize]         = React.useState(14);
-    const [fontFamily,       setFontFamily]       = React.useState('Consolas');
-    const [ligatures,        setLigatures]        = React.useState(false);
-    const [copied,           setCopied]           = React.useState(false);
-    const [aiText,           setAiText]           = React.useState('');
-    const [analyzing,        setAnalyzing]        = React.useState(false);
-    const [showAI,           setShowAI]           = React.useState(false);
-    // Interactive stdin collection
-    const [collecting,       setCollecting]       = React.useState(false);
-    const [collectedLines,   setCollectedLines]   = React.useState([]);
-    const [currentLine,      setCurrentLine]      = React.useState('');
-    const [inputCount,       setInputCount]       = React.useState(0);
-    const [echoedLines,      setEchoedLines]      = React.useState([]); // shown above output
+    const [language,       setLanguage]       = React.useState('c');
+    const [code,           setCode]           = React.useState(STARTERS.c);
+    const [output,         setOutput]         = React.useState('');
+    const [running,        setRunning]        = React.useState(false);
+    const [runStatus,      setRunStatus]      = React.useState(null);
+    const [execTime,       setExecTime]       = React.useState(null);
+    const [filename,       setFilename]       = React.useState('main');
+    const [fontSize,       setFontSize]       = React.useState(14);
+    const [fontFamily,     setFontFamily]     = React.useState('Consolas');
+    const [ligatures,      setLigatures]      = React.useState(false);
+    const [editorTheme,    setEditorTheme]    = React.useState('dracula');
+    const [copied,         setCopied]         = React.useState(false);
+    const [aiText,         setAiText]         = React.useState('');
+    const [analyzing,      setAnalyzing]      = React.useState(false);
+    const [showAI,         setShowAI]         = React.useState(false);
+    // Interactive stdin
+    const [collecting,     setCollecting]     = React.useState(false);
+    const [collectedLines, setCollectedLines] = React.useState([]);
+    const [currentLine,    setCurrentLine]    = React.useState('');
+    const [inputCount,     setInputCount]     = React.useState(0);
+    const [echoedLines,    setEchoedLines]    = React.useState([]);
+    // Drawing overlay
+    const [drawMode,       setDrawMode]       = React.useState(false);
+    const [drawTool,       setDrawTool]       = React.useState('pen');   // 'pen' | 'eraser'
+    const [drawColor,      setDrawColor]      = React.useState('#ef4444');
+    const [penSize,        setPenSize]        = React.useState(4);
+    const [eraserSize,     setEraserSize]     = React.useState(28);
+    const [penOpacity,     setPenOpacity]     = React.useState(1);
+    const [canUndo,        setCanUndo]        = React.useState(false);
 
-    const fileInputRef  = React.useRef(null);
-    const inputLineRef  = React.useRef(null);
-    const prevLangRef   = React.useRef('c');
+    const fileInputRef   = React.useRef(null);
+    const inputLineRef   = React.useRef(null);
+    const prevLangRef    = React.useRef('c');
+    // Drawing refs
+    const canvasRef      = React.useRef(null);
+    const isDrawingRef   = React.useRef(false);
+    const lastPtRef      = React.useRef({ x: 0, y: 0 });
+    const historyRef     = React.useRef([]);
+    // Keep draw settings fresh in event handlers (avoid stale closure)
+    const drawSettingsRef = React.useRef({});
+    drawSettingsRef.current = { tool: drawTool, color: drawColor, penSize, eraserSize, opacity: penOpacity };
 
-    // ── Load Google Font on demand ──────────────────────────────────────────
+    // ── Load Google Font ────────────────────────────────────────────────────
     React.useEffect(() => {
         const info = CODING_FONTS.find(f => f.value === fontFamily);
         if (!info || !info.google) return;
@@ -79,7 +115,32 @@ const FreeEditor = () => {
         document.head.appendChild(link);
     }, [fontFamily]);
 
-    // Strip comments before scanning for input calls
+    // ── Canvas init & resize ─────────────────────────────────────────────────
+    React.useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        let saved = null;
+        const resize = () => {
+            if (canvas.width > 0 && canvas.height > 0) {
+                try { saved = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height); } catch (e) {}
+            }
+            canvas.width  = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (saved) canvas.getContext('2d').putImageData(saved, 0, 0);
+        };
+        resize();
+        window.addEventListener('resize', resize);
+        return () => window.removeEventListener('resize', resize);
+    }, []);
+
+    // Escape key exits draw mode
+    React.useEffect(() => {
+        const h = (e) => { if (e.key === 'Escape' && drawMode) setDrawMode(false); };
+        window.addEventListener('keydown', h);
+        return () => window.removeEventListener('keydown', h);
+    }, [drawMode]);
+
+    // ── Comment stripper ────────────────────────────────────────────────────
     const stripComments = (src, lang) => src
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(lang === 'python' ? /#[^\n]*/g : /\/\/[^\n]*/g, '');
@@ -89,7 +150,7 @@ const FreeEditor = () => {
         return (INPUT_PATTERNS[language] || []).some(p => p.test(s));
     }, [code, language]);
 
-    // ── Language change ─────────────────────────────────────────────────────
+    // ── Language change ──────────────────────────────────────────────────────
     const handleLanguageChange = (lang) => {
         if (code === STARTERS[prevLangRef.current] || code.trim() === '') setCode(STARTERS[lang]);
         prevLangRef.current = lang;
@@ -103,7 +164,7 @@ const FreeEditor = () => {
         setCollecting(false); setCollectedLines([]); setCurrentLine(''); setEchoedLines([]);
     };
 
-    // ── Core run (sends code + pre-collected stdin to Wandbox) ──────────────
+    // ── Core run ─────────────────────────────────────────────────────────────
     const runCodeCore = async (stdinStr, echo) => {
         setRunning(true);
         setOutput(''); setRunStatus(null); setExecTime(null);
@@ -133,11 +194,9 @@ const FreeEditor = () => {
         } finally { setRunning(false); }
     };
 
-    // ── Run button entry point ──────────────────────────────────────────────
     const handleRunClick = () => {
         if (running || collecting) return;
         if (codeNeedsInput) {
-            // Enter interactive collection mode
             resetTerminal();
             const n = countInputCalls(code, language);
             setInputCount(n);
@@ -149,13 +208,11 @@ const FreeEditor = () => {
         }
     };
 
-    // ── Interactive input: user presses Enter on a line ─────────────────────
     const submitLine = () => {
         const line = currentLine;
         const newLines = [...collectedLines, line];
         setCollectedLines(newLines);
         setCurrentLine('');
-        // Auto-run when expected count reached
         if (inputCount > 0 && newLines.length >= inputCount) {
             finishCollecting(newLines);
         } else {
@@ -168,7 +225,7 @@ const FreeEditor = () => {
         runCodeCore(lines.join('\n'), lines);
     };
 
-    // ── AI Code Analysis ────────────────────────────────────────────────────
+    // ── AI Analysis ──────────────────────────────────────────────────────────
     const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
 
     const analyzeCode = async () => {
@@ -201,7 +258,7 @@ const FreeEditor = () => {
         setAnalyzing(false);
     };
 
-    // ── File / misc helpers ─────────────────────────────────────────────────
+    // ── File helpers ─────────────────────────────────────────────────────────
     const downloadCode = () => {
         const name = (filename.trim() || 'main').replace(/[^a-zA-Z0-9_\-ก-๙]/g, '_');
         const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
@@ -235,7 +292,107 @@ const FreeEditor = () => {
         e.target.value = '';
     };
 
-    // ── Style helpers ────────────────────────────────────────────────────────
+    // ── Drawing canvas helpers ───────────────────────────────────────────────
+    const getPt = (e) => {
+        const rect = canvasRef.current.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
+
+    const applyCtx = (ctx, pressure) => {
+        const { tool, color, penSize: ps, eraserSize: es, opacity } = drawSettingsRef.current;
+        const p = (pressure > 0 && pressure <= 1) ? pressure : 1;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        if (tool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.strokeStyle = 'rgba(0,0,0,1)';
+            ctx.fillStyle   = 'rgba(0,0,0,1)';
+            ctx.lineWidth   = es;
+        } else {
+            ctx.globalCompositeOperation = 'source-over';
+            const hex = color.replace('#', '');
+            const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+            const sz = ps * (0.5 + p * 0.5);
+            ctx.strokeStyle = `rgba(${r},${g},${b},${opacity})`;
+            ctx.fillStyle   = `rgba(${r},${g},${b},${opacity})`;
+            ctx.lineWidth   = sz;
+        }
+    };
+
+    const saveHistory = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        historyRef.current = [...historyRef.current.slice(-49), snapshot];
+        setCanUndo(true);
+    };
+
+    const onPointerDown = (e) => {
+        e.preventDefault();
+        saveHistory();
+        isDrawingRef.current = true;
+        const pt = getPt(e);
+        lastPtRef.current = pt;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        ctx.save();
+        applyCtx(ctx, e.pressure);
+        const r = drawSettingsRef.current.tool === 'eraser'
+            ? drawSettingsRef.current.eraserSize / 2
+            : drawSettingsRef.current.penSize / 2;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, Math.max(r, 1), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    };
+
+    const onPointerMove = (e) => {
+        if (!isDrawingRef.current) return;
+        e.preventDefault();
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        const pt = getPt(e);
+        ctx.save();
+        applyCtx(ctx, e.pressure);
+        ctx.beginPath();
+        ctx.moveTo(lastPtRef.current.x, lastPtRef.current.y);
+        ctx.lineTo(pt.x, pt.y);
+        ctx.stroke();
+        ctx.restore();
+        lastPtRef.current = pt;
+    };
+
+    const onPointerUp = () => { isDrawingRef.current = false; };
+
+    const undoDraw = () => {
+        if (!historyRef.current.length) return;
+        const arr = [...historyRef.current];
+        const prev = arr.pop();
+        historyRef.current = arr;
+        canvasRef.current.getContext('2d').putImageData(prev, 0, 0);
+        setCanUndo(arr.length > 0);
+    };
+
+    const clearCanvas = () => {
+        saveHistory();
+        const canvas = canvasRef.current;
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    };
+
+    // ── Dynamic cursor for draw canvas ──────────────────────────────────────
+    const drawCursor = React.useMemo(() => {
+        if (!drawMode) return 'default';
+        if (drawTool === 'eraser') {
+            const s = Math.max(8, Math.min(eraserSize, 80));
+            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${s}' height='${s}'><circle cx='${s/2}' cy='${s/2}' r='${s/2-1}' fill='rgba(255,255,255,0.2)' stroke='white' stroke-width='1.5'/></svg>`;
+            return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${s/2} ${s/2}, crosshair`;
+        }
+        const s = Math.max(6, Math.min(penSize * 2 + 4, 48));
+        const hex = drawColor.replace('#','');
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${s}' height='${s}'><circle cx='${s/2}' cy='${s/2}' r='${s/2-1}' fill='%23${hex}' stroke='white' stroke-width='1'/></svg>`;
+        return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${s/2} ${s/2}, crosshair`;
+    }, [drawMode, drawTool, penSize, eraserSize, drawColor]);
+
+    // ── Style helpers ─────────────────────────────────────────────────────────
     const isTeacher = role === 'teacher' || role === 'admin';
     const bg = '#0f172a', panel = '#1e293b', border = '#334155';
     const accent = isTeacher ? '#ec4899' : '#6366f1';
@@ -256,18 +413,13 @@ const FreeEditor = () => {
                 ? (runStatus === 'error' ? '#f8717166' : '#34d39966')
                 : (collecting ? '#fbbf2466' : border)}`,
         };
-
         const termHeader = (
             <div style={{ padding: '7px 14px', borderBottom: '1px solid #0f172a', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                 <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
                 <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
                 <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-                <span style={{ marginLeft: 8, ...MONO, fontSize: 11, color: '#475569' }}>
-                    {filename || 'main'}.{EXTENSIONS[language]}
-                </span>
-                {output && execTime !== null && (
-                    <span style={{ fontSize: 11, color: '#475569', marginLeft: 'auto' }}>{execTime} ms</span>
-                )}
+                <span style={{ marginLeft: 8, ...MONO, fontSize: 11, color: '#475569' }}>{filename || 'main'}.{EXTENSIONS[language]}</span>
+                {output && execTime !== null && <span style={{ fontSize: 11, color: '#475569', marginLeft: 'auto' }}>{execTime} ms</span>}
                 {output && (
                     <button onClick={resetTerminal}
                         style={{ marginLeft: output && execTime !== null ? 8 : 'auto', background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 12 }}>
@@ -277,112 +429,66 @@ const FreeEditor = () => {
             </div>
         );
 
-        // ── State 1: Collecting interactive input ───────────────────────────
         if (collecting) return (
             <div style={termStyle}>
                 {termHeader}
                 <div style={{ flex: 1, padding: '12px 16px', display: 'flex', flexDirection: 'column', ...MONO, overflowY: 'auto' }}>
-                    {/* Program start line */}
-                    <div style={{ color: '#475569', marginBottom: 2 }}>
-                        <span style={{ color: '#34d399' }}>$ </span>
-                        ./{filename || 'main'}.{EXTENSIONS[language]}
-                    </div>
-
-                    {/* Previously entered lines (echoed) */}
-                    {collectedLines.map((line, i) => (
-                        <div key={i} style={{ color: '#e2e8f0' }}>{line}</div>
-                    ))}
-
-                    {/* Active input line */}
+                    <div style={{ color: '#475569', marginBottom: 2 }}><span style={{ color: '#34d399' }}>$ </span>./{filename || 'main'}.{EXTENSIONS[language]}</div>
+                    {collectedLines.map((line, i) => <div key={i} style={{ color: '#e2e8f0' }}>{line}</div>)}
                     <div style={{ display: 'flex', alignItems: 'center', marginTop: 2 }}>
-                        <input
-                            ref={inputLineRef}
-                            type="text"
-                            value={currentLine}
+                        <input ref={inputLineRef} type="text" value={currentLine}
                             onChange={e => setCurrentLine(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submitLine(); } }}
                             autoComplete="off" spellCheck="false"
-                            style={{
-                                flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                                color: '#e2e8f0', ...MONO, padding: 0, caretColor: '#34d399',
-                            }}
-                        />
+                            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#e2e8f0', ...MONO, padding: 0, caretColor: '#34d399' }} />
                         <span style={{ display: 'inline-block', width: 8, height: '1.1em', background: '#34d399', animation: 'termBlink 1s step-start infinite', flexShrink: 0 }} />
                     </div>
-
-                    {/* Bottom hint */}
                     <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 11, color: '#475569' }}>
-                            {inputCount > 0
-                                ? `รอรับค่า ${collectedLines.length + 1} / ${inputCount} — กด Enter เพื่อยืนยัน`
-                                : 'พิมพ์ค่าแล้วกด Enter · กด ▶ รัน เมื่อกรอกครบ'}
+                            {inputCount > 0 ? `รอรับค่า ${collectedLines.length + 1} / ${inputCount} — กด Enter` : 'พิมพ์ค่าแล้วกด Enter'}
                         </span>
                         <button onClick={() => finishCollecting([...collectedLines, ...(currentLine ? [currentLine] : [])])}
-                            style={{ ...btn({ background: accent, color: '#fff', padding: '4px 12px', fontSize: 12 }), marginLeft: 'auto' }}>
-                            ▶ รัน
-                        </button>
-                        <button onClick={resetTerminal}
-                            style={btn({ background: 'transparent', color: '#64748b', border: `1px solid ${border}`, padding: '4px 10px', fontSize: 11 })}>
-                            ✕ ยกเลิก
-                        </button>
+                            style={{ ...btn({ background: accent, color: '#fff', padding: '4px 12px', fontSize: 12 }), marginLeft: 'auto' }}>▶ รัน</button>
+                        <button onClick={resetTerminal} style={btn({ background: 'transparent', color: '#64748b', border: `1px solid ${border}`, padding: '4px 10px', fontSize: 11 })}>✕ ยกเลิก</button>
                     </div>
                 </div>
             </div>
         );
 
-        // ── State 2: Running ────────────────────────────────────────────────
         if (running) return (
             <div style={termStyle}>
                 {termHeader}
                 <div style={{ flex: 1, padding: '12px 16px', ...MONO, color: '#94a3b8' }}>
-                    <span style={{ color: '#34d399' }}>$ </span>
-                    <span>กำลังประมวลผล...</span>
+                    <span style={{ color: '#34d399' }}>$ </span><span>กำลังประมวลผล...</span>
                     <span style={{ display: 'inline-block', width: 8, height: '1.1em', background: '#34d399', marginLeft: 4, verticalAlign: 'middle', animation: 'termBlink 1s step-start infinite' }} />
                 </div>
             </div>
         );
 
-        // ── State 3: Has output ─────────────────────────────────────────────
         if (output) return (
             <div style={termStyle}>
                 {termHeader}
                 <div style={{ flex: 1, padding: '12px 16px', overflowY: 'auto', ...MONO, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                    {/* Program start line */}
-                    <div style={{ color: '#475569', marginBottom: 2 }}>
-                        <span style={{ color: '#34d399' }}>$ </span>
-                        ./{filename || 'main'}.{EXTENSIONS[language]}
-                    </div>
-                    {/* Echo stdin lines exactly like a real terminal */}
-                    {echoedLines.map((line, i) => (
-                        <div key={i} style={{ color: '#e2e8f0' }}>{line}</div>
-                    ))}
-                    {/* Program output */}
+                    <div style={{ color: '#475569', marginBottom: 2 }}><span style={{ color: '#34d399' }}>$ </span>./{filename || 'main'}.{EXTENSIONS[language]}</div>
+                    {echoedLines.map((line, i) => <div key={i} style={{ color: '#e2e8f0' }}>{line}</div>)}
                     <div style={{ color: runStatus === 'error' ? '#f87171' : '#e2e8f0' }}>{output}</div>
-                    {/* Execution info */}
-                    {execTime !== null && (
-                        <div style={{ marginTop: 8, color: '#475569', fontSize: 12 }}>
-                            Process returned 0 &nbsp;·&nbsp; execution time: {(execTime / 1000).toFixed(3)} s
-                        </div>
-                    )}
+                    {execTime !== null && <div style={{ marginTop: 8, color: '#475569', fontSize: 12 }}>Process returned 0 &nbsp;·&nbsp; execution time: {(execTime / 1000).toFixed(3)} s</div>}
                 </div>
             </div>
         );
 
-        // ── State 4: Idle ───────────────────────────────────────────────────
         return (
             <div style={termStyle}>
                 {termHeader}
                 <div style={{ flex: 1, padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8 }}>
                     <div style={{ ...MONO, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ color: '#34d399' }}>$</span>
-                        <span>กด </span>
+                        <span style={{ color: '#34d399' }}>$</span><span>กด </span>
                         <span style={{ color: accent, fontWeight: 700 }}>▶ รันโค้ด</span>
                         <span style={{ display: 'inline-block', width: 8, height: '1.1em', background: '#475569', animation: 'termBlink 1s step-start infinite', verticalAlign: 'middle', marginLeft: 2 }} />
                     </div>
                     {codeNeedsInput && (
                         <div style={{ fontSize: 12, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>⌨️</span>
-                            <span>โค้ดนี้ต้องการ Input — เมื่อกด ▶ รัน จะเปิด terminal รอรับค่าอัตโนมัติ</span>
+                            <span>⌨️</span><span>โค้ดนี้ต้องการ Input — เมื่อกด ▶ รัน จะเปิด terminal รอรับค่าอัตโนมัติ</span>
                         </div>
                     )}
                 </div>
@@ -390,11 +496,120 @@ const FreeEditor = () => {
         );
     };
 
-    // ── Render ───────────────────────────────────────────────────────────────
+    // ── Floating Draw Toolbar ────────────────────────────────────────────────
+    const renderDrawToolbar = () => {
+        if (!drawMode) return null;
+        const dbtn = (active, extra = {}) => ({
+            padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+            fontFamily: "'Prompt',sans-serif", fontSize: 12, fontWeight: 600,
+            background: active ? accent : '#334155', color: active ? '#fff' : '#94a3b8',
+            transition: 'all .15s', ...extra,
+        });
+        return (
+            <div style={{
+                position: 'fixed', left: 12, top: '50%', transform: 'translateY(-50%)',
+                zIndex: 10000, background: '#0f172a', borderRadius: 16,
+                border: `2px solid ${accent}55`, padding: '14px 12px',
+                display: 'flex', flexDirection: 'column', gap: 10,
+                boxShadow: '0 8px 40px rgba(0,0,0,0.7)', minWidth: 180, maxWidth: 200,
+                fontFamily: "'Prompt',sans-serif",
+            }}>
+                {/* Header */}
+                <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: accent }}>
+                    ✏️ โหมดอธิบายกระดาน
+                </div>
+                <div style={{ fontSize: 10, color: '#475569', textAlign: 'center', marginTop: -6 }}>กด Esc เพื่อออก</div>
+
+                {/* Tool selector */}
+                <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setDrawTool('pen')}  style={{ ...dbtn(drawTool === 'pen'),  flex: 1 }}>✏️ ปากกา</button>
+                    <button onClick={() => setDrawTool('eraser')} style={{ ...dbtn(drawTool === 'eraser'), flex: 1 }}>🧹 ลบ</button>
+                </div>
+
+                {drawTool === 'pen' && (<>
+                    {/* Color presets */}
+                    <div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 5 }}>สีปากกา</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                            {DRAW_COLORS.map(c => (
+                                <button key={c} onClick={() => setDrawColor(c)} style={{
+                                    width: 26, height: 26, borderRadius: '50%', background: c, padding: 0,
+                                    border: drawColor === c ? '3px solid #fff' : '2px solid #334155',
+                                    cursor: 'pointer', flexShrink: 0, transition: 'border .1s',
+                                }} />
+                            ))}
+                            <input type="color" value={drawColor} onChange={e => setDrawColor(e.target.value)}
+                                title="เลือกสีอื่น"
+                                style={{ width: 26, height: 26, padding: 0, border: '2px solid #334155', borderRadius: '50%', cursor: 'pointer', background: 'none' }} />
+                        </div>
+                    </div>
+
+                    {/* Pen size */}
+                    <div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 3, display: 'flex', justifyContent: 'space-between' }}>
+                            <span>ขนาดเส้น</span>
+                            <span style={{ color: '#94a3b8', fontWeight: 700 }}>{penSize}px</span>
+                        </div>
+                        <input type="range" min={1} max={30} value={penSize} onChange={e => setPenSize(+e.target.value)}
+                            style={{ width: '100%', accentColor: accent }} />
+                        {/* Preview dot */}
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+                            <div style={{ width: penSize * 2, height: penSize * 2, borderRadius: '50%', background: drawColor, maxWidth: 60, maxHeight: 60 }} />
+                        </div>
+                    </div>
+
+                    {/* Opacity */}
+                    <div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 3, display: 'flex', justifyContent: 'space-between' }}>
+                            <span>ความทึบ</span>
+                            <span style={{ color: '#94a3b8', fontWeight: 700 }}>{Math.round(penOpacity * 100)}%</span>
+                        </div>
+                        <input type="range" min={10} max={100} value={Math.round(penOpacity * 100)}
+                            onChange={e => setPenOpacity(+e.target.value / 100)}
+                            style={{ width: '100%', accentColor: accent }} />
+                    </div>
+                </>)}
+
+                {drawTool === 'eraser' && (
+                    <div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 3, display: 'flex', justifyContent: 'space-between' }}>
+                            <span>ขนาดยางลบ</span>
+                            <span style={{ color: '#94a3b8', fontWeight: 700 }}>{eraserSize}px</span>
+                        </div>
+                        <input type="range" min={5} max={120} value={eraserSize} onChange={e => setEraserSize(+e.target.value)}
+                            style={{ width: '100%', accentColor: '#94a3b8' }} />
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+                            <div style={{ width: Math.min(eraserSize, 80), height: Math.min(eraserSize, 80), borderRadius: '50%', border: '2px solid #475569', background: 'rgba(255,255,255,0.05)' }} />
+                        </div>
+                    </div>
+                )}
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 5 }}>
+                    <button onClick={undoDraw} disabled={!canUndo}
+                        style={{ ...dbtn(false, { flex: 1, opacity: canUndo ? 1 : 0.4, background: '#1e293b' }), fontSize: 11 }}>
+                        ↩ ย้อนกลับ
+                    </button>
+                    <button onClick={clearCanvas}
+                        style={{ ...dbtn(false, { flex: 1, background: '#7f1d1d', color: '#fca5a5' }), fontSize: 11 }}>
+                        🗑️ ล้าง
+                    </button>
+                </div>
+
+                <button onClick={() => setDrawMode(false)}
+                    style={dbtn(false, { background: '#1e293b', border: '1px solid #334155', justifyContent: 'center', fontSize: 11 })}>
+                    ✕ ออกจากโหมดนี้
+                </button>
+            </div>
+        );
+    };
+
+    // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div style={{ minHeight: '100vh', background: bg, color: '#f1f5f9', fontFamily: "'Prompt', sans-serif", display: 'flex', flexDirection: 'column' }}>
             <style>{`
                 @keyframes termBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+                @keyframes drawPulse { 0%,100%{box-shadow:0 0 0 0 rgba(236,72,153,.4)} 50%{box-shadow:0 0 0 6px rgba(236,72,153,0)} }
                 .fe-editor-wrap .CodeMirror,
                 .fe-editor-wrap .CodeMirror-scroll {
                     font-size: ${fontSize}px !important;
@@ -403,12 +618,19 @@ const FreeEditor = () => {
                     font-feature-settings: ${ligatures ? '"liga" 1, "calt" 1' : '"liga" 0, "calt" 0'} !important;
                     font-variant-ligatures: ${ligatures ? 'normal' : 'none'} !important;
                 }
+                .fe-editor-wrap .CodeMirror .CodeMirror-selected { background: rgba(255,255,255,.18) !important; }
+                .fe-editor-wrap .CodeMirror-focused .CodeMirror-selected { background: rgba(255,255,255,.28) !important; }
+                .fe-editor-wrap .CodeMirror-line::selection,
+                .fe-editor-wrap .CodeMirror-line>span::selection,
+                .fe-editor-wrap .CodeMirror-line>span>span::selection { background: rgba(255,255,255,.28) !important; }
             `}</style>
+
             <Navbar title={isTeacher ? 'Code Editor — ครู' : 'Code Editor — นักเรียน'}
                     subtitle={isTeacher ? 'เขียนและสาธิตโค้ดให้นักเรียน' : 'เขียนโค้ดทดลองและดาวน์โหลด'} />
 
             {/* ── Toolbar ── */}
             <div style={{ background: panel, borderBottom: `1px solid ${border}`, padding: '10px 16px', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                {/* Language */}
                 <select value={language} onChange={e => handleLanguageChange(e.target.value)}
                     style={{ background: bg, color: '#f1f5f9', border: `1px solid ${border}`, borderRadius: 8, padding: '6px 10px', fontFamily: "'Prompt',sans-serif", fontSize: 13, cursor: 'pointer', outline: 'none' }}>
                     <option value="c">C</option>
@@ -416,6 +638,7 @@ const FreeEditor = () => {
                     <option value="python">Python</option>
                 </select>
 
+                {/* Filename */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <input value={filename} onChange={e => setFilename(e.target.value)} placeholder="ชื่อไฟล์"
                         style={{ background: bg, color: '#f1f5f9', border: `1px solid ${border}`, borderRadius: 8, padding: '6px 10px', fontFamily: "'Prompt',sans-serif", fontSize: 13, width: 110, outline: 'none' }} />
@@ -436,13 +659,17 @@ const FreeEditor = () => {
                 {/* Font picker */}
                 <select value={fontFamily} onChange={e => setFontFamily(e.target.value)} title="เลือกฟอนต์"
                     style={{ background: bg, color: '#94a3b8', border: `1px solid ${border}`, borderRadius: 8, padding: '5px 8px', fontFamily: "'Prompt',sans-serif", fontSize: 12, cursor: 'pointer', outline: 'none', maxWidth: 150 }}>
-                    {CODING_FONTS.map(f => (
-                        <option key={f.value} value={f.value}>{f.label}</option>
-                    ))}
+                    {CODING_FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                </select>
+
+                {/* Theme picker */}
+                <select value={editorTheme} onChange={e => setEditorTheme(e.target.value)} title="เทมแพลต Editor"
+                    style={{ background: bg, color: '#a78bfa', border: `1px solid #7c3aed44`, borderRadius: 8, padding: '5px 8px', fontFamily: "'Prompt',sans-serif", fontSize: 12, cursor: 'pointer', outline: 'none', maxWidth: 175 }}>
+                    {CM_THEMES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
 
                 {/* Ligature toggle */}
-                <button onClick={() => setLigatures(l => !l)} title={ligatures ? 'ปิด Ligature (!=→!=)' : 'เปิด Ligature (!=→≠)'}
+                <button onClick={() => setLigatures(l => !l)} title={ligatures ? 'ปิด Ligature' : 'เปิด Ligature'}
                     style={btn({ background: ligatures ? '#7c3aed33' : bg, color: ligatures ? '#a78bfa' : '#64748b', border: `1px solid ${ligatures ? '#7c3aed88' : border}`, padding: '5px 10px', fontSize: 12 })}>
                     {ligatures ? 'fi≠' : 'fi!='}
                 </button>
@@ -456,12 +683,9 @@ const FreeEditor = () => {
                     {analyzing ? '⏳ วิเคราะห์...' : '🤖 วิเคราะห์โค้ด AI'}
                 </button>
 
-                <input ref={fileInputRef} type="file" accept=".c,.cpp,.cc,.cxx,.py,.txt"
-                    style={{ display: 'none' }} onChange={openFile} />
+                <input ref={fileInputRef} type="file" accept=".c,.cpp,.cc,.cxx,.py,.txt" style={{ display: 'none' }} onChange={openFile} />
                 <button onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                    style={btn({ background: bg, color: '#fbbf24', border: '1px solid #fbbf24' })}>
-                    📂 เปิดไฟล์
-                </button>
+                    style={btn({ background: bg, color: '#fbbf24', border: '1px solid #fbbf24' })}>📂 เปิดไฟล์</button>
 
                 <button onClick={copyCode}
                     style={btn({ background: copied ? '#10b981' : bg, color: copied ? '#fff' : '#94a3b8', border: `1px solid ${copied ? '#10b981' : border}` })}>
@@ -472,6 +696,19 @@ const FreeEditor = () => {
                     💾 ดาวน์โหลด .{EXTENSIONS[language]}
                 </button>
 
+                {/* Draw mode button — teachers only */}
+                {isTeacher && (
+                    <button onClick={() => setDrawMode(m => !m)}
+                        style={btn({
+                            background: drawMode ? accent : bg,
+                            color: drawMode ? '#fff' : '#f9a8d4',
+                            border: `1px solid ${drawMode ? accent : '#f9a8d488'}`,
+                            animation: drawMode ? 'drawPulse 2s infinite' : 'none',
+                        })}>
+                        {drawMode ? '🔴 กำลังอธิบาย...' : '🖊️ อธิบายบนหน้าจอ'}
+                    </button>
+                )}
+
                 <button onClick={handleRunClick} disabled={running || collecting}
                     style={btn({ background: (running || collecting) ? '#475569' : accent, color: '#fff', opacity: (running || collecting) ? 0.7 : 1, minWidth: 96 })}>
                     {running ? '⏳ กำลังรัน...' : collecting ? '⌨️ รอรับค่า...' : '▶ รันโค้ด'}
@@ -480,7 +717,6 @@ const FreeEditor = () => {
 
             {/* ── Main area ── */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 16, gap: 12, minHeight: 0 }}>
-
                 <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, minHeight: 420 }}>
                     {/* Editor */}
                     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -490,7 +726,7 @@ const FreeEditor = () => {
                         </div>
                         <div className="fe-editor-wrap" style={{ flex: 1, borderRadius: 12, overflow: 'hidden', border: `1px solid ${border}` }}>
                             <CodeEditor value={code} onChange={setCode} language={language}
-                                fontSize={fontSize} minHeight="100%"
+                                fontSize={fontSize} theme={editorTheme} minHeight="100%"
                                 placeholder={`// เขียนโค้ด ${LANG_LABELS[language]} ที่นี่`} />
                         </div>
                     </div>
@@ -530,8 +766,43 @@ const FreeEditor = () => {
                             <kbd style={{ background: bg, border: `1px solid ${border}`, borderRadius: 4, padding: '1px 5px', color: '#94a3b8', fontFamily: 'monospace' }}>{k}</kbd> {d}
                         </span>
                     ))}
+                    {isTeacher && <span style={{ fontSize: 11, color: '#475569' }}>
+                        <kbd style={{ background: bg, border: `1px solid ${border}`, borderRadius: 4, padding: '1px 5px', color: '#f9a8d4', fontFamily: 'monospace' }}>Esc</kbd> ออกจากโหมดอธิบาย
+                    </span>}
                 </div>
             </div>
+
+            {/* ── Drawing canvas (fixed overlay) ── */}
+            <canvas
+                ref={canvasRef}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerLeave={onPointerUp}
+                style={{
+                    position: 'fixed', top: 0, left: 0,
+                    width: '100vw', height: '100vh',
+                    zIndex: 9998,
+                    pointerEvents: drawMode ? 'all' : 'none',
+                    cursor: drawCursor,
+                    touchAction: 'none',
+                }}
+            />
+
+            {/* Draw mode status badge */}
+            {drawMode && (
+                <div style={{
+                    position: 'fixed', top: 12, right: 12, zIndex: 10001,
+                    background: '#991b1b', color: '#fecaca',
+                    borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 700,
+                    boxShadow: '0 2px 12px rgba(239,68,68,.4)', fontFamily: "'Prompt',sans-serif",
+                }}>
+                    🔴 Drawing Mode — กด Esc ออก
+                </div>
+            )}
+
+            {/* Floating draw toolbar */}
+            {renderDrawToolbar()}
         </div>
     );
 };

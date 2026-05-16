@@ -198,7 +198,7 @@ const EDITOR_MODES = {
     python: 'python',
 };
 
-const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px', fontSize = 14 }) => {
+const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px', fontSize = 14, theme = 'dracula' }) => {
     const containerRef = React.useRef(null);
     const cmRef        = React.useRef(null);
     const suppressRef  = React.useRef(false);
@@ -220,7 +220,7 @@ const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px
         const cm = CodeMirror(containerRef.current, {
             value:            value || '',
             mode:             EDITOR_MODES[language] || 'text/x-csrc',
-            theme:            'dracula',
+            theme:            theme || 'dracula',
             lineNumbers:      true,
             tabSize:          4,
             indentUnit:       4,
@@ -367,6 +367,23 @@ const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px
         cm.refresh();
         cm.setSize(null, null);      // re-measure gutter + char dimensions
     }, [fontSize]);
+
+    // Load CodeMirror theme CSS on demand
+    React.useEffect(() => {
+        if (!theme || theme === 'default') return;
+        const id = 'cm-theme-' + theme;
+        if (document.getElementById(id)) return;
+        const link = document.createElement('link');
+        link.id = id; link.rel = 'stylesheet';
+        link.href = `https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/${theme}.min.css`;
+        document.head.appendChild(link);
+    }, [theme]);
+
+    // Sync theme change to existing editor instance
+    React.useEffect(() => {
+        if (!cmRef.current) return;
+        cmRef.current.setOption('theme', theme || 'dracula');
+    }, [theme]);
 
     return (
         <div
