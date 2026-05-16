@@ -90,6 +90,7 @@ const FreeEditor = () => {
     const [eraserSize,     setEraserSize]     = React.useState(28);
     const [penOpacity,     setPenOpacity]     = React.useState(1);
     const [canUndo,        setCanUndo]        = React.useState(false);
+    const [panelPos,       setPanelPos]       = React.useState({ x: 12, y: 120 });
 
     const fileInputRef   = React.useRef(null);
     const inputLineRef   = React.useRef(null);
@@ -101,6 +102,7 @@ const FreeEditor = () => {
     const historyRef     = React.useRef([]);
     // Keep draw settings fresh in event handlers (avoid stale closure)
     const drawSettingsRef = React.useRef({});
+    const panelDragRef    = React.useRef({ active: false, ox: 0, oy: 0 });
     drawSettingsRef.current = { tool: drawTool, color: drawColor, penSize, eraserSize, opacity: penOpacity };
 
     // ── Load Google Font ────────────────────────────────────────────────────
@@ -378,6 +380,32 @@ const FreeEditor = () => {
         canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
     };
 
+    // ── Drag panel handler ───────────────────────────────────────────────────
+    const startPanelDrag = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const panelEl = e.currentTarget.closest('[data-drawpanel]');
+        const rect = panelEl ? panelEl.getBoundingClientRect() : { left: panelPos.x, top: panelPos.y };
+        panelDragRef.current = { active: true, ox: e.clientX - rect.left, oy: e.clientY - rect.top };
+        e.currentTarget.setPointerCapture(e.pointerId);
+
+        const onMove = (me) => {
+            if (!panelDragRef.current.active) return;
+            const pw = panelEl ? panelEl.offsetWidth  : 200;
+            const ph = panelEl ? panelEl.offsetHeight : 400;
+            const nx = Math.max(0, Math.min(window.innerWidth  - pw, me.clientX - panelDragRef.current.ox));
+            const ny = Math.max(0, Math.min(window.innerHeight - ph, me.clientY - panelDragRef.current.oy));
+            setPanelPos({ x: nx, y: ny });
+        };
+        const onUp = () => {
+            panelDragRef.current.active = false;
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+    };
+
     // ── Dynamic cursor for draw canvas ──────────────────────────────────────
     const drawCursor = React.useMemo(() => {
         if (!drawMode) return 'default';
@@ -506,19 +534,31 @@ const FreeEditor = () => {
             transition: 'all .15s', ...extra,
         });
         return (
-            <div style={{
-                position: 'fixed', left: 12, top: '50%', transform: 'translateY(-50%)',
+            <div data-drawpanel="1" style={{
+                position: 'fixed', left: panelPos.x, top: panelPos.y,
                 zIndex: 10000, background: '#0f172a', borderRadius: 16,
-                border: `2px solid ${accent}55`, padding: '14px 12px',
+                border: `2px solid ${accent}55`, padding: '10px 12px 14px',
                 display: 'flex', flexDirection: 'column', gap: 10,
                 boxShadow: '0 8px 40px rgba(0,0,0,0.7)', minWidth: 180, maxWidth: 200,
-                fontFamily: "'Prompt',sans-serif",
+                fontFamily: "'Prompt',sans-serif", userSelect: 'none',
             }}>
+                {/* Drag handle */}
+                <div
+                    onPointerDown={startPanelDrag}
+                    style={{
+                        cursor: 'grab', textAlign: 'center', color: '#475569',
+                        fontSize: 16, letterSpacing: 4, marginBottom: -4,
+                        padding: '2px 0 4px', borderBottom: `1px solid #1e293b`,
+                        lineHeight: 1,
+                    }}
+                    title="ลากเพื่อย้ายตำแหน่ง"
+                >⠿⠿⠿</div>
+
                 {/* Header */}
                 <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: accent }}>
                     ✏️ โหมดอธิบายกระดาน
                 </div>
-                <div style={{ fontSize: 10, color: '#475569', textAlign: 'center', marginTop: -6 }}>กด Esc เพื่อออก</div>
+                <div style={{ fontSize: 10, color: '#475569', textAlign: 'center', marginTop: -6 }}>กด Esc เพื่อออก · ลากหัวเพื่อย้าย</div>
 
                 {/* Tool selector */}
                 <div style={{ display: 'flex', gap: 6 }}>
