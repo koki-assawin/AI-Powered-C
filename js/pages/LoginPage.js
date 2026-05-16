@@ -94,9 +94,8 @@ const LoginPage = () => {
                 <div style={s.logoWrap}>
                     <img src={SCHOOL_LOGO} alt="โรงเรียนเตรียมอุดมฯ ใต้" style={s.logoImg} />
                     <div style={s.platformTitle}>
-                        <span style={s.titleEn}>AI-Powered Coding Assessment</span>
-                        <span style={s.titleEn}>&amp; Practice Platform</span>
-                        <span style={s.titleTh}>ระบบประเมินและฝึกทักษะการเขียนโปรแกรมอัตโนมัติ ขับเคลื่อนด้วยปัญญาประดิษฐ์</span>
+                        <span style={s.titleEn}>AI-Powered Coding Coach (APCC)</span>
+                        <span style={s.titleTh}>โค้ชโค้ดอัจฉริยะ ขับเคลื่อนด้วยปัญญาประดิษฐ์</span>
                     </div>
                 </div>
 
@@ -192,7 +191,9 @@ const LoginPage = () => {
                 </div>
 
                 <p style={s.footer}>
-                    © 2025 โรงเรียนเตรียมอุดมศึกษาภาคใต้ · AI-Powered Coding Platform
+                    © 2025 โรงเรียนเตรียมอุดมศึกษาภาคใต้ · AI-Powered Coding Coach (APCC)
+                    {' · '}
+                    <a href="#/privacy" style={{ color:'#f9a8d4', textDecoration:'underline' }}>นโยบายความเป็นส่วนตัว</a>
                 </p>
             </div>
         </div>

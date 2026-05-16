@@ -481,7 +481,7 @@ const CourseBuilder = () => {
 
     return (
         <div className="min-h-screen" style={{ background: '#FFF5F7', fontFamily: "'Prompt',sans-serif" }}>
-            <Navbar title="AI-Powered Coding Platform" subtitle="จัดการรายวิชา" />
+            <Navbar title="AI-Powered Coding Coach (APCC)" subtitle="จัดการรายวิชา" />
             <main className="max-w-6xl mx-auto px-4 py-8">
 
                 {/* Tabs */}

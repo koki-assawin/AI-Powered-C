@@ -108,8 +108,8 @@ const RegisterPage = () => {
                     <div style={s.logoWrap}>
                         <img src={SCHOOL_LOGO} alt="โรงเรียน" style={s.logoImg} />
                         <div>
-                            <span style={s.titleEn}>AI-Powered Coding Assessment &amp; Practice Platform</span>
-                            <span style={s.titleTh}>ระบบประเมินและฝึกทักษะการเขียนโปรแกรมอัตโนมัติ</span>
+                            <span style={s.titleEn}>AI-Powered Coding Coach (APCC)</span>
+                            <span style={s.titleTh}>โค้ชโค้ดอัจฉริยะ ขับเคลื่อนด้วยปัญญาประดิษฐ์</span>
                         </div>
                     </div>
 
@@ -159,7 +159,9 @@ const RegisterPage = () => {
                     </div>
 
                     <p style={{ textAlign:'center', color:'#f9a8d4', fontSize:'11px', marginTop:'20px' }}>
-                        © 2025 โรงเรียนเตรียมอุดมศึกษาภาคใต้ · AI-Powered Coding Platform
+                        © 2025 โรงเรียนเตรียมอุดมศึกษาภาคใต้ · AI-Powered Coding Coach (APCC)
+                    {' · '}
+                    <a href="#/privacy" style={{ color:'#f9a8d4', textDecoration:'underline' }}>นโยบายความเป็นส่วนตัว</a>
                     </p>
                 </div>
             </div>
@@ -173,8 +175,8 @@ const RegisterPage = () => {
                 <div style={s.logoWrap}>
                     <img src={SCHOOL_LOGO} alt="โรงเรียน" style={s.logoImg} />
                     <div>
-                        <span style={s.titleEn}>AI-Powered Coding Assessment &amp; Practice Platform</span>
-                        <span style={s.titleTh}>ระบบประเมินและฝึกทักษะการเขียนโปรแกรมอัตโนมัติ</span>
+                        <span style={s.titleEn}>AI-Powered Coding Coach (APCC)</span>
+                        <span style={s.titleTh}>โค้ชโค้ดอัจฉริยะ ขับเคลื่อนด้วยปัญญาประดิษฐ์</span>
                     </div>
                 </div>
 
@@ -261,7 +263,9 @@ const RegisterPage = () => {
                 </div>
 
                 <p style={{ textAlign:'center', color:'#f9a8d4', fontSize:'11px', marginTop:'20px' }}>
-                    © 2025 โรงเรียนเตรียมอุดมศึกษาภาคใต้ · AI-Powered Coding Platform
+                    © 2025 โรงเรียนเตรียมอุดมศึกษาภาคใต้ · AI-Powered Coding Coach (APCC)
+                    {' · '}
+                    <a href="#/privacy" style={{ color:'#f9a8d4', textDecoration:'underline' }}>นโยบายความเป็นส่วนตัว</a>
                 </p>
             </div>
         </div>

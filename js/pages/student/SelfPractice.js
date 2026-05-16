@@ -261,7 +261,7 @@ const SelfPractice = () => {
     // ── Render ────────────────────────────────────────────────────────
     return (
         <div className="min-h-screen" style={{ background: '#FFF5F7', fontFamily: "'Prompt',sans-serif" }}>
-            <Navbar title="AI-Powered Coding Platform" subtitle="ฝึกเองตามความสนใจ" />
+            <Navbar title="AI-Powered Coding Coach (APCC)" subtitle="ฝึกเองตามความสนใจ" />
             <main className="max-w-7xl mx-auto px-4 py-6">
 
                 <div className="flex items-center gap-3 mb-5">

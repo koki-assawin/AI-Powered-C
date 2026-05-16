@@ -19,6 +19,7 @@ const renderRoute = (route, role) => {
     // Unauthenticated routes
     if (route === '#/login' || route === '') return React.createElement(LoginPage);
     if (route === '#/register') return React.createElement(RegisterPage);
+    if (route === '#/privacy') return React.createElement(PrivacyPolicy);
 
     // Student routes
     if (route.startsWith('#/student')) {

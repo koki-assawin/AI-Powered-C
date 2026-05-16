@@ -30,7 +30,7 @@ const AchievementsPage = () => {
 
     return (
         <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f1f5f9', fontFamily: "'Prompt',sans-serif" }}>
-            <Navbar title="AI-Powered Coding Platform" subtitle="ความสำเร็จ" />
+            <Navbar title="AI-Powered Coding Coach (APCC)" subtitle="ความสำเร็จ" />
             <main style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px' }}>
 
                 {/* Header */}

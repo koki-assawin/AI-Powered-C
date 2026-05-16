@@ -51,7 +51,7 @@ const AdminDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI-Powered Coding Platform" subtitle="Admin Dashboard" />
+            <Navbar title="AI-Powered Coding Coach (APCC)" subtitle="Admin Dashboard" />
             <main className="max-w-7xl mx-auto px-4 py-8">
                 <div className="rounded-2xl p-6 mb-8" style={{ background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '1px solid #FFD1DC' }}>
                     <h2 className="text-2xl font-bold mb-1" style={{ color: '#AD1457' }}>แดชบอร์ดผู้ดูแลระบบ 🔐</h2>

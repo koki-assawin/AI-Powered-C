@@ -297,7 +297,7 @@ const UserManager = () => {
                     onSuccess={m => { showMsg(m); setSetPwUser(null); }}
                 />
             )}
-            <Navbar title="AI-Powered Coding Platform" subtitle="จัดการผู้ใช้" />
+            <Navbar title="AI-Powered Coding Coach (APCC)" subtitle="จัดการผู้ใช้" />
             <main className="max-w-6xl mx-auto px-4 py-8">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">👥 จัดการผู้ใช้</h2>

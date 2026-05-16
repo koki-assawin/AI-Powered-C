@@ -438,7 +438,7 @@ const CodingWorkspace = () => {
     if (isExamMode && !examStarted && currentAssignment) {
         return (
             <div className="min-h-screen" style={{ background: '#fdf2f8', fontFamily: "'Prompt',sans-serif" }}>
-                <Navbar title="AI-Powered Coding Platform" subtitle="โหมดสอบ" />
+                <Navbar title="AI-Powered Coding Coach (APCC)" subtitle="โหมดสอบ" />
                 <div style={{ maxWidth: '480px', margin: '80px auto', padding: '0 16px' }}>
                     <div className="k-card p-10 text-center">
                         <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏆</div>
@@ -471,7 +471,7 @@ const CodingWorkspace = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            <Navbar title="AI-Powered Coding Platform" subtitle={LANGUAGES[selectedLanguage]?.name} />
+            <Navbar title="AI-Powered Coding Coach (APCC)" subtitle={LANGUAGES[selectedLanguage]?.name} />
 
             {/* XP Reward Toast */}
             {showXpToast && xpReward && (
