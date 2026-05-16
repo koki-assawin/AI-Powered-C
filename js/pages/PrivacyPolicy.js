@@ -46,10 +46,11 @@ const PrivacyPolicy = () => {
 
                     <Section title="1. ผู้ควบคุมข้อมูลส่วนบุคคล (Data Controller)">
                         <p><strong>ชื่อ:</strong> โรงเรียนเตรียมอุดมศึกษาภาคใต้</p>
-                        <p><strong>ที่อยู่:</strong> โรงเรียนเตรียมอุดมศึกษาภาคใต้ จังหวัดสงขลา</p>
-                        <p><strong>ระบบ:</strong> AI-Powered Coding Coach (APCC) — ระบบโค้ชโค้ดอัจฉริยะ ขับเคลื่อนด้วยปัญญาประดิษฐ์ สำหรับการเรียนการสอนวิชาวิทยาการคำนวณ</p>
+                        <p><strong>ที่อยู่:</strong> โรงเรียนเตรียมอุดมศึกษาภาคใต้ จังหวัดนครศรีธรรมราช</p>
+                        <p><strong>ระบบ:</strong> AI-Powered Coding Coach (APCC) — ระบบโค้ชโค้ดอัจฉริยะ ขับเคลื่อนด้วยปัญญาประดิษฐ์ สำหรับการเรียนการสอนวิชาด้านการเขียนโปรแกรมภาษาคอมพิวเตอร์ รองรับภาษา C, C++, Python และ Java</p>
                         <p><strong>ผู้รับผิดชอบระบบ:</strong> ครูผู้สอนกลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี</p>
-                        <p><strong>ติดต่อ:</strong> อีเมลโรงเรียน @triamudomsouth.ac.th</p>
+                        <p><strong>ผู้ดูแลระบบ / พัฒนา:</strong> นายอัศวิน จุลมูล</p>
+                        <p><strong>ติดต่อ:</strong> <a href="mailto:aitus@triamudomsouth.ac.th" style={{ color: '#AD1457' }}>aitus@triamudomsouth.ac.th</a></p>
                     </Section>
 
                     <Section title="2. ข้อมูลส่วนบุคคลที่เก็บรวบรวม">
@@ -142,7 +143,7 @@ const PrivacyPolicy = () => {
                             ))}
                         </div>
                         <p className="mt-4 text-sm bg-yellow-50 p-3 rounded-lg text-yellow-800 border border-yellow-200">
-                            <strong>การใช้สิทธิ:</strong> ติดต่อครูผู้สอนหรือฝ่ายวิชาการของโรงเรียนผ่านอีเมล @triamudomsouth.ac.th ระบบจะดำเนินการภายใน 30 วัน
+                            <strong>การใช้สิทธิ:</strong> ติดต่อผู้ดูแลระบบผ่านอีเมล <a href="mailto:aitus@triamudomsouth.ac.th" style={{ color: '#92400E' }}>aitus@triamudomsouth.ac.th</a> ระบบจะดำเนินการภายใน 30 วัน
                         </p>
                     </Section>
 
@@ -160,7 +161,7 @@ const PrivacyPolicy = () => {
                     <Section title="8. การใช้ข้อมูลเพื่อการวิจัย">
                         <p>ระบบ APCC พัฒนาขึ้นเพื่อประกอบงานวิจัยทางการศึกษา ข้อมูลที่เก็บรวบรวมอาจนำไปใช้ในงานวิจัยภายใต้หลักการดังนี้:</p>
                         <ul className="list-disc list-inside space-y-1 ml-2 mt-2">
-                            <li>ข้อมูลในงานวิจัยใช้ในรูปแบบ <strong>익명 (Anonymized)</strong> ไม่ระบุชื่อหรือข้อมูลที่ระบุตัวตนได้</li>
+                            <li>ข้อมูลในงานวิจัยใช้ในรูปแบบ <strong>ไม่ระบุตัวตน (Anonymous)</strong> ไม่ระบุชื่อหรือข้อมูลที่ระบุตัวตนได้</li>
                             <li>ผลวิจัยมุ่งพัฒนาการเรียนการสอนวิทยาการคำนวณ ไม่ใช่วัตถุประสงค์เชิงพาณิชย์</li>
                             <li>การเผยแพร่งานวิจัยภายนอกโรงเรียนต้องได้รับความยินยอมจากผู้เรียนและผู้ปกครอง</li>
                         </ul>
@@ -176,7 +177,7 @@ const PrivacyPolicy = () => {
 
                     {/* Footer */}
                     <div className="mt-8 pt-6 border-t border-gray-100 text-center text-sm text-gray-500 space-y-1">
-                        <p>หากมีข้อสงสัยเกี่ยวกับนโยบายนี้ กรุณาติดต่อครูผู้สอนหรือฝ่ายวิชาการ</p>
+                        <p>หากมีข้อสงสัยเกี่ยวกับนโยบายนี้ กรุณาติดต่อ <a href="mailto:aitus@triamudomsouth.ac.th" style={{ color: '#9ca3af' }}>aitus@triamudomsouth.ac.th</a></p>
                         <p>© 2025 โรงเรียนเตรียมอุดมศึกษาภาคใต้ · AI-Powered Coding Coach (APCC)</p>
                         <p className="text-xs">จัดทำตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)</p>
                     </div>
