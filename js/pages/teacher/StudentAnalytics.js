@@ -1390,7 +1390,7 @@ const StudentAnalytics = () => {
 
                                 {/* ─── TAB 6: GAMIFICATION ─── */}
                                 {activeTab === 'gamification' && (
-                                    <_GamificationTab selectedCourse={selectedCourse} />
+                                    <_GamificationTab selectedCourse={selectedCourse} submissions={submissions} students={students} />
                                 )}
 
                             </div>
@@ -1403,7 +1403,7 @@ const StudentAnalytics = () => {
 };
 
 // ── Gamification Tab Component ────────────────────────────────────────────────
-const _GamificationTab = ({ selectedCourse }) => {
+const _GamificationTab = ({ selectedCourse, submissions = [], students = {} }) => {
     const [stats, setStats] = React.useState([]);
     const [coachLogs, setCoachLogs] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
@@ -1500,6 +1500,9 @@ const _GamificationTab = ({ selectedCourse }) => {
             </div>
 
             {/* XP ranking table */}
+            <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8 }}>
+                ⚠️ XP / Rank / Streak เป็นค่า <strong>รวมทุกรายวิชา</strong> — ดูการมีส่วนร่วมเฉพาะวิชานี้ที่คอลัมน์ "งานผ่าน" และส่วน Mini-Game ด้านล่าง
+            </p>
             {loading ? (
                 <div className="text-center py-8 text-gray-400">กำลังโหลด...</div>
             ) : (
@@ -1507,29 +1510,37 @@ const _GamificationTab = ({ selectedCourse }) => {
                     <table className="w-full text-sm">
                         <thead>
                             <tr style={{ background: '#fdf2f8' }}>
-                                {['อันดับ', 'ชื่อ', 'Rank', 'XP', 'CodeCoin', 'Crystal', 'Streak'].map(h => (
-                                    <th key={h} className="px-4 py-3 text-left font-bold text-gray-600 whitespace-nowrap">{h}</th>
+                                {['อันดับ', 'ชื่อ', 'Rank', 'XP (รวมทุกวิชา)', 'งานผ่าน (วิชานี้)', 'CodeCoin', 'Streak'].map(h => (
+                                    <th key={h} className="px-4 py-3 text-left font-bold text-gray-600 whitespace-nowrap text-xs">{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
-                            {stats.map((s, idx) => (
-                                <tr key={s.uid} className="border-t border-gray-50 hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-bold text-gray-500">
-                                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
-                                    </td>
-                                    <td className="px-4 py-3 font-medium">{s.displayName}</td>
-                                    <td className="px-4 py-3">
-                                        <span style={{ color: s.tier?.color || '#9ca3af' }}>
-                                            {s.tier?.icon} {s.tier?.name}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 font-bold text-blue-600">{(s.xp || 0).toLocaleString()}</td>
-                                    <td className="px-4 py-3 text-yellow-600">🪙 {s.codeCoin || 0}</td>
-                                    <td className="px-4 py-3 text-cyan-600">💎 {s.crystal || 0}</td>
-                                    <td className="px-4 py-3">🔥 {s.streakDays || 0} วัน</td>
-                                </tr>
-                            ))}
+                            {stats.map((s, idx) => {
+                                const passed = submissions.filter(sub => sub.studentId === s.uid && sub.status === 'accepted').length;
+                                const total = new Set(submissions.filter(sub => sub.studentId === s.uid).map(sub => sub.assignmentId)).size;
+                                return (
+                                    <tr key={s.uid} className="border-t border-gray-50 hover:bg-gray-50">
+                                        <td className="px-4 py-3 font-bold text-gray-500">
+                                            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                                        </td>
+                                        <td className="px-4 py-3 font-medium">{s.displayName}</td>
+                                        <td className="px-4 py-3">
+                                            <span style={{ color: s.tier?.color || '#9ca3af', fontSize: 12 }}>
+                                                {s.tier?.icon} {s.tier?.name}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 font-bold text-blue-600">{(s.xp || 0).toLocaleString()}</td>
+                                        <td className="px-4 py-3">
+                                            <span style={{ color: passed > 0 ? '#16a34a' : '#9ca3af', fontWeight: passed > 0 ? 700 : 400 }}>
+                                                {passed}/{total} โจทย์
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-yellow-600">🪙 {s.codeCoin || 0}</td>
+                                        <td className="px-4 py-3">🔥 {s.streakDays || 0} วัน</td>
+                                    </tr>
+                                );
+                            })}
                             {stats.length === 0 && (
                                 <tr><td colSpan={7} className="text-center py-8 text-gray-400">ยังไม่มีข้อมูล</td></tr>
                             )}

@@ -4,7 +4,10 @@ const MiniGameHub = () => {
     const { user, userDoc } = useAuth();
     const [todayStats, setTodayStats] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
-    const [selectedUnit, setSelectedUnit] = React.useState('general');
+    const [selectedUnit, setSelectedUnit] = React.useState(() => {
+        const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+        return params.get('unit') || 'general';
+    });
     const [units, setUnits] = React.useState([]);
 
     React.useEffect(() => {

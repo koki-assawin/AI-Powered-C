@@ -126,7 +126,7 @@ const CourseViewer = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar title="AI-Powered Coding Platform" subtitle="ห้องเรียนของฉัน" />
+            <Navbar title="AI-Powered Coding Coach (APCC)" subtitle="ห้องเรียนของฉัน" />
             <main className="max-w-5xl mx-auto px-4 py-8">
 
                 {/* Join by Code */}
@@ -200,6 +200,13 @@ const CourseViewer = () => {
                                             className="w-full py-2 rounded-lg font-medium text-sm bg-green-500 text-white hover:bg-green-600 transition-all mb-2">
                                             เข้าเรียน →
                                         </button>
+
+                                        <a
+                                            href={`#/student/games?unit=${course.id}`}
+                                            className="block w-full py-2 rounded-lg font-medium text-sm text-center mb-2"
+                                            style={{ background: '#fdf2f8', color: '#be185d', border: '1px solid #fce7f3', textDecoration: 'none' }}>
+                                            🎮 เล่นเกมวิชานี้
+                                        </a>
 
                                         {!confirming ? (
                                             <button

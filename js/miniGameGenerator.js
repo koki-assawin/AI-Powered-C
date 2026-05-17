@@ -230,20 +230,30 @@ async function getOrGenerateDailyContent(gameType, unitId) {
     }
 }
 
-// ── Check first play today ────────────────────────────────────────────────────
+// ── Daily XP cap from games ───────────────────────────────────────────────────
+const DAILY_GAME_XP_CAP = 150;
 
-async function checkIsFirstPlayToday(uid, gameType, unitId) {
+// Single query: returns isFirstPlayToday for this gameType+unitId combo AND total XP today
+async function getDailyGameInfo(uid, gameType, unitId) {
     try {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const snap = await db.collection('miniGameSessions')
             .where('uid', '==', uid)
-            .where('gameType', '==', gameType)
             .where('playedAt', '>=', todayStart)
             .get();
         const targetUnit = unitId || 'general';
-        return !snap.docs.some(d => d.data().unitId === targetUnit);
-    } catch (_) { return true; }
+        const isFirstPlayToday = !snap.docs.some(d =>
+            d.data().gameType === gameType && d.data().unitId === targetUnit
+        );
+        const todayTotalXP = snap.docs.reduce((s, d) => s + (d.data().xpEarned || 0), 0);
+        return { isFirstPlayToday, todayTotalXP };
+    } catch (_) { return { isFirstPlayToday: true, todayTotalXP: 0 }; }
+}
+
+async function checkIsFirstPlayToday(uid, gameType, unitId) {
+    const { isFirstPlayToday } = await getDailyGameInfo(uid, gameType, unitId);
+    return isFirstPlayToday;
 }
 
 // ── Grade a bug hunt answer with Gemini ───────────────────────────────────────
@@ -276,7 +286,7 @@ async function gradeBugHuntAnswer(bugData, studentAnswer) {
 
 async function recordGameSession(uid, { gameType, contentId, unitId, score, correctAnswers, totalQuestions, timeSpentSeconds, answers }) {
     try {
-        const isFirstPlayToday = await checkIsFirstPlayToday(uid, gameType, unitId || 'general');
+        const { isFirstPlayToday, todayTotalXP } = await getDailyGameInfo(uid, gameType, unitId || 'general');
         const xpCfg = GAME_XP[gameType] || GAME_XP.quiz_blitz;
         const isPerfect = correctAnswers >= totalQuestions && totalQuestions > 0;
 
@@ -288,6 +298,17 @@ async function recordGameSession(uid, { gameType, contentId, unitId, score, corr
             coinEarned = Math.round(coinEarned * (score / 100));
         }
         if (isPerfect) { xpEarned += xpCfg.perfect; }
+
+        // Daily XP cap — prevent farming
+        if (todayTotalXP >= DAILY_GAME_XP_CAP) {
+            xpEarned = 0;
+            coinEarned = 0;
+        } else if (todayTotalXP + xpEarned > DAILY_GAME_XP_CAP) {
+            const remaining = DAILY_GAME_XP_CAP - todayTotalXP;
+            const ratio = xpEarned > 0 ? remaining / xpEarned : 0;
+            xpEarned = remaining;
+            coinEarned = Math.round(coinEarned * ratio);
+        }
 
         await db.collection('miniGameSessions').add({
             uid, gameType, contentId: contentId || 'unknown',
