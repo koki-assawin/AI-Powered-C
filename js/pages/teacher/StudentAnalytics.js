@@ -1411,32 +1411,58 @@ const StudentAnalytics = () => {
 };
 
 // ── Student Radar Chart — 5-dimension performance breakdown ──────────────────
+// mode: 'best' = best score per assignment (default) | 'latest' = most recent submission per assignment
 const _StudentRadarChart = ({ subs = [], totalAssignments = 0 }) => {
     const canvasRef = React.useRef(null);
     const chartRef  = React.useRef(null);
+    const [mode, setMode] = React.useState('best'); // 'best' | 'latest'
 
     const metrics = React.useMemo(() => {
         if (!subs.length) return null;
-        // 1. คะแนนเฉลี่ย: avg score across all submissions
-        const avgScore = Math.round(subs.reduce((s, x) => s + (x.score || 0), 0) / subs.length);
-        // 2. อัตราผ่าน: % submissions with score >= 60
-        const passRate = Math.round(subs.filter(s => (s.score || 0) >= 60).length / subs.length * 100);
+
+        // Build per-assignment maps
+        const byAssign = {};
+        subs.forEach(s => {
+            if (!byAssign[s.assignmentId]) byAssign[s.assignmentId] = [];
+            byAssign[s.assignmentId].push(s);
+        });
+        const unique = Object.keys(byAssign).length;
+
+        // Pick one representative score per assignment based on mode
+        const repScores = Object.values(byAssign).map(arr => {
+            if (mode === 'best') return Math.max(...arr.map(s => s.score || 0));
+            // latest: sort by submittedAt desc, take first
+            const sorted = [...arr].sort((a, b) => (b.submittedAt?.seconds||0) - (a.submittedAt?.seconds||0));
+            return sorted[0]?.score || 0;
+        });
+
+        // 1. คะแนนเฉลี่ย: avg of representative score per assignment
+        const avgScore = Math.round(repScores.reduce((a, b) => a + b, 0) / repScores.length);
+
+        // 2. อัตราผ่าน: % of assignments where representative score ≥ 60
+        const passRate = Math.round(repScores.filter(s => s >= 60).length / repScores.length * 100);
+
         // 3. ครอบคลุม: unique assignments attempted / total assignments (capped 100)
-        const unique    = new Set(subs.map(s => s.assignmentId)).size;
-        const coverage  = Math.round(Math.min(100, unique / Math.max(1, totalAssignments) * 100));
-        // 4. ความพยายาม: avg attempts per problem (4 attempts → 100)
+        const coverage = Math.round(Math.min(100, unique / Math.max(1, totalAssignments) * 100));
+
+        // 4. ความพยายาม: avg attempts per problem — more tries = more persistent (cap 5 tries = 100)
         const avgAttempts = subs.length / Math.max(1, unique);
-        const effort    = Math.round(Math.min(100, avgAttempts / 4 * 100));
-        // 5. พัฒนาการ: trend — later submissions vs earlier (50 = no change, >50 = improving)
-        const sorted    = [...subs].sort((a, b) => (a.submittedAt?.seconds||0) - (b.submittedAt?.seconds||0));
-        const mid       = Math.ceil(sorted.length / 2);
-        const earlyAvg  = sorted.slice(0, mid).reduce((s, x) => s + (x.score||0), 0) / mid;
-        const lateAvg   = sorted.length > mid
-            ? sorted.slice(mid).reduce((s, x) => s + (x.score||0), 0) / (sorted.length - mid)
-            : earlyAvg;
-        const progress  = Math.round(Math.min(100, Math.max(0, 50 + (lateAvg - earlyAvg))));
-        return { avgScore, passRate, coverage, effort, progress };
-    }, [subs, totalAssignments]);
+        const effort = Math.round(Math.min(100, avgAttempts / 5 * 100));
+
+        // 5. พัฒนาการ: first attempt avg vs best score avg per assignment
+        //    shows how much the student improved beyond their initial attempt
+        const improvements = Object.values(byAssign).map(arr => {
+            const timeSorted = [...arr].sort((a, b) => (a.submittedAt?.seconds||0) - (b.submittedAt?.seconds||0));
+            const first = timeSorted[0]?.score || 0;
+            const best  = Math.max(...arr.map(s => s.score || 0));
+            return best - first; // positive = improved, 0 = first try was best
+        });
+        const avgImprovement = improvements.reduce((a, b) => a + b, 0) / improvements.length;
+        // Scale: 0 improvement = 50, +50 pts improvement = 100, no improvement possible from 100 = 50
+        const progress = Math.round(Math.min(100, Math.max(0, 50 + avgImprovement)));
+
+        return { avgScore, passRate, coverage, effort, progress, unique, totalSubs: subs.length };
+    }, [subs, totalAssignments, mode]);
 
     React.useEffect(() => {
         if (!metrics || !canvasRef.current) return;
@@ -1468,23 +1494,52 @@ const _StudentRadarChart = ({ subs = [], totalAssignments = 0 }) => {
     if (!metrics) return null;
 
     const dims = [
-        { label: 'คะแนนเฉลี่ย',  val: metrics.avgScore,  icon: '📊', color: '#3b82f6', tip: 'เฉลี่ยคะแนน % ทุกการส่ง' },
-        { label: 'อัตราผ่าน',    val: metrics.passRate,  icon: '✅', color: '#16a34a', tip: '% ส่งที่ได้ ≥60%' },
-        { label: 'ครอบคลุม',     val: metrics.coverage,  icon: '🗺️', color: '#8b5cf6', tip: 'โจทย์ที่ลองทำ vs ทั้งหมดในวิชา' },
-        { label: 'ความพยายาม',   val: metrics.effort,    icon: '💪', color: '#f97316', tip: 'จำนวนครั้งส่งเฉลี่ยต่อโจทย์ (4 ครั้ง = 100)' },
-        { label: 'พัฒนาการ',     val: metrics.progress,  icon: '📈', color: '#ec4899', tip: 'แนวโน้มคะแนนช่วงหลัง vs ช่วงแรก (50 = คงที่)' },
+        { label: 'คะแนนเฉลี่ย', val: metrics.avgScore, icon: '📊', color: '#3b82f6',
+          tip: mode === 'best' ? `เฉลี่ยคะแนนสูงสุดของแต่ละโจทย์ (${metrics.unique} โจทย์)` : `เฉลี่ยคะแนนล่าสุดของแต่ละโจทย์ (${metrics.unique} โจทย์)` },
+        { label: 'อัตราผ่าน',   val: metrics.passRate,  icon: '✅', color: '#16a34a',
+          tip: mode === 'best' ? '% โจทย์ที่คะแนนสูงสุด ≥ 60%' : '% โจทย์ที่คะแนนล่าสุด ≥ 60%' },
+        { label: 'ครอบคลุม',    val: metrics.coverage,  icon: '🗺️', color: '#8b5cf6',
+          tip: `โจทย์ที่ลองทำ ${metrics.unique} / ทั้งหมด ${totalAssignments} โจทย์` },
+        { label: 'ความพยายาม',  val: metrics.effort,    icon: '💪', color: '#f97316',
+          tip: `เฉลี่ย ${(metrics.totalSubs / Math.max(1, metrics.unique)).toFixed(1)} ครั้ง/โจทย์ (5 ครั้ง = 100%)` },
+        { label: 'พัฒนาการ',    val: metrics.progress,  icon: '📈', color: '#ec4899',
+          tip: 'เปรียบเทียบคะแนนสูงสุด vs ครั้งแรกที่ส่ง (50 = ไม่เปลี่ยน, >50 = ดีขึ้น)' },
     ];
+
+    const modeLabel = mode === 'best' ? '🏆 คะแนนสูงสุด/โจทย์' : '🕐 คะแนนล่าสุด/โจทย์';
 
     return (
         <div className="mb-6 rounded-2xl p-5" style={{ background: '#fdf2f8', border: '1px solid #fce7f3' }}>
-            <h3 className="font-bold text-gray-700 mb-4">📊 Radar Chart 5 มิติ</h3>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h3 className="font-bold text-gray-700">📊 Radar Chart 5 มิติ</h3>
+                {/* Mode toggle */}
+                <div className="flex gap-1 bg-white rounded-xl p-1 border border-pink-100">
+                    {[['best','🏆 คะแนนสูงสุด'],['latest','🕐 คะแนนล่าสุด']].map(([val, label]) => (
+                        <button key={val} onClick={() => setMode(val)}
+                            style={{
+                                padding: '4px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                                fontFamily: "'Prompt',sans-serif", fontSize: 12, fontWeight: 600,
+                                background: mode === val ? 'linear-gradient(135deg,#be185d,#9d174d)' : 'transparent',
+                                color: mode === val ? '#fff' : '#9ca3af',
+                                transition: 'all .15s',
+                            }}>
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+                {mode === 'best'
+                    ? '⭐ คำนวณจากคะแนนสูงสุดที่เคยทำได้ของแต่ละโจทย์ — สะท้อนศักยภาพจริงของนักเรียน'
+                    : '🕐 คำนวณจากการส่งล่าสุดของแต่ละโจทย์ — สะท้อนสถานะปัจจุบัน'}
+            </p>
             <div className="grid sm:grid-cols-2 gap-6 items-center">
                 <div style={{ maxWidth: 260, margin: '0 auto' }}>
                     <canvas ref={canvasRef} />
                 </div>
                 <div className="space-y-3">
                     {dims.map(d => (
-                        <div key={d.label} title={d.tip}>
+                        <div key={d.label} title={d.tip} style={{ cursor: 'help' }}>
                             <div className="flex justify-between text-sm mb-1">
                                 <span className="text-gray-600">{d.icon} {d.label}</span>
                                 <span className="font-bold" style={{ color: d.color }}>{d.val}%</span>
@@ -1493,11 +1548,9 @@ const _StudentRadarChart = ({ subs = [], totalAssignments = 0 }) => {
                                 <div className="h-full rounded-full transition-all duration-500"
                                     style={{ width: `${d.val}%`, background: d.color }} />
                             </div>
+                            <p className="text-xs text-gray-400 mt-0.5">{d.tip}</p>
                         </div>
                     ))}
-                    <p className="text-xs text-gray-400 mt-2">
-                        * hover ที่ชื่อมิติเพื่อดูคำอธิบาย
-                    </p>
                 </div>
             </div>
         </div>
