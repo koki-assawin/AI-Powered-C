@@ -13,12 +13,20 @@ const MiniGameHub = () => {
     }, [user?.uid]);
 
     React.useEffect(() => {
-        db.collection('courses').orderBy('order').get().then(snap => {
-            const u = [{ id: 'general', name: 'ทั่วไป (C พื้นฐาน)' }];
-            snap.docs.forEach(d => u.push({ id: d.id, name: d.data().title || d.id }));
-            setUnits(u);
-        }).catch(() => {});
-    }, []);
+        if (!userDoc) return;
+        const u = [{ id: 'general', name: '🌐 ทั่วไป (C พื้นฐาน)' }];
+        const enrolledIds = userDoc.enrolledCourses || [];
+        if (enrolledIds.length === 0) { setUnits(u); return; }
+        // Load only enrolled courses — no orderBy needed
+        Promise.all(enrolledIds.map(id => db.collection('courses').doc(id).get()))
+            .then(snaps => {
+                snaps.forEach(s => {
+                    if (s.exists) u.push({ id: s.id, name: `📚 ${s.data().title || s.id}` });
+                });
+                setUnits(u);
+            })
+            .catch(() => setUnits(u));
+    }, [userDoc]);
 
     const handlePlay = (gameRoute, gameId) => {
         window._miniGameUnit = selectedUnit === 'general' ? null : selectedUnit;
