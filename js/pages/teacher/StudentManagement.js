@@ -99,6 +99,7 @@ const StudentManagement = () => {
             showMsg('✅ ลงทะเบียนนักเรียนสำเร็จ!');
             setSearch('');
             setSearchResults([]);
+            // Re-fetch from server to get the new enrollment doc id
             loadEnrolled();
         } catch (err) {
             showMsg('❌ เกิดข้อผิดพลาด: ' + err.message);
@@ -114,15 +115,24 @@ const StudentManagement = () => {
         if (!confirm(`ยืนยันการยกเลิกลงทะเบียน "${name}" ออกจากวิชานี้?`)) return;
         setUnenrollingId(enrollment.studentId);
         try {
-            await db.collection('enrollments').doc(enrollment.id).delete();
+            // Delete ALL enrollment docs for this student+course (handles duplicates)
+            const allSnap = await db.collection('enrollments')
+                .where('courseId', '==', selectedCourseId)
+                .where('studentId', '==', enrollment.studentId)
+                .get({ source: 'server' });
+            const batch = db.batch();
+            allSnap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+
             await db.collection('users').doc(enrollment.studentId).update({
                 enrolledCourses: arrayRemove(selectedCourseId),
             });
             await db.collection('courses').doc(selectedCourseId).update({
-                enrollmentCount: increment(-1),
+                enrollmentCount: increment(-Math.max(1, allSnap.size)),
             });
             showMsg('✅ ยกเลิกลงทะเบียนสำเร็จ');
-            loadEnrolled();
+            // Update state directly to avoid Firestore cache returning stale data
+            setEnrollments(prev => prev.filter(e => e.studentId !== enrollment.studentId));
         } catch (err) {
             showMsg('❌ เกิดข้อผิดพลาด: ' + err.message);
         } finally {
