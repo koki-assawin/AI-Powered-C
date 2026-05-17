@@ -2,16 +2,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can read/write their own document
+    // Users can read/write their own document; admin can write any; teachers can update enrolledCourses only
     match /users/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Admin can write users (role changes)
-    match /users/{userId} {
       allow write: if request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow update: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      ) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enrolledCourses']);
     }
 
     // Courses — authenticated users can read; teachers/admins can write
