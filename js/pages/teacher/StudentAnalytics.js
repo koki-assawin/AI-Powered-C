@@ -838,6 +838,14 @@ const StudentAnalytics = () => {
                                                     )}
                                                 </div>
 
+                                                {/* ── Radar Chart 5 มิติ ── */}
+                                                {studentSubs.length > 0 && (
+                                                    <_StudentRadarChart
+                                                        subs={studentSubs}
+                                                        totalAssignments={assignments.length}
+                                                    />
+                                                )}
+
                                                 {/* AI Report Card */}
                                                 {reportLoading && (
                                                     <div className="text-center py-10 text-gray-400">
@@ -1398,6 +1406,100 @@ const StudentAnalytics = () => {
                     </>
                 )}
             </main>
+        </div>
+    );
+};
+
+// ── Student Radar Chart — 5-dimension performance breakdown ──────────────────
+const _StudentRadarChart = ({ subs = [], totalAssignments = 0 }) => {
+    const canvasRef = React.useRef(null);
+    const chartRef  = React.useRef(null);
+
+    const metrics = React.useMemo(() => {
+        if (!subs.length) return null;
+        // 1. คะแนนเฉลี่ย: avg score across all submissions
+        const avgScore = Math.round(subs.reduce((s, x) => s + (x.score || 0), 0) / subs.length);
+        // 2. อัตราผ่าน: % submissions with score >= 60
+        const passRate = Math.round(subs.filter(s => (s.score || 0) >= 60).length / subs.length * 100);
+        // 3. ครอบคลุม: unique assignments attempted / total assignments (capped 100)
+        const unique    = new Set(subs.map(s => s.assignmentId)).size;
+        const coverage  = Math.round(Math.min(100, unique / Math.max(1, totalAssignments) * 100));
+        // 4. ความพยายาม: avg attempts per problem (4 attempts → 100)
+        const avgAttempts = subs.length / Math.max(1, unique);
+        const effort    = Math.round(Math.min(100, avgAttempts / 4 * 100));
+        // 5. พัฒนาการ: trend — later submissions vs earlier (50 = no change, >50 = improving)
+        const sorted    = [...subs].sort((a, b) => (a.submittedAt?.seconds||0) - (b.submittedAt?.seconds||0));
+        const mid       = Math.ceil(sorted.length / 2);
+        const earlyAvg  = sorted.slice(0, mid).reduce((s, x) => s + (x.score||0), 0) / mid;
+        const lateAvg   = sorted.length > mid
+            ? sorted.slice(mid).reduce((s, x) => s + (x.score||0), 0) / (sorted.length - mid)
+            : earlyAvg;
+        const progress  = Math.round(Math.min(100, Math.max(0, 50 + (lateAvg - earlyAvg))));
+        return { avgScore, passRate, coverage, effort, progress };
+    }, [subs, totalAssignments]);
+
+    React.useEffect(() => {
+        if (!metrics || !canvasRef.current) return;
+        if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; }
+        const ctx = canvasRef.current.getContext('2d');
+        chartRef.current = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['คะแนนเฉลี่ย', 'อัตราผ่าน', 'ครอบคลุม', 'ความพยายาม', 'พัฒนาการ'],
+                datasets: [{
+                    data: [metrics.avgScore, metrics.passRate, metrics.coverage, metrics.effort, metrics.progress],
+                    backgroundColor: 'rgba(236,72,153,0.15)',
+                    borderColor: '#ec4899',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#ec4899',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#ec4899',
+                }],
+            },
+            options: {
+                scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 25, font: { size: 10 } } } },
+                plugins: { legend: { display: false } },
+            },
+        });
+        return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
+    }, [metrics]);
+
+    if (!metrics) return null;
+
+    const dims = [
+        { label: 'คะแนนเฉลี่ย',  val: metrics.avgScore,  icon: '📊', color: '#3b82f6', tip: 'เฉลี่ยคะแนน % ทุกการส่ง' },
+        { label: 'อัตราผ่าน',    val: metrics.passRate,  icon: '✅', color: '#16a34a', tip: '% ส่งที่ได้ ≥60%' },
+        { label: 'ครอบคลุม',     val: metrics.coverage,  icon: '🗺️', color: '#8b5cf6', tip: 'โจทย์ที่ลองทำ vs ทั้งหมดในวิชา' },
+        { label: 'ความพยายาม',   val: metrics.effort,    icon: '💪', color: '#f97316', tip: 'จำนวนครั้งส่งเฉลี่ยต่อโจทย์ (4 ครั้ง = 100)' },
+        { label: 'พัฒนาการ',     val: metrics.progress,  icon: '📈', color: '#ec4899', tip: 'แนวโน้มคะแนนช่วงหลัง vs ช่วงแรก (50 = คงที่)' },
+    ];
+
+    return (
+        <div className="mb-6 rounded-2xl p-5" style={{ background: '#fdf2f8', border: '1px solid #fce7f3' }}>
+            <h3 className="font-bold text-gray-700 mb-4">📊 Radar Chart 5 มิติ</h3>
+            <div className="grid sm:grid-cols-2 gap-6 items-center">
+                <div style={{ maxWidth: 260, margin: '0 auto' }}>
+                    <canvas ref={canvasRef} />
+                </div>
+                <div className="space-y-3">
+                    {dims.map(d => (
+                        <div key={d.label} title={d.tip}>
+                            <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-600">{d.icon} {d.label}</span>
+                                <span className="font-bold" style={{ color: d.color }}>{d.val}%</span>
+                            </div>
+                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-500"
+                                    style={{ width: `${d.val}%`, background: d.color }} />
+                            </div>
+                        </div>
+                    ))}
+                    <p className="text-xs text-gray-400 mt-2">
+                        * hover ที่ชื่อมิติเพื่อดูคำอธิบาย
+                    </p>
+                </div>
+            </div>
         </div>
     );
 };
