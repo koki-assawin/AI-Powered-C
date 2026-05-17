@@ -44,15 +44,16 @@ async function getMindsetCoach(uid, assignmentTitle, failCount) {
 }
 
 // ── 2. SOCRATIC COACH (Explore) ───────────────────────────────────────────────
-// 3-level progressive hints — replaces/upgrades getScaffoldingHint
+// 4-level progressive hints: Question → Concept → Scaffold → Error Pattern
 async function getSocraticHint(uid, assignmentTitle, assignmentDescription, code, language, hintLevel) {
     const levels = {
-        1: `ตั้งคำถามกระตุ้นให้คิด อย่าบอกคำตอบ เช่น "ลองคิดดูว่า loop ควรเริ่มจากไหน?"`,
-        2: `อธิบายแนวคิดหลักที่เกี่ยวข้องกับโจทย์ พร้อมตัวอย่างคล้ายกันแต่ไม่ใช่โจทย์นี้`,
-        3: `ให้ pseudocode หรือโครงสร้างคำตอบบางส่วน แต่ยังไม่ใช่โค้ดเต็ม`,
+        1: `ตั้งคำถามกระตุ้นความคิด (Socratic) อย่างน้อย 2 คำถาม ห้ามบอกคำตอบหรือให้โค้ดเด็ดขาด เช่น "ลองคิดดูว่า loop ควรหยุดเมื่อไหร่?" "อะไรจะเกิดขึ้นถ้า input เป็น 0?"`,
+        2: `อธิบาย concept หลักที่จำเป็นสำหรับโจทย์นี้ พร้อมตัวอย่างที่คล้ายแต่ไม่ใช่โจทย์นี้เลย ห้ามบอกคำตอบโจทย์`,
+        3: `ให้ pseudocode หรือโครงสร้าง algorithm ทีละขั้นตอน เช่น "1.รับค่า → 2.วนซ้ำ → 3.เก็บผลลัพธ์" แต่ยังไม่ใช่โค้ดสมบูรณ์`,
+        4: `วิเคราะห์โค้ดของนักเรียนที่ส่งมา บอก error pattern ที่พบ (เช่น off-by-one, wrong condition, missing initialization) อธิบายว่าตรรกะผิดพลาดตรงไหนและควรคิดอย่างไร ไม่ต้องแก้โค้ดให้ทั้งหมด`,
     };
 
-    const prompt = `คุณคือ Socratic Coach สอนโปรแกรมภาษา ${language} แบบ Zone of Proximal Development
+    const prompt = `คุณคือ Socratic Coach ผู้เชี่ยวชาญ Zone of Proximal Development สอนโปรแกรมภาษา ${language}
 
 โจทย์: "${assignmentTitle}"
 รายละเอียด: ${(assignmentDescription || '').slice(0, 300)}
@@ -61,9 +62,9 @@ async function getSocraticHint(uid, assignmentTitle, assignmentDescription, code
 ${(code || '').slice(0, 800)}
 \`\`\`
 
-ระดับ Hint ${hintLevel}/3: ${levels[hintLevel] || levels[1]}
+ระดับ Hint ${hintLevel}/4: ${levels[hintLevel] || levels[1]}
 
-ตอบเป็นภาษาไทย ไม่เกิน 150 คำ ห้ามให้โค้ดสมบูรณ์`;
+ตอบเป็นภาษาไทย ไม่เกิน 180 คำ ${hintLevel < 3 ? 'ห้ามให้โค้ดสมบูรณ์' : ''}`;
 
     try {
         const response = await callGeminiApi(prompt);
@@ -71,8 +72,74 @@ ${(code || '').slice(0, 800)}
             `title: ${assignmentTitle}, level: ${hintLevel}`, response);
         return response;
     } catch (err) {
-        return `💡 Hint ระดับ ${hintLevel}: ลองแบ่งปัญหาออกเป็นส่วนเล็กๆ แล้วแก้ทีละส่วน`;
+        const fallbacks = {
+            1: `💡 ลองคิดดูว่า: โปรแกรมควรหยุดทำงานเมื่อไหร่? ตัวแปรใดที่เปลี่ยนแปลงในแต่ละรอบ?`,
+            2: `💡 แนวคิดที่เกี่ยวข้อง: แบ่งปัญหาออกเป็นขั้นตอนย่อยๆ แล้วแก้ทีละส่วน`,
+            3: `💡 โครงสร้าง: 1.รับ input → 2.ประมวลผล (loop/condition) → 3.แสดงผล`,
+            4: `💡 ตรวจสอบ: เงื่อนไข loop, การ initialize ตัวแปร, และ format ผลลัพธ์`,
+        };
+        return fallbacks[hintLevel] || fallbacks[1];
     }
+}
+
+// ── PREDICTIVE RISK ALERT ─────────────────────────────────────────────────────
+// Analyzes submission patterns to proactively warn students at risk
+async function getPredictiveRiskAlert(uid) {
+    try {
+        const snap = await db.collection('submissions')
+            .where('studentId', '==', uid)
+            .orderBy('submittedAt', 'desc')
+            .limit(15)
+            .get();
+        const subs = snap.docs.map(d => d.data());
+        if (subs.length < 3) return null;
+
+        const last3Scores = subs.slice(0, 3).map(s => s.score || 0);
+        const last5Scores = subs.slice(0, 5).map(s => s.score || 0);
+        const avg5 = last5Scores.reduce((a, b) => a + b, 0) / last5Scores.length;
+        const allFailed3 = last3Scores.every(s => s < 60);
+        const decliningTrend = last3Scores[0] < last3Scores[last3Scores.length - 1] - 15;
+
+        // Count repeated failures on same assignment
+        const assignCounts = {};
+        subs.forEach(s => {
+            if ((s.score || 0) < 60 && s.assignmentId) {
+                assignCounts[s.assignmentId] = (assignCounts[s.assignmentId] || 0) + 1;
+            }
+        });
+        const repeatedFail = Object.values(assignCounts).some(c => c >= 3);
+
+        let riskLevel = 'low';
+        if (allFailed3 || repeatedFail) riskLevel = 'high';
+        else if (avg5 < 50 || decliningTrend) riskLevel = 'medium';
+
+        if (riskLevel === 'low') return null;
+
+        const prompt = `คุณคือ Predictive AI Coach วิเคราะห์ความเสี่ยงการเรียนของนักเรียน
+
+ข้อมูล:
+- คะแนน 3 ครั้งล่าสุด: ${last3Scores.join(', ')}%
+- คะแนนเฉลี่ย 5 ครั้ง: ${Math.round(avg5)}%
+- ระดับความเสี่ยง: ${riskLevel === 'high' ? 'สูง' : 'ปานกลาง'}
+- ล้มเหลวซ้ำข้อเดิม: ${repeatedFail ? 'ใช่' : 'ไม่'}
+
+สร้าง alert สั้นๆ ภาษาไทย (2-3 ประโยค) ที่:
+1. บอกสถานการณ์ตรงๆ ไม่ตัดสิน
+2. แนะนำ 1-2 action ที่ทำได้ทันที (เช่น ลองใช้ Hint ระดับ 2, เล่น Quiz Blitz, ขอให้ครูอธิบาย)
+ใช้ emoji 1 ตัว`;
+
+        try {
+            const response = await callGeminiApi(prompt);
+            await _logCoachInteraction(uid, 'predictive', `risk_${riskLevel}`, null,
+                `avg5: ${Math.round(avg5)}, allFailed3: ${allFailed3}`, response);
+            return { riskLevel, message: response, avg5: Math.round(avg5), last3Scores };
+        } catch (_) {
+            const msg = riskLevel === 'high'
+                ? `⚠️ คะแนน 3 ครั้งล่าสุดต่ำกว่า 60% ลองใช้ Hint ระดับ 2-3 หรือขอให้ครูอธิบายก่อนส่งงานใหม่`
+                : `📉 คะแนนมีแนวโน้มลดลง ลองเล่น Quiz Blitz ทบทวน concept ก่อนทำโจทย์ต่อ`;
+            return { riskLevel, message: msg, avg5: Math.round(avg5), last3Scores };
+        }
+    } catch (_) { return null; }
 }
 
 // ── 3. ANALYTICS COACH (Explain) ─────────────────────────────────────────────
@@ -203,8 +270,9 @@ async function getChallengeCoach(uid, assignmentTitle, language, score) {
 }
 
 // ── Expose globals ────────────────────────────────────────────────────────────
-window.getMindsetCoach    = getMindsetCoach;
-window.getSocraticHint    = getSocraticHint;
-window.getAnalyticsCoach  = getAnalyticsCoach;
-window.getDiagnosticCoach = getDiagnosticCoach;
-window.getChallengeCoach  = getChallengeCoach;
+window.getMindsetCoach       = getMindsetCoach;
+window.getSocraticHint       = getSocraticHint;
+window.getAnalyticsCoach     = getAnalyticsCoach;
+window.getDiagnosticCoach    = getDiagnosticCoach;
+window.getChallengeCoach     = getChallengeCoach;
+window.getPredictiveRiskAlert = getPredictiveRiskAlert;

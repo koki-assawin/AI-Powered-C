@@ -2,9 +2,11 @@
 // Depends on: gamification.js (awardXP), gemini.js (callGeminiApi)
 
 const GAME_XP = {
-    quiz_blitz:   { first: 25, firstCoin: 10, repeat: 10, repeatCoin: 3, perfect: 15 },
-    code_autopsy: { first: 20, firstCoin: 8,  repeat: 8,  repeatCoin: 2, perfect: 10 },
-    bug_hunt:     { first: 30, firstCoin: 12, repeat: 5,  repeatCoin: 1, perfect: 20 },
+    quiz_blitz:     { first: 25, firstCoin: 10, repeat: 10, repeatCoin: 3, perfect: 15 },
+    code_autopsy:   { first: 20, firstCoin: 8,  repeat: 8,  repeatCoin: 2, perfect: 10 },
+    bug_hunt:       { first: 30, firstCoin: 12, repeat: 5,  repeatCoin: 1, perfect: 20 },
+    decision_drill: { first: 25, firstCoin: 10, repeat: 10, repeatCoin: 3, perfect: 15 },
+    loop_lab:       { first: 25, firstCoin: 10, repeat: 10, repeatCoin: 3, perfect: 15 },
 };
 
 // ── Fallback content (used when Gemini fails) ─────────────────────────────────
@@ -134,6 +136,62 @@ Bug ควรเป็น: off-by-one, missing semicolon, wrong operator, uninit
     }
 }
 
+// ── Decision Drill content (if/else/switch/condition logic) ───────────────────
+
+function _fallbackDecisionDrill() {
+    return [
+        { question: 'ถ้า x=5 เงื่อนไข if(x > 3 && x < 10) เป็นจริงหรือไม่?', options: ['A. จริง', 'B. เท็จ', 'C. Error', 'D. ไม่แน่นอน'], correct: 0, explanation: '5 > 3 เป็นจริง AND 5 < 10 เป็นจริง ดังนั้นทั้งคู่จริง' },
+        { question: 'ผลของ (3 > 5) || (2 == 2) ในภาษา C คืออะไร?', options: ['A. 0 (false)', 'B. 1 (true)', 'C. Error', 'D. -1'], correct: 1, explanation: '|| (OR) จริงเมื่ออย่างน้อยหนึ่งตัวเป็นจริง 2==2 เป็นจริง' },
+        { question: 'switch(grade) จะเข้า case ใดถ้า grade=\'B\'?\ncase \'A\': ... break;\ncase \'B\': ... break;\ncase \'C\': ... break;', options: ['A. case A', 'B. case B', 'C. case C', 'D. ไม่เข้า case ใด'], correct: 1, explanation: 'switch เปรียบเทียบค่า grade กับแต่ละ case ตรงกับ B' },
+        { question: 'ถ้าไม่ใส่ break ในแต่ละ case ของ switch จะเกิดอะไร?', options: ['A. Error', 'B. รันทุก case ที่ตามมา (fall-through)', 'C. รันแค่ case แรก', 'D. ออกจาก switch ทันที'], correct: 1, explanation: 'ไม่มี break ทำให้ code ไหลต่อไปยัง case ถัดไป เรียกว่า fall-through' },
+        { question: 'ternary operator: int y = (x > 0) ? 1 : -1; ถ้า x=0 ค่าของ y คือ?', options: ['A. 1', 'B. 0', 'C. -1', 'D. Error'], correct: 2, explanation: 'x=0 ทำให้ x>0 เป็นเท็จ จึงได้ค่า -1 (ส่วนหลัง :)' },
+    ];
+}
+
+async function generateDecisionDrillContent(unitId) {
+    const prompt = `สร้างคำถาม Multiple Choice 5 ข้อ เรื่อง Condition/Decision ในภาษา C
+เน้น: if-else, nested if, switch-case, logical operators (&&, ||, !), ternary operator
+ระดับ: เข้าใจตรรกะการตัดสินใจ (ม.4-5)
+ตอบด้วย JSON array เท่านั้น ไม่มีข้อความอื่น:
+[{"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correct":0,"explanation":"..."}]`;
+    try {
+        const raw = await callGeminiApi(prompt);
+        const match = raw.match(/\[[\s\S]*\]/);
+        if (!match) throw new Error('no json');
+        const parsed = JSON.parse(match[0]);
+        if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('empty');
+        return parsed.slice(0, 5);
+    } catch (_) { return _fallbackDecisionDrill(); }
+}
+
+// ── Loop Lab content (for/while/do-while/nested loops) ────────────────────────
+
+function _fallbackLoopLab() {
+    return [
+        { question: 'for(i=0; i<3; i++) พิมพ์ i ทุกรอบ จะพิมพ์ค่าอะไรบ้าง?', options: ['A. 0 1 2', 'B. 1 2 3', 'C. 0 1 2 3', 'D. 1 2'], correct: 0, explanation: 'i เริ่มจาก 0 วนจนถึง 2 (i<3) พิมพ์ 0, 1, 2' },
+        { question: 'while(n > 0) { n--; } ถ้า n=3 เริ่มต้น loop วนกี่รอบ?', options: ['A. 2', 'B. 3', 'C. 4', 'D. ไม่สิ้นสุด'], correct: 1, explanation: 'n=3→2→1→0 วนได้ 3 รอบ จนเงื่อนไขเป็นเท็จ' },
+        { question: 'do-while ต่างจาก while อย่างไร?', options: ['A. do-while รันเร็วกว่า', 'B. do-while ตรวจเงื่อนไขหลังรัน จึงรันอย่างน้อย 1 ครั้ง', 'C. do-while ใช้ได้เฉพาะกับตัวเลข', 'D. ไม่ต่างกัน'], correct: 1, explanation: 'do-while ตรวจเงื่อนไขหลังรัน body แม้เงื่อนไขเท็จก็รัน 1 ครั้ง' },
+        { question: 'for(i=1;i<=3;i++) { for(j=1;j<=2;j++) { count++; } } count มีค่าเท่าไหร่?', options: ['A. 5', 'B. 6', 'C. 3', 'D. 9'], correct: 1, explanation: 'nested loop: 3 × 2 = 6 รอบ' },
+        { question: 'break ใน loop ทำอะไร?', options: ['A. หยุดรอบปัจจุบันและข้ามไปรอบถัดไป', 'B. ออกจาก loop ทันที', 'C. รีเซ็ตตัวแปร loop', 'D. ข้าม loop ทั้งหมด'], correct: 1, explanation: 'break ออกจาก loop ทันที ส่วน continue ข้ามไปรอบถัดไป' },
+    ];
+}
+
+async function generateLoopLabContent(unitId) {
+    const prompt = `สร้างคำถาม Multiple Choice 5 ข้อ เรื่อง Loop ในภาษา C
+เน้น: for loop, while, do-while, nested loop, break/continue, ติดตาม trace ค่าตัวแปร
+ระดับ: ให้ดูโค้ดแล้วตอบว่าผลลัพธ์หรือค่าตัวแปรเป็นอะไร (ม.4-5)
+ตอบด้วย JSON array เท่านั้น ไม่มีข้อความอื่น:
+[{"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correct":0,"explanation":"..."}]`;
+    try {
+        const raw = await callGeminiApi(prompt);
+        const match = raw.match(/\[[\s\S]*\]/);
+        if (!match) throw new Error('no json');
+        const parsed = JSON.parse(match[0]);
+        if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('empty');
+        return parsed.slice(0, 5);
+    } catch (_) { return _fallbackLoopLab(); }
+}
+
 // ── Cache-first content fetch ─────────────────────────────────────────────────
 
 async function getOrGenerateDailyContent(gameType, unitId) {
@@ -147,8 +205,10 @@ async function getOrGenerateDailyContent(gameType, unitId) {
             return { id: docId, ...snap.data() };
         }
         let questions;
-        if (gameType === 'quiz_blitz') questions = await generateQuizBlitzContent(unitId);
-        else if (gameType === 'code_autopsy') questions = await generateCodeAutopsyContent(unitId);
+        if (gameType === 'quiz_blitz')     questions = await generateQuizBlitzContent(unitId);
+        else if (gameType === 'code_autopsy')  questions = await generateCodeAutopsyContent(unitId);
+        else if (gameType === 'decision_drill') questions = await generateDecisionDrillContent(unitId);
+        else if (gameType === 'loop_lab')       questions = await generateLoopLabContent(unitId);
         else questions = await generateBugHuntContent(unitId);
 
         const data = {
@@ -161,8 +221,10 @@ async function getOrGenerateDailyContent(gameType, unitId) {
     } catch (err) {
         console.warn('[miniGame] getOrGenerateDailyContent error:', err);
         let questions;
-        if (gameType === 'quiz_blitz') questions = _fallbackQuiz();
-        else if (gameType === 'code_autopsy') questions = _fallbackAutopsy();
+        if (gameType === 'quiz_blitz')     questions = _fallbackQuiz();
+        else if (gameType === 'code_autopsy')  questions = _fallbackAutopsy();
+        else if (gameType === 'decision_drill') questions = _fallbackDecisionDrill();
+        else if (gameType === 'loop_lab')       questions = _fallbackLoopLab();
         else questions = _fallbackBugHunt();
         return { id: 'fallback', gameType, questions, isActive: false };
     }
@@ -257,7 +319,7 @@ async function getTodayGameStats(uid) {
             .where('uid', '==', uid)
             .where('playedAt', '>=', todayStart)
             .get();
-        const stats = { quiz_blitz: null, code_autopsy: null, bug_hunt: null, totalXP: 0 };
+        const stats = { quiz_blitz: null, code_autopsy: null, bug_hunt: null, decision_drill: null, loop_lab: null, totalXP: 0 };
         snap.docs.forEach(d => {
             const data = d.data();
             stats.totalXP += data.xpEarned || 0;

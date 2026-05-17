@@ -20,8 +20,9 @@ const MiniGameHub = () => {
         }).catch(() => {});
     }, []);
 
-    const handlePlay = (gameRoute) => {
+    const handlePlay = (gameRoute, gameId) => {
         window._miniGameUnit = selectedUnit === 'general' ? null : selectedUnit;
+        window._miniGameType = gameId;
         window.location.hash = gameRoute;
     };
 
@@ -37,6 +38,33 @@ const MiniGameHub = () => {
             xpFirst: '25 XP + 10 🪙',
             xpRepeat: '10 XP + 3 🪙',
             statKey: 'quiz_blitz',
+            badge: null,
+        },
+        {
+            id: 'decision_drill',
+            title: 'Decision Drill',
+            icon: '🔀',
+            desc: 'ฝึก if/else, switch-case, ternary\nตัดสินใจตามเงื่อนไขให้ถูกต้อง!',
+            route: '#/student/games/quiz',
+            color: '#8b5cf6',
+            bg: 'linear-gradient(135deg, #ede9fe, #ddd6fe)',
+            xpFirst: '25 XP + 10 🪙',
+            xpRepeat: '10 XP + 3 🪙',
+            statKey: 'decision_drill',
+            badge: 'Mastery',
+        },
+        {
+            id: 'loop_lab',
+            title: 'Loop Lab',
+            icon: '🔁',
+            desc: 'ฝึก for/while/do-while\nติดตาม trace ค่าตัวแปรในลูป!',
+            route: '#/student/games/quiz',
+            color: '#0891b2',
+            bg: 'linear-gradient(135deg, #cffafe, #a5f3fc)',
+            xpFirst: '25 XP + 10 🪙',
+            xpRepeat: '10 XP + 3 🪙',
+            statKey: 'loop_lab',
+            badge: 'Mastery',
         },
         {
             id: 'code_autopsy',
@@ -49,6 +77,7 @@ const MiniGameHub = () => {
             xpFirst: '20 XP + 8 🪙',
             xpRepeat: '8 XP + 2 🪙',
             statKey: 'code_autopsy',
+            badge: null,
         },
         {
             id: 'bug_hunt',
@@ -61,6 +90,7 @@ const MiniGameHub = () => {
             xpFirst: '30 XP + 12 🪙',
             xpRepeat: '5 XP + 1 🪙',
             statKey: 'bug_hunt',
+            badge: null,
         },
     ];
 
@@ -120,7 +150,7 @@ const MiniGameHub = () => {
                 </div>
 
                 {/* Game cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
                     {GAMES.map(game => {
                         const stat = todayStats?.[game.statKey];
                         const playedToday = !!stat;
@@ -170,8 +200,15 @@ const MiniGameHub = () => {
                                         </div>
                                     )}
 
+                                    {game.badge && (
+                                        <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                                            <span style={{ fontSize: 10, fontWeight: 700, background: '#f3e8ff', color: '#7c3aed', borderRadius: 20, padding: '2px 10px' }}>
+                                                🎯 {game.badge}
+                                            </span>
+                                        </div>
+                                    )}
                                     <button
-                                        onClick={() => handlePlay(game.route)}
+                                        onClick={() => handlePlay(game.route, game.id)}
                                         style={{
                                             width: '100%', padding: '10px', borderRadius: 12,
                                             border: 'none', cursor: 'pointer',

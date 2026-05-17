@@ -60,6 +60,11 @@ const CodingWorkspace = () => {
     const [collapsedGroups, setCollapsedGroups] = React.useState({});
     const fileInputRef = React.useRef(null);
 
+    // Process analytics (research data)
+    const runCountRef = React.useRef(0);
+    const [runCount, setRunCount] = React.useState(0);
+    const sessionStartRef = React.useRef(Date.now());
+
     const isExamMode = currentAssignment?.assignmentType === 'exam';
 
     React.useEffect(() => { if (courseId) loadCourse(); }, [courseId]);
@@ -156,7 +161,7 @@ const CodingWorkspace = () => {
 
     const handleHint = async () => {
         if (!currentAssignment) return;
-        const nextLevel = Math.min(hintLevel + 1, 3);
+        const nextLevel = Math.min(hintLevel + 1, 4);
         setHintLevel(nextLevel);
         setHintLoading(true);
         setScaffoldHint('');
@@ -196,6 +201,10 @@ const CodingWorkspace = () => {
         setExamFinished(false);
         setTabSwitchCount(0);
         setView('problems');
+        // Reset process analytics for new assignment
+        runCountRef.current = 0;
+        setRunCount(0);
+        sessionStartRef.current = Date.now();
         // Restore draft
         const draft = localStorage.getItem(`draft_${assign.id}`);
         if (draft) setCode(draft);
@@ -223,6 +232,9 @@ const CodingWorkspace = () => {
         setSampleRunning(true);
         setSampleResults(null);
         setView('grade');
+        // Track run count for process analytics
+        runCountRef.current += 1;
+        setRunCount(runCountRef.current);
         try {
             const results = await runSampleTests(code, selectedLanguage, currentAssignment.id);
             setSampleResults(results);
@@ -250,6 +262,18 @@ const CodingWorkspace = () => {
                 userDoc.id, currentAssignment.id, courseId, code, selectedLanguage
             );
             setGradeResult(result);
+
+            // ── Save process analytics (non-blocking) ────────────────────────
+            if (result.submissionId) {
+                db.collection('submissions').doc(result.submissionId).update({
+                    runCount: runCountRef.current,
+                    timeSpentSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
+                    hintLevelUsed: hintLevel,
+                }).catch(() => {});
+                runCountRef.current = 0;
+                setRunCount(0);
+                sessionStartRef.current = Date.now();
+            }
 
             // ── Non-blocking gamification hook ───────────────────────────────
             (async () => {
@@ -956,16 +980,18 @@ const CodingWorkspace = () => {
                                                             💡 AI Scaffolding (คำใบ้)
                                                         </span>
                                                         <span className="text-xs text-gray-400">
-                                                            {hintLevel > 0 ? `ใบ้แล้ว ${hintLevel}/3 ระดับ` : 'ยังไม่ได้ขอใบ้'}
+                                                            {hintLevel > 0 ? `ใบ้แล้ว ${hintLevel}/4 ระดับ` : 'ยังไม่ได้ขอใบ้'}
+                                                            {runCount > 0 && <span style={{ marginLeft: 8, color: '#60a5fa' }}>▶ Run {runCount}×</span>}
                                                         </span>
                                                     </div>
 
                                                     {/* Hint level progress */}
                                                     <div className="flex gap-2 mb-3">
                                                         {[
-                                                            { l: 1, label: '🔍 ชี้จุดผิด', desc: 'บอกว่าผิดตรงไหน' },
-                                                            { l: 2, label: '💡 แนวคิด', desc: 'อธิบาย Algorithm' },
-                                                            { l: 3, label: '📝 ตัวอย่าง', desc: 'Code snippet' },
+                                                            { l: 1, label: '❓ คำถาม', desc: 'ตั้งคำถามกระตุ้นให้คิด' },
+                                                            { l: 2, label: '📖 Concept', desc: 'อธิบาย Concept หลัก' },
+                                                            { l: 3, label: '🗺 Scaffold', desc: 'โครงสร้าง Pseudocode' },
+                                                            { l: 4, label: '🔍 Error', desc: 'วิเคราะห์ Error Pattern' },
                                                         ].map(h => (
                                                             <button key={h.l}
                                                                 onClick={hintLevel < h.l ? handleHint : undefined}
@@ -1006,7 +1032,7 @@ const CodingWorkspace = () => {
                                                                                fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>
                                                                     ระดับ {hintLevel}
                                                                 </span>
-                                                                {hintLevel < 3 && (
+                                                                {hintLevel < 4 && (
                                                                     <button onClick={handleHint}
                                                                         style={{ fontSize: '11px', color: '#ec4899', background: 'none',
                                                                                  border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>

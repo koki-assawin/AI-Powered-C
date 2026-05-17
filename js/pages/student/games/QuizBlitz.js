@@ -1,6 +1,20 @@
-// js/pages/student/games/QuizBlitz.js — Phase 3: 5 MCQ Timed Quiz
+// js/pages/student/games/QuizBlitz.js — Phase 3: 5 MCQ Timed Quiz (supports quiz_blitz / decision_drill / loop_lab)
+
+const _QUIZ_GAME_META = {
+    quiz_blitz:     { title: 'Quiz Blitz',     icon: '⚡', color: '#f59e0b', subtitle: 'ความรู้ C ทั่วไป' },
+    decision_drill: { title: 'Decision Drill', icon: '🔀', color: '#8b5cf6', subtitle: 'Condition & Decision' },
+    loop_lab:       { title: 'Loop Lab',       icon: '🔁', color: '#0891b2', subtitle: 'Loop & Iteration' },
+};
 
 const QuizBlitz = () => {
+    // Read game type once at mount; clear to avoid stale state on back-navigate
+    const [QUIZ_GAME_TYPE] = React.useState(() => {
+        const t = window._miniGameType || 'quiz_blitz';
+        window._miniGameType = null;
+        return t;
+    });
+    const META = _QUIZ_GAME_META[QUIZ_GAME_TYPE] || _QUIZ_GAME_META.quiz_blitz;
+
     const { user, userDoc } = useAuth();
     const [phase, setPhase] = React.useState('loading'); // loading | playing | done
     const [content, setContent] = React.useState(null);
@@ -18,7 +32,7 @@ const QuizBlitz = () => {
     React.useEffect(() => {
         if (!user?.uid) return;
         const unit = window._miniGameUnit || null;
-        getOrGenerateDailyContent('quiz_blitz', unit).then(c => {
+        getOrGenerateDailyContent(QUIZ_GAME_TYPE, unit).then(c => {
             setContent(c);
             setPhase('playing');
         }).catch(() => setPhase('error'));
@@ -63,14 +77,14 @@ const QuizBlitz = () => {
         const score = Math.round((correct / total) * 100);
         const elapsed = Math.round((Date.now() - startTime) / 1000);
         const gameResult = await recordGameSession(user.uid, {
-            gameType: 'quiz_blitz', contentId: content.id,
+            gameType: QUIZ_GAME_TYPE, contentId: content.id,
             unitId: window._miniGameUnit || 'general',
             score, correctAnswers: correct, totalQuestions: total,
             timeSpentSeconds: elapsed, answers: allAnswers,
         });
         if (typeof checkAndAwardAchievements === 'function') {
             checkAndAwardAchievements(user.uid, {
-                event: 'minigame', gameType: 'quiz_blitz',
+                event: 'minigame', gameType: QUIZ_GAME_TYPE,
                 score, isPerfect: gameResult.isPerfect,
             }).catch(() => {});
         }
@@ -82,8 +96,8 @@ const QuizBlitz = () => {
     if (phase === 'loading') return (
         <div style={{ minHeight: '100vh', background: '#FFF5F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Prompt',sans-serif" }}>
             <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>⚡</div>
-                <p style={{ color: '#be185d', fontWeight: 600 }}>กำลังโหลดคำถาม...</p>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>{META.icon}</div>
+                <p style={{ color: META.color, fontWeight: 600 }}>กำลังโหลด {META.title}...</p>
                 <p style={{ color: '#9ca3af', fontSize: 12 }}>AI กำลังสร้างเนื้อหาเกม</p>
             </div>
         </div>
@@ -107,8 +121,8 @@ const QuizBlitz = () => {
             <div style={{ minHeight: '100vh', background: '#FFF5F7', fontFamily: "'Prompt',sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ background: 'white', borderRadius: 24, padding: '36px 32px', maxWidth: 420, width: '90%', textAlign: 'center', boxShadow: '0 8px 40px rgba(236,72,153,.12)' }}>
                     <div style={{ fontSize: 56, marginBottom: 8 }}>{emoji}</div>
-                    <h2 style={{ color: '#be185d', fontWeight: 700, margin: '0 0 4px', fontSize: 22 }}>จบแล้ว!</h2>
-                    <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>Quiz Blitz</p>
+                    <h2 style={{ color: META.color, fontWeight: 700, margin: '0 0 4px', fontSize: 22 }}>จบแล้ว!</h2>
+                    <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>{META.icon} {META.title}</p>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
                         {[
@@ -160,7 +174,7 @@ const QuizBlitz = () => {
 
     return (
         <div style={{ minHeight: '100vh', background: '#FFF5F7', fontFamily: "'Prompt',sans-serif" }}>
-            <Navbar title="Quiz Blitz ⚡" subtitle={`ข้อที่ ${currentQ + 1}/${content.questions.length}`} />
+            <Navbar title={`${META.icon} ${META.title}`} subtitle={`${META.subtitle} · ข้อที่ ${currentQ + 1}/${content.questions.length}`} />
 
             <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
 

@@ -17,6 +17,10 @@ const StudentDashboard = () => {
     const [analyticsResult, setAnalyticsResult] = React.useState('');
     const [analyticsLoading, setAnalyticsLoading] = React.useState(false);
 
+    // Risk & Mastery state
+    const [riskAlert, setRiskAlert] = React.useState(null);
+    const [allSubmissions, setAllSubmissions] = React.useState([]);
+
     React.useEffect(() => {
         if (!userDoc) return;
         loadData();
@@ -81,13 +85,43 @@ const StudentDashboard = () => {
                 setCourses(courseSnaps.filter(s => s.exists).map(s => ({ id: s.id, ...s.data() })));
             }
 
-            // Load recent submissions (last 5)
+            // Load recent submissions (last 20 for analytics + risk)
             const subSnap = await db.collection('submissions')
                 .where('studentId', '==', userDoc.id)
                 .orderBy('submittedAt', 'desc')
-                .limit(5)
+                .limit(20)
                 .get();
-            setRecentSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            const allSubs = subSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setAllSubmissions(allSubs);
+            setRecentSubmissions(allSubs.slice(0, 5));
+
+            // Compute risk alert locally (no API call needed)
+            if (allSubs.length >= 3) {
+                const last3 = allSubs.slice(0, 3).map(s => s.score || 0);
+                const last5 = allSubs.slice(0, 5).map(s => s.score || 0);
+                const avg5 = last5.reduce((a, b) => a + b, 0) / last5.length;
+                const allFailed3 = last3.every(s => s < 60);
+                const decliningTrend = last3[0] < last3[last3.length - 1] - 15;
+                const assignCounts = {};
+                allSubs.forEach(s => {
+                    if ((s.score || 0) < 60 && s.assignmentId) {
+                        assignCounts[s.assignmentId] = (assignCounts[s.assignmentId] || 0) + 1;
+                    }
+                });
+                const repeatedFail = Object.values(assignCounts).some(c => c >= 3);
+                let level = 'low';
+                if (allFailed3 || repeatedFail) level = 'high';
+                else if (avg5 < 50 || decliningTrend) level = 'medium';
+                if (level !== 'low') {
+                    setRiskAlert({ level, avg5: Math.round(avg5), last3, repeatedFail });
+                    // Optionally fetch AI message (non-blocking)
+                    if (typeof getPredictiveRiskAlert === 'function') {
+                        getPredictiveRiskAlert(userDoc.id).then(r => {
+                            if (r) setRiskAlert(prev => ({ ...prev, message: r.message }));
+                        }).catch(() => {});
+                    }
+                }
+            }
 
             // Load grades
             const gradeSnap = await db.collection('grades')
@@ -107,6 +141,12 @@ const StudentDashboard = () => {
 
     const totalAssignments = grades.length;
     const passed = grades.filter(g => g.score >= 60).length;
+
+    // Personal Mastery stats (computed from grades, threshold 70%)
+    const mastered    = grades.filter(g => (g.score || 0) >= 70).length;
+    const inProgress  = grades.filter(g => (g.score || 0) >= 40 && (g.score || 0) < 70).length;
+    const needPractice= grades.filter(g => (g.score || 0) < 40).length;
+    const masteryPct  = grades.length > 0 ? Math.round((mastered / grades.length) * 100) : 0;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -180,6 +220,79 @@ const StudentDashboard = () => {
                                 </div>
                             ))}
                         </div>
+
+                        {/* ── Predictive Risk Alert ── */}
+                        {riskAlert && (
+                            <div style={{
+                                background: riskAlert.level === 'high'
+                                    ? 'linear-gradient(135deg,#7f1d1d,#991b1b)'
+                                    : 'linear-gradient(135deg,#78350f,#92400e)',
+                                border: `1px solid ${riskAlert.level === 'high' ? '#ef4444' : '#f59e0b'}`,
+                                borderRadius: 14, padding: '14px 18px', marginBottom: 20,
+                                display: 'flex', alignItems: 'flex-start', gap: 12,
+                            }}>
+                                <span style={{ fontSize: 24, flexShrink: 0 }}>{riskAlert.level === 'high' ? '🚨' : '⚠️'}</span>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 700, fontSize: 14, color: riskAlert.level === 'high' ? '#fca5a5' : '#fcd34d', marginBottom: 4 }}>
+                                        {riskAlert.level === 'high' ? 'AI แจ้งเตือน: ต้องการความช่วยเหลือ' : 'AI แจ้งเตือน: แนวโน้มที่ควรระวัง'}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: '#fde68a', marginBottom: 6 }}>
+                                        คะแนน 3 ครั้งล่าสุด: {riskAlert.last3.join(', ')}% · เฉลี่ย: {riskAlert.avg5}%
+                                    </div>
+                                    {riskAlert.message ? (
+                                        <p style={{ fontSize: 13, color: '#fef3c7', lineHeight: 1.6, margin: 0 }}>{riskAlert.message}</p>
+                                    ) : (
+                                        <p style={{ fontSize: 13, color: '#fef3c7', margin: 0 }}>
+                                            {riskAlert.level === 'high'
+                                                ? 'ลองใช้ Hint ระดับ 2-3 ก่อนส่งงาน หรือถามครูเพื่อขอคำอธิบายเพิ่มเติม'
+                                                : 'ลองเล่น Quiz Blitz ทบทวน concept แล้วค่อยส่งงานใหม่'}
+                                        </p>
+                                    )}
+                                </div>
+                                <button onClick={() => setRiskAlert(null)}
+                                    style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>✕</button>
+                            </div>
+                        )}
+
+                        {/* ── Personal Mastery Progress ── */}
+                        {grades.length > 0 && (
+                            <div style={{
+                                background: 'white', border: '1px solid #fce7f3',
+                                borderRadius: 14, padding: '16px 20px', marginBottom: 20,
+                                boxShadow: '0 2px 12px rgba(236,64,122,.06)',
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                    <span style={{ fontWeight: 700, fontSize: 14, color: '#be185d' }}>🎯 Personal Mastery Progress</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: masteryPct >= 70 ? '#10b981' : masteryPct >= 40 ? '#f59e0b' : '#ef4444' }}>
+                                        {masteryPct}% Mastered
+                                    </span>
+                                </div>
+                                {/* Overall bar */}
+                                <div style={{ height: 10, background: '#f3f4f6', borderRadius: 5, overflow: 'hidden', marginBottom: 12 }}>
+                                    <div style={{ height: '100%', width: `${masteryPct}%`, borderRadius: 5, transition: 'width .6s',
+                                        background: masteryPct >= 70 ? 'linear-gradient(90deg,#10b981,#34d399)' : masteryPct >= 40 ? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : 'linear-gradient(90deg,#ef4444,#f87171)' }} />
+                                </div>
+                                {/* 3-segment detail */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                    {[
+                                        { label: 'Mastered', sublabel: '≥70%', count: mastered, color: '#10b981', bg: '#f0fdf4' },
+                                        { label: 'In Progress', sublabel: '40–69%', count: inProgress, color: '#f59e0b', bg: '#fffbeb' },
+                                        { label: 'Need Practice', sublabel: '<40%', count: needPractice, color: '#ef4444', bg: '#fef2f2' },
+                                    ].map(seg => (
+                                        <div key={seg.label} style={{ background: seg.bg, borderRadius: 10, padding: '8px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 700, color: seg.color }}>{seg.count}</div>
+                                            <div style={{ fontSize: 11, fontWeight: 600, color: seg.color }}>{seg.label}</div>
+                                            <div style={{ fontSize: 10, color: '#9ca3af' }}>{seg.sublabel}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {needPractice > 0 && (
+                                    <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 8, marginBottom: 0 }}>
+                                        💡 มี {needPractice} งานที่ควรฝึกซ้ำ — ลองเล่น Mini-Games เพื่อทบทวน concept
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         {/* ── AI Coach Cards ── */}
                         <div className="grid md:grid-cols-2 gap-4 mb-6">
