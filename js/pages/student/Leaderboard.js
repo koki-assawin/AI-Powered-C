@@ -1,104 +1,105 @@
-// js/pages/student/Leaderboard.js — course-enrollment-based leaderboard
+// js/pages/student/Leaderboard.js — v5.4: course-specific ranking + global XP
 
 const Leaderboard = () => {
     const { user } = useAuth();
-    const [tab, setTab]                   = React.useState('alltime');
+    const [tab, setTab]                   = React.useState('course'); // 'course' | 'xp'
     const [allEntries, setAllEntries]     = React.useState([]);
     const [dataLoading, setDataLoading]   = React.useState(true);
     const [myStats, setMyStats]           = React.useState(null);
-    const [season, setSeason]             = React.useState(null);
     const [myCourses, setMyCourses]       = React.useState([]);
     const [selectedCourseId, setSelectedCourseId] = React.useState('');
 
-    // Load enrolled students for a given course, then fetch their playerStats
     const loadEntries = async (courseId) => {
+        if (!courseId) return;
         setDataLoading(true);
         try {
-            let enrolledUIDs;
-            if (courseId) {
-                const snap = await db.collection('enrollments').where('courseId', '==', courseId).get();
-                enrolledUIDs = new Set(snap.docs.map(d => d.data().studentId));
-            } else {
-                // No course enrolled — show all students as fallback
-                const snap = await db.collection('users').where('role', '==', 'student').get();
-                enrolledUIDs = new Set(snap.docs.map(d => d.id));
-            }
-
-            // Fetch names
-            const userSnap = await db.collection('users').where('role', '==', 'student').get();
+            // Use enrolledCourses array-contains (reliable source of truth)
+            const userSnap = await db.collection('users')
+                .where('enrolledCourses', 'array-contains', courseId)
+                .get();
             const studentMap = {};
-            userSnap.docs.filter(d => enrolledUIDs.has(d.id))
-                .forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
+            userSnap.docs.forEach(d => {
+                if (d.data().role === 'student')
+                    studentMap[d.id] = d.data().displayName || 'นักเรียน';
+            });
 
-            // Fetch playerStats — include ALL enrolled students even if they have no XP yet
+            // Submissions for this course → course-specific stats
+            const subSnap = await db.collection('submissions')
+                .where('courseId', '==', courseId).get();
+            const subMap = {};
+            subSnap.docs.forEach(d => {
+                const { studentId, status, assignmentId, score } = d.data();
+                if (!studentMap[studentId]) return;
+                if (!subMap[studentId]) subMap[studentId] = { passed: new Set(), attempted: new Set(), scores: [] };
+                subMap[studentId].attempted.add(assignmentId);
+                subMap[studentId].scores.push(score || 0);
+                if (status === 'accepted') subMap[studentId].passed.add(assignmentId);
+            });
+
+            // Global playerStats
             const statsSnap = await db.collection('playerStats').get();
             const statsMap = {};
             statsSnap.docs.forEach(d => { statsMap[d.id] = d.data(); });
 
             const list = Object.entries(studentMap).map(([uid, displayName]) => {
                 const s = statsMap[uid] || {};
+                const subs = subMap[uid] || { passed: new Set(), attempted: new Set(), scores: [] };
+                const avgScore = subs.scores.length
+                    ? Math.round(subs.scores.reduce((a, b) => a + b, 0) / subs.scores.length) : 0;
                 const tier = getRankFromXP(s.xp || 0);
                 return {
-                    uid,
-                    displayName,
+                    uid, displayName,
+                    passedCount: subs.passed.size,
+                    attemptedCount: subs.attempted.size,
+                    avgScore,
                     xp: s.xp || 0,
                     dailyXP: s.dailyXP || 0,
-                    weeklyXP: s.weeklyXP || 0,
                     codeCoin: s.codeCoin || 0,
                     streakDays: s.streakDays || 0,
-                    rank: tier.level,
-                    rankName: tier.name,
-                    rankIcon: tier.icon,
+                    tier,
                 };
             });
             setAllEntries(list);
         } catch (err) {
             console.warn('[Leaderboard] load error:', err);
-        } finally {
-            setDataLoading(false);
-        }
+        } finally { setDataLoading(false); }
     };
 
-    // On mount: load student's enrolled courses
     React.useEffect(() => {
         if (!user?.uid) return;
-
-        db.collection('enrollments').where('studentId', '==', user.uid).get()
-            .then(async snap => {
-                const courseIds = [...new Set(snap.docs.map(d => d.data().courseId))];
-                if (courseIds.length === 0) { loadEntries(null); return; }
-                const snaps = await Promise.all(courseIds.slice(0, 10).map(id => db.collection('courses').doc(id).get()));
-                const courses = snaps.filter(s => s.exists).map(s => ({ id: s.id, ...s.data() }));
-                setMyCourses(courses);
-                const firstId = courses[0]?.id || '';
-                setSelectedCourseId(firstId);
-                loadEntries(firstId);
-            })
-            .catch(() => loadEntries(null));
+        // Load student's enrolled courses
+        db.collection('users').doc(user.uid).get().then(async doc => {
+            const ids = doc.data()?.enrolledCourses || [];
+            if (ids.length === 0) { setDataLoading(false); return; }
+            const snaps = await Promise.all(ids.slice(0, 10).map(id => db.collection('courses').doc(id).get()));
+            const courses = snaps.filter(s => s.exists).map(s => ({ id: s.id, ...s.data() }));
+            setMyCourses(courses);
+            const firstId = courses[0]?.id || '';
+            setSelectedCourseId(firstId);
+            loadEntries(firstId);
+        }).catch(() => setDataLoading(false));
 
         getPlayerStats(user.uid).then(setMyStats).catch(() => {});
-        if (typeof getSeasonInfo === 'function') getSeasonInfo().then(setSeason).catch(() => {});
     }, [user?.uid]);
 
-    const tabs = [
-        { key: 'daily',   label: '📅 วันนี้',      field: 'dailyXP',  desc: 'รีเซ็ตทุกเที่ยงคืน' },
-        { key: 'weekly',  label: '📆 สัปดาห์นี้', field: 'weeklyXP', desc: 'รีเซ็ตทุกวันจันทร์' },
-        { key: 'alltime', label: '🏆 ตลอดกาล',   field: 'xp',       desc: 'XP สะสมทั้งหมด' },
-    ];
-
-    const currentTab    = tabs.find(t => t.key === tab);
-    const field         = currentTab?.field || 'xp';
-    const currentEntries = [...allEntries].sort((a, b) => (b[field] || 0) - (a[field] || 0));
-    const myTier        = myStats ? getRankFromXP(myStats.xp || 0) : null;
-    const myEntry       = currentEntries.find(e => e.uid === user?.uid);
-    const myRank        = myEntry ? currentEntries.indexOf(myEntry) + 1 : null;
     const selectedCourse = myCourses.find(c => c.id === selectedCourseId);
 
-    const getXP = (entry) => {
-        if (tab === 'daily')  return entry.dailyXP  || 0;
-        if (tab === 'weekly') return entry.weeklyXP || 0;
-        return entry.xp || 0;
-    };
+    // Sort by tab
+    const sorted = React.useMemo(() => {
+        const arr = [...allEntries];
+        if (tab === 'course') {
+            arr.sort((a, b) => b.passedCount - a.passedCount || b.avgScore - a.avgScore);
+        } else {
+            arr.sort((a, b) => b.xp - a.xp);
+        }
+        return arr;
+    }, [allEntries, tab]);
+
+    const myEntry  = sorted.find(e => e.uid === user?.uid);
+    const myRank   = myEntry ? sorted.indexOf(myEntry) + 1 : null;
+    const myTier   = myStats ? getRankFromXP(myStats.xp || 0) : null;
+
+    const medalOf  = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
 
     return (
         <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f1f5f9', fontFamily: "'Prompt', sans-serif" }}>
@@ -106,50 +107,20 @@ const Leaderboard = () => {
 
             <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
 
-                {/* Season banner */}
-                {season && (
-                    <div style={{
-                        background: 'linear-gradient(135deg, #78350f, #92400e)',
-                        border: '1px solid #f59e0b',
-                        borderRadius: 14, padding: '12px 18px', marginBottom: 20,
-                        display: 'flex', alignItems: 'center', gap: 12,
-                    }}>
-                        <span style={{ fontSize: 24 }}>🌟</span>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 700, color: '#fbbf24', fontSize: 14 }}>Season: {season.name}</div>
-                            <div style={{ fontSize: 12, color: '#fde68a' }}>
-                                XP Multiplier: x{season.xpMultiplier || 1}
-                                {season.endDate && ` · สิ้นสุด ${new Date(season.endDate?.toDate?.() || season.endDate).toLocaleDateString('th-TH')}`}
-                            </div>
-                        </div>
-                        {myStats && (
-                            <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontWeight: 700, color: '#fbbf24' }}>{(myStats.seasonXP || 0).toLocaleString()}</div>
-                                <div style={{ fontSize: 11, color: '#fde68a' }}>Season XP</div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Course selector (shown only if enrolled in multiple courses) */}
-                {myCourses.length > 1 && (
+                {/* Course selector */}
+                {myCourses.length > 0 && (
                     <div style={{ marginBottom: 16 }}>
                         <label style={{ fontSize: 11, color: '#64748b', display: 'block', marginBottom: 6 }}>เลือกรายวิชา</label>
                         <select
                             value={selectedCourseId}
-                            onChange={e => {
-                                setSelectedCourseId(e.target.value);
-                                loadEntries(e.target.value);
-                            }}
+                            onChange={e => { setSelectedCourseId(e.target.value); loadEntries(e.target.value); }}
                             style={{
                                 width: '100%', background: '#1e293b', border: '1px solid #334155',
                                 borderRadius: 10, padding: '9px 12px', color: '#f1f5f9',
                                 fontFamily: "'Prompt', sans-serif", fontSize: 13, outline: 'none',
                             }}
                         >
-                            {myCourses.map(c => (
-                                <option key={c.id} value={c.id}>{c.title}</option>
-                            ))}
+                            {myCourses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                         </select>
                     </div>
                 )}
@@ -164,48 +135,51 @@ const Leaderboard = () => {
                     {myRank && (
                         <div style={{ fontSize: 13, color: '#94a3b8' }}>
                             อันดับของคุณ: <span style={{ color: '#fbbf24', fontWeight: 700 }}>#{myRank}</span>
-                            {' '}จาก {currentEntries.length} คน
+                            {' '}จาก {sorted.length} คน
                         </div>
                     )}
                 </div>
 
                 {/* Tab switcher */}
                 <div style={{ display: 'flex', gap: 4, background: '#1e293b', borderRadius: 12, padding: 4, marginBottom: 16 }}>
-                    {tabs.map(t => (
+                    {[
+                        { key: 'course', label: '📝 ผลงานวิชานี้', desc: 'เรียงตามโจทย์ที่ผ่าน — เปลี่ยนตามวิชาที่เลือก' },
+                        { key: 'xp',     label: '⭐ XP รวมทุกวิชา', desc: 'XP สะสมจากทุกรายวิชา (กรองรายชื่อตามวิชาที่เลือก)' },
+                    ].map(t => (
                         <button key={t.key} onClick={() => setTab(t.key)} style={{
                             flex: 1, padding: '9px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
                             fontFamily: "'Prompt', sans-serif", fontWeight: 600, fontSize: 12,
-                            background: tab === t.key ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'transparent',
+                            background: tab === t.key ? 'linear-gradient(135deg,#be185d,#9d174d)' : 'transparent',
                             color: tab === t.key ? '#fff' : '#64748b', transition: 'all .2s',
                         }}>{t.label}</button>
                     ))}
                 </div>
-                <div style={{ textAlign: 'center', fontSize: 11, color: '#475569', marginBottom: 8 }}>
-                    {currentTab?.desc}
-                </div>
-                <div style={{
-                    textAlign: 'center', fontSize: 11, color: '#334155',
-                    background: '#1e293b', borderRadius: 8, padding: '6px 12px', marginBottom: 16,
-                }}>
-                    ⚠️ XP ที่แสดงเป็น <strong style={{ color: '#94a3b8' }}>XP สะสมรวมทุกรายวิชา</strong> — รายชื่อกรองเฉพาะนักเรียนในวิชาที่เลือก
+                <div style={{ textAlign: 'center', fontSize: 11, color: '#475569', marginBottom: 16 }}>
+                    {tab === 'course'
+                        ? '📝 เรียงตามจำนวนโจทย์ที่ผ่านในวิชานี้ — เปลี่ยนเมื่อเลือกวิชาอื่น'
+                        : '⭐ XP สะสมรวมทุกรายวิชา — รายชื่อกรองตามวิชาที่เลือก'}
                 </div>
 
                 {/* My stat card */}
-                {myStats && myTier && (
+                {myStats && myTier && myEntry && (
                     <div style={{
                         background: `linear-gradient(135deg, ${myTier.color}22, #1e293b)`,
-                        border: `2px solid ${myTier.color}`,
-                        borderRadius: 14, padding: '14px 18px',
+                        border: `2px solid ${myTier.color}`, borderRadius: 14, padding: '14px 18px',
                         display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16,
                     }}>
                         <span style={{ fontSize: 30 }}>{myTier.icon}</span>
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 11, color: '#94a3b8' }}>ฉัน · {myTier.name}</div>
-                            <div style={{ fontWeight: 700, color: myTier.color, fontSize: 14 }}>
-                                {tab === 'daily'   && `${(myStats.dailyXP  || 0).toLocaleString()} XP วันนี้`}
-                                {tab === 'weekly'  && `${(myStats.weeklyXP || 0).toLocaleString()} XP สัปดาห์นี้`}
-                                {tab === 'alltime' && `${(myStats.xp       || 0).toLocaleString()} XP สะสม`}
-                            </div>
+                            {tab === 'course' ? (
+                                <div style={{ fontWeight: 700, color: myTier.color, fontSize: 14 }}>
+                                    ผ่าน {myEntry.passedCount} โจทย์
+                                    {myEntry.avgScore > 0 && <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 12 }}> · เฉลี่ย {myEntry.avgScore}%</span>}
+                                </div>
+                            ) : (
+                                <div style={{ fontWeight: 700, color: myTier.color, fontSize: 14 }}>
+                                    {(myStats.xp || 0).toLocaleString()} XP
+                                </div>
+                            )}
                         </div>
                         <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: 13, color: '#94a3b8' }}>🔥 {myStats.streakDays || 0} วัน</div>
@@ -217,25 +191,20 @@ const Leaderboard = () => {
                 {/* List */}
                 {dataLoading ? (
                     <div style={{ textAlign: 'center', color: '#64748b', padding: 40 }}>กำลังโหลด...</div>
-                ) : currentEntries.length === 0 ? (
+                ) : sorted.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 40 }}>
                         <div style={{ fontSize: 36, marginBottom: 10 }}>📊</div>
-                        <p style={{ color: '#64748b', fontSize: 14 }}>
-                            {tab === 'daily'  ? 'ยังไม่มีข้อมูลวันนี้ — Login เพื่อเริ่มสะสม XP!' :
-                             tab === 'weekly' ? 'ยังไม่มีข้อมูลสัปดาห์นี้' :
-                             'ยังไม่มีข้อมูล — ส่งงานเพื่อรับ XP แรก!'}
-                        </p>
+                        <p style={{ color: '#64748b', fontSize: 14 }}>ยังไม่มีนักเรียนในวิชานี้</p>
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {currentEntries.map((e, idx) => {
+                        {sorted.map((e, idx) => {
                             const isMe  = e.uid === user?.uid;
-                            const tier  = getRankFromXP(e.xp || 0);
-                            const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
+                            const medal = medalOf(idx);
                             return (
                                 <div key={e.uid} style={{
-                                    background: isMe ? `linear-gradient(135deg, ${tier.color}18, #1e293b)` : '#1e293b',
-                                    border: isMe ? `1.5px solid ${tier.color}` : '1px solid #334155',
+                                    background: isMe ? `linear-gradient(135deg, ${e.tier.color}18, #1e293b)` : '#1e293b',
+                                    border: isMe ? `1.5px solid ${e.tier.color}` : '1px solid #334155',
                                     borderRadius: 12, padding: '12px 16px',
                                     display: 'flex', alignItems: 'center', gap: 12,
                                 }}>
@@ -244,19 +213,30 @@ const Leaderboard = () => {
                                         fontSize: medal ? 22 : 13, fontWeight: 700,
                                         color: medal ? undefined : '#475569',
                                     }}>{medal || `#${idx + 1}`}</div>
-                                    <span style={{ fontSize: 20 }}>{tier.icon}</span>
+                                    <span style={{ fontSize: 20 }}>{e.tier.icon}</span>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{
                                             fontWeight: isMe ? 700 : 500, fontSize: 14,
                                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                         }}>{e.displayName}{isMe ? ' ✦' : ''}</div>
-                                        <div style={{ fontSize: 11, color: tier.color }}>{tier.name}</div>
+                                        <div style={{ fontSize: 11, color: e.tier.color }}>{e.tier.name}</div>
                                     </div>
                                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                        <div style={{ fontWeight: 700, fontSize: 15 }}>{getXP(e).toLocaleString()}</div>
-                                        <div style={{ fontSize: 10, color: '#475569' }}>
-                                            {tab === 'alltime' ? 'XP' : tab === 'daily' ? 'XP วันนี้' : 'XP/สัปดาห์'}
-                                        </div>
+                                        {tab === 'course' ? (
+                                            <>
+                                                <div style={{ fontWeight: 700, fontSize: 15, color: e.passedCount > 0 ? '#34d399' : '#475569' }}>
+                                                    {e.passedCount} โจทย์ผ่าน
+                                                </div>
+                                                <div style={{ fontSize: 10, color: '#475569' }}>
+                                                    {e.attemptedCount > 0 ? `เฉลี่ย ${e.avgScore}%` : 'ยังไม่ส่งงาน'}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div style={{ fontWeight: 700, fontSize: 15 }}>{(e.xp || 0).toLocaleString()}</div>
+                                                <div style={{ fontSize: 10, color: '#475569' }}>XP รวม</div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -265,7 +245,7 @@ const Leaderboard = () => {
                 )}
 
                 <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: '#334155' }}>
-                    อันดับอัปเดตทุกครั้งที่มีการส่งงานหรือรับ XP
+                    {sorted.length > 0 && `${sorted.length} นักเรียนในวิชา · อันดับอัปเดตทุกครั้งที่มีการส่งงาน`}
                 </div>
                 <div style={{ textAlign: 'center', marginTop: 8 }}>
                     <a href="#/student/dashboard" style={{ color: '#475569', fontSize: 12, textDecoration: 'none' }}>
