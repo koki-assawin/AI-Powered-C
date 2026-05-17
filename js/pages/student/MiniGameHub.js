@@ -189,7 +189,7 @@ const MiniGameHub = () => {
                 {/* Game cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
                     {GAMES.map(game => {
-                        const stat = todayStats?.[game.statKey];
+                        const stat = todayStats?.[`${game.statKey}_${selectedUnit}`];
                         const playedToday = !!stat;
                         return (
                             <div key={game.id} style={{

@@ -1409,6 +1409,8 @@ const _GamificationTab = ({ selectedCourse }) => {
     const [loading, setLoading] = React.useState(true);
     const [coachLoading, setCoachLoading] = React.useState(false);
     const [coachFilter, setCoachFilter] = React.useState('all');
+    const [gameStats, setGameStats] = React.useState(null);
+    const [gameStatsLoading, setGameStatsLoading] = React.useState(false);
 
     React.useEffect(() => {
         loadGamificationData(selectedCourse || '');
@@ -1455,6 +1457,22 @@ const _GamificationTab = ({ selectedCourse }) => {
             const snap = await db.collection('coachInteractions').orderBy('createdAt', 'desc').limit(50).get();
             setCoachLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         } catch (_) {} finally { setCoachLoading(false); }
+    };
+
+    const loadMiniGameStats = async () => {
+        if (typeof getCourseMinigameStats !== 'function') return;
+        setGameStatsLoading(true);
+        setGameStats(null);
+        try {
+            const { sessions, studentIds } = await getCourseMinigameStats(selectedCourse);
+            const byUid = {};
+            studentIds.forEach(uid => { byUid[uid] = []; });
+            sessions.forEach(s => { if (byUid[s.uid]) byUid[s.uid].push(s); });
+            setGameStats(byUid);
+        } catch (err) {
+            console.warn('[loadMiniGameStats]', err);
+            setGameStats({});
+        } finally { setGameStatsLoading(false); }
     };
 
     const exportJSON = () => {
@@ -1519,6 +1537,96 @@ const _GamificationTab = ({ selectedCourse }) => {
                     </table>
                 </div>
             )}
+
+            {/* Mini-Game by Course section */}
+            {(() => {
+                const GAME_TYPES = ['quiz_blitz', 'decision_drill', 'loop_lab', 'code_autopsy', 'bug_hunt'];
+                const GAME_LABELS = { quiz_blitz: '⚡ Quiz', decision_drill: '🔀 Decision', loop_lab: '🔁 Loop', code_autopsy: '🔬 Autopsy', bug_hunt: '🐛 Bug' };
+                const allEntries = gameStats ? Object.entries(gameStats) : [];
+                const totalSessions = allEntries.reduce((sum, [, s]) => sum + s.length, 0);
+                const activePlayers = allEntries.filter(([, s]) => s.length > 0).length;
+                const totalXPGame = allEntries.reduce((sum, [, s]) => sum + s.reduce((x, sess) => x + (sess.xpEarned || 0), 0), 0);
+                return (
+                    <div style={{ marginBottom: 28 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <h4 className="font-bold text-gray-700">🎮 Mini-Game แยกตามรายวิชานี้</h4>
+                            <button onClick={loadMiniGameStats} disabled={gameStatsLoading} className="k-btn-pink px-3 py-1 text-xs">
+                                {gameStatsLoading ? 'โหลด...' : '📊 โหลดสถิติเกม'}
+                            </button>
+                        </div>
+
+                        {!gameStats && !gameStatsLoading && (
+                            <div style={{ textAlign: 'center', padding: '16px 0', color: '#9ca3af', fontSize: 13 }}>
+                                กด "โหลดสถิติเกม" เพื่อดูสถิติการเล่นเกมของนักเรียนในวิชานี้
+                            </div>
+                        )}
+
+                        {gameStats && (
+                            <>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 14 }}>
+                                    {[
+                                        { label: 'ครั้งที่เล่น (วิชานี้)', value: totalSessions, color: '#ec4899' },
+                                        { label: 'นักเรียนที่เล่น', value: `${activePlayers}/${allEntries.length}`, color: '#8b5cf6' },
+                                        { label: 'XP รวมจากเกม', value: totalXPGame, color: '#f59e0b' },
+                                    ].map(k => (
+                                        <div key={k.label} style={{ background: '#f9fafb', borderRadius: 12, padding: '10px 14px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 700, color: k.color }}>{k.value}</div>
+                                            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{k.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="overflow-x-auto rounded-xl border border-gray-100">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr style={{ background: '#fdf2f8' }}>
+                                                <th className="px-3 py-2 text-left text-xs font-bold text-gray-600">นักเรียน</th>
+                                                {GAME_TYPES.map(gt => (
+                                                    <th key={gt} className="px-3 py-2 text-center text-xs font-bold text-gray-600 whitespace-nowrap">{GAME_LABELS[gt]}</th>
+                                                ))}
+                                                <th className="px-3 py-2 text-center text-xs font-bold text-gray-600">XP</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {allEntries
+                                                .sort(([, a], [, b]) => b.reduce((s, x) => s + (x.xpEarned || 0), 0) - a.reduce((s, x) => s + (x.xpEarned || 0), 0))
+                                                .map(([uid, sessions]) => {
+                                                    const name = stats.find(s => s.uid === uid)?.displayName || uid.slice(-6);
+                                                    const rowXP = sessions.reduce((s, x) => s + (x.xpEarned || 0), 0);
+                                                    return (
+                                                        <tr key={uid} className="border-t border-gray-50 hover:bg-gray-50">
+                                                            <td className="px-3 py-2 font-medium text-gray-800 whitespace-nowrap">{name}</td>
+                                                            {GAME_TYPES.map(gt => {
+                                                                const gsessions = sessions.filter(s => s.gameType === gt);
+                                                                const cnt = gsessions.length;
+                                                                const avg = cnt > 0 ? Math.round(gsessions.reduce((s, x) => s + (x.score || 0), 0) / cnt) : 0;
+                                                                return (
+                                                                    <td key={gt} className="px-3 py-2 text-center text-xs">
+                                                                        {cnt > 0 ? (
+                                                                            <span style={{ color: '#374151' }}>
+                                                                                {cnt} <span style={{ color: '#9ca3af' }}>({avg}%)</span>
+                                                                            </span>
+                                                                        ) : <span style={{ color: '#d1d5db' }}>—</span>}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                            <td className="px-3 py-2 text-center font-bold" style={{ color: rowXP > 0 ? '#f59e0b' : '#d1d5db' }}>
+                                                                {rowXP > 0 ? rowXP : '—'}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
+                                    * นับเฉพาะ session ที่เลือกหัวข้อวิชานี้ (ไม่รวมหัวข้อ "ทั่วไป")
+                                </p>
+                            </>
+                        )}
+                    </div>
+                );
+            })()}
 
             {/* Coach Interactions log */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>

@@ -232,7 +232,7 @@ async function getOrGenerateDailyContent(gameType, unitId) {
 
 // ── Check first play today ────────────────────────────────────────────────────
 
-async function checkIsFirstPlayToday(uid, gameType) {
+async function checkIsFirstPlayToday(uid, gameType, unitId) {
     try {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
@@ -240,9 +240,9 @@ async function checkIsFirstPlayToday(uid, gameType) {
             .where('uid', '==', uid)
             .where('gameType', '==', gameType)
             .where('playedAt', '>=', todayStart)
-            .limit(1)
             .get();
-        return snap.empty;
+        const targetUnit = unitId || 'general';
+        return !snap.docs.some(d => d.data().unitId === targetUnit);
     } catch (_) { return true; }
 }
 
@@ -276,7 +276,7 @@ async function gradeBugHuntAnswer(bugData, studentAnswer) {
 
 async function recordGameSession(uid, { gameType, contentId, unitId, score, correctAnswers, totalQuestions, timeSpentSeconds, answers }) {
     try {
-        const isFirstPlayToday = await checkIsFirstPlayToday(uid, gameType);
+        const isFirstPlayToday = await checkIsFirstPlayToday(uid, gameType, unitId || 'general');
         const xpCfg = GAME_XP[gameType] || GAME_XP.quiz_blitz;
         const isPerfect = correctAnswers >= totalQuestions && totalQuestions > 0;
 
@@ -319,14 +319,38 @@ async function getTodayGameStats(uid) {
             .where('uid', '==', uid)
             .where('playedAt', '>=', todayStart)
             .get();
-        const stats = { quiz_blitz: null, code_autopsy: null, bug_hunt: null, decision_drill: null, loop_lab: null, totalXP: 0 };
+        const stats = { totalXP: 0 };
         snap.docs.forEach(d => {
             const data = d.data();
+            const key = `${data.gameType}_${data.unitId || 'general'}`;
+            if (!stats[key]) stats[key] = data;
             stats.totalXP += data.xpEarned || 0;
-            if (!stats[data.gameType]) stats[data.gameType] = data;
         });
         return stats;
-    } catch (_) { return { quiz_blitz: null, code_autopsy: null, bug_hunt: null, totalXP: 0 }; }
+    } catch (_) { return { totalXP: 0 }; }
+}
+
+// ── Get mini-game sessions played for a specific course (teacher view) ────────
+
+async function getCourseMinigameStats(courseId) {
+    try {
+        const enrollSnap = await db.collection('enrollments').where('courseId', '==', courseId).get();
+        const studentIds = [...new Set(enrollSnap.docs.map(d => d.data().studentId))];
+        if (studentIds.length === 0) return { sessions: [], studentIds: [] };
+        const allSessions = [];
+        for (let i = 0; i < studentIds.length; i += 30) {
+            const chunk = studentIds.slice(i, i + 30);
+            const snap = await db.collection('miniGameSessions').where('uid', 'in', chunk).get();
+            snap.docs.forEach(d => {
+                const data = d.data();
+                if (data.unitId === courseId) allSessions.push({ id: d.id, ...data });
+            });
+        }
+        return { sessions: allSessions, studentIds };
+    } catch (err) {
+        console.warn('[getCourseMinigameStats]', err);
+        return { sessions: [], studentIds: [] };
+    }
 }
 
 // ── Expose globals ────────────────────────────────────────────────────────────
@@ -336,3 +360,4 @@ window.recordGameSession          = recordGameSession;
 window.gradeBugHuntAnswer         = gradeBugHuntAnswer;
 window.getTodayGameStats          = getTodayGameStats;
 window.checkIsFirstPlayToday      = checkIsFirstPlayToday;
+window.getCourseMinigameStats     = getCourseMinigameStats;
