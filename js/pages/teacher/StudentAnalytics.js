@@ -767,6 +767,14 @@ const StudentAnalytics = () => {
 
                                         {selectedStudentId && (
                                             <>
+                                                {/* ── Radar Chart 5 มิติ (แสดงก่อนตาราง) ── */}
+                                                {studentSubs.length > 0 && (
+                                                    <_StudentRadarChart
+                                                        subs={studentSubs}
+                                                        totalAssignments={assignments.length}
+                                                    />
+                                                )}
+
                                                 {/* Student submission history */}
                                                 <div className="mb-6">
                                                     <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -837,14 +845,6 @@ const StudentAnalytics = () => {
                                                         </div>
                                                     )}
                                                 </div>
-
-                                                {/* ── Radar Chart 5 มิติ ── */}
-                                                {studentSubs.length > 0 && (
-                                                    <_StudentRadarChart
-                                                        subs={studentSubs}
-                                                        totalAssignments={assignments.length}
-                                                    />
-                                                )}
 
                                                 {/* AI Report Card */}
                                                 {reportLoading && (
