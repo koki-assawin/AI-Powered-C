@@ -17,7 +17,7 @@ const MiniGameHub = () => {
 
     React.useEffect(() => {
         if (!userDoc) return;
-        const u = [{ id: 'general', name: '🌐 ทั่วไป (C พื้นฐาน)' }];
+        const u = [{ id: 'general', name: '🌐 ฝึกทั่วไป (ไม่นับคะแนนรายวิชา)' }];
         const enrolledIds = userDoc.enrolledCourses || [];
         if (enrolledIds.length === 0) { setUnits(u); return; }
         // Load only enrolled courses — no orderBy needed
@@ -140,7 +140,7 @@ const MiniGameHub = () => {
                     display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
                 }}>
                     <span style={{ fontWeight: 600, color: '#be185d', fontSize: 14, whiteSpace: 'nowrap' }}>
-                        📚 หัวข้อเกม:
+                        📚 เลือกวิชาที่จะฝึก:
                     </span>
                     <select
                         value={selectedUnit}
@@ -171,12 +171,12 @@ const MiniGameHub = () => {
                             <span style={{ fontSize: 20 }}>{isGeneral ? '🌐' : '📚'}</span>
                             <div style={{ flex: 1 }}>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: isGeneral ? '#475569' : '#be185d' }}>
-                                    {isGeneral ? 'หัวข้อ: ทั่วไป — ' : `หัวข้อที่เลือก: ${(currentUnit?.name || '').replace(/^📚 /, '')} — `}
+                                    {isGeneral ? 'ฝึกทั่วไป — ' : `วิชา: ${(currentUnit?.name || '').replace(/^📚 /, '')} — `}
                                 </span>
                                 <span style={{ fontSize: 12, color: '#6b7280' }}>
                                     {isGeneral
-                                        ? 'AI จะสร้างคำถามภาษา C แบบสุ่มทั่วไป'
-                                        : 'AI จะสร้างคำถามเฉพาะเนื้อหาวิชานี้ (cache ทั้งวัน)'}
+                                        ? 'AI สร้างคำถาม C แบบสุ่ม ไม่นับในอันดับรายวิชา'
+                                        : 'AI สร้างคำถามเฉพาะเนื้อหาวิชานี้ นับคะแนนรายวิชา (cache ทั้งวัน)'}
                                 </span>
                             </div>
                             {!isGeneral && (
@@ -226,7 +226,7 @@ const MiniGameHub = () => {
                                         color: selectedUnit === 'general' ? '#64748b' : game.color,
                                         border: `1px solid ${selectedUnit === 'general' ? '#e2e8f0' : game.color + '44'}`,
                                     }}>
-                                        {selectedUnit === 'general' ? '🌐 ทั่วไป' : `📚 ${(units.find(u => u.id === selectedUnit)?.name || '').replace(/^📚 /, '')}`}
+                                        {selectedUnit === 'general' ? '🌐 ทั่วไป (ไม่นับรายวิชา)' : `📚 ${(units.find(u => u.id === selectedUnit)?.name || '').replace(/^📚 /, '')}`}
                                     </div>
 
                                     {/* XP info */}

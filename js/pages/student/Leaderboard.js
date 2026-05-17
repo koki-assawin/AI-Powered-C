@@ -30,26 +30,27 @@ const Leaderboard = () => {
             userSnap.docs.filter(d => enrolledUIDs.has(d.id))
                 .forEach(d => { studentMap[d.id] = d.data().displayName || 'นักเรียน'; });
 
-            // Fetch playerStats
+            // Fetch playerStats — include ALL enrolled students even if they have no XP yet
             const statsSnap = await db.collection('playerStats').get();
-            const list = statsSnap.docs
-                .filter(d => studentMap[d.id])
-                .map(d => {
-                    const s = d.data();
-                    const tier = getRankFromXP(s.xp || 0);
-                    return {
-                        uid: d.id,
-                        displayName: studentMap[d.id],
-                        xp: s.xp || 0,
-                        dailyXP: s.dailyXP || 0,
-                        weeklyXP: s.weeklyXP || 0,
-                        codeCoin: s.codeCoin || 0,
-                        streakDays: s.streakDays || 0,
-                        rank: tier.level,
-                        rankName: tier.name,
-                        rankIcon: tier.icon,
-                    };
-                });
+            const statsMap = {};
+            statsSnap.docs.forEach(d => { statsMap[d.id] = d.data(); });
+
+            const list = Object.entries(studentMap).map(([uid, displayName]) => {
+                const s = statsMap[uid] || {};
+                const tier = getRankFromXP(s.xp || 0);
+                return {
+                    uid,
+                    displayName,
+                    xp: s.xp || 0,
+                    dailyXP: s.dailyXP || 0,
+                    weeklyXP: s.weeklyXP || 0,
+                    codeCoin: s.codeCoin || 0,
+                    streakDays: s.streakDays || 0,
+                    rank: tier.level,
+                    rankName: tier.name,
+                    rankIcon: tier.icon,
+                };
+            });
             setAllEntries(list);
         } catch (err) {
             console.warn('[Leaderboard] load error:', err);
@@ -179,8 +180,14 @@ const Leaderboard = () => {
                         }}>{t.label}</button>
                     ))}
                 </div>
-                <div style={{ textAlign: 'center', fontSize: 11, color: '#475569', marginBottom: 16 }}>
+                <div style={{ textAlign: 'center', fontSize: 11, color: '#475569', marginBottom: 8 }}>
                     {currentTab?.desc}
+                </div>
+                <div style={{
+                    textAlign: 'center', fontSize: 11, color: '#334155',
+                    background: '#1e293b', borderRadius: 8, padding: '6px 12px', marginBottom: 16,
+                }}>
+                    ⚠️ XP ที่แสดงเป็น <strong style={{ color: '#94a3b8' }}>XP สะสมรวมทุกรายวิชา</strong> — รายชื่อกรองเฉพาะนักเรียนในวิชาที่เลือก
                 </div>
 
                 {/* My stat card */}
