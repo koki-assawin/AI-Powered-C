@@ -9,11 +9,11 @@
 
 const https = require('https');
 
-const OLD_PROJECT = 'pathovetassist';
-const NEW_PROJECT = 'ai-powered-coding-596ed';
+const OLD_PROJECT = 'ai-powered-coding-596ed';
+const NEW_PROJECT = 'aipoweredcoding';
 // API keys from firebaseConfig (used with Firestore REST API in test mode)
-const OLD_API_KEY = 'AIzaSyCu21yPXCeRDYxcVsB_9MLTiPCaa1OgCcM';
-const NEW_API_KEY = 'AIzaSyD_8EGyQoll3B4fgpw-j0cT5o9n42zlGpw';
+const OLD_API_KEY = 'AIzaSyD_8EGyQoll3B4fgpw-j0cT5o9n42zlGpw';
+const NEW_API_KEY = 'AIzaSyAqjqaPXgKDvN_c8G4698_MofCrouveehM';
 const COLLECTIONS_TO_MIGRATE = ['courses', 'assignments', 'testCases', 'config'];
 
 // ── HTTP helper ─────────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ async function migrateCollection(collectionName) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 (async () => {
     console.log('======================================================');
-    console.log('  Firestore Migration: pathovetassist → ai-powered-coding-596ed');
+    console.log('  Firestore Migration: ai-powered-coding-596ed → aipoweredcoding');
     console.log('  Collections:', COLLECTIONS_TO_MIGRATE.join(', '));
     console.log('  ⚠️  Auth users / submissions / enrollments / grades are SKIPPED');
     console.log('======================================================');
