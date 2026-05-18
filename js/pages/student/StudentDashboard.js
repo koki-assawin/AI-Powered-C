@@ -5,6 +5,7 @@ const StudentDashboard = () => {
     const [courses, setCourses] = React.useState([]);
     const [recentSubmissions, setRecentSubmissions] = React.useState([]);
     const [grades, setGrades] = React.useState([]);
+    const [activities, setActivities] = React.useState([]);   // assignments_v2
     const [loading, setLoading] = React.useState(true);
     const [playerStats, setPlayerStats] = React.useState(null);
     const [recentAchievements, setRecentAchievements] = React.useState([]);
@@ -128,6 +129,24 @@ const StudentDashboard = () => {
                 .where('studentId', '==', userDoc.id)
                 .get();
             setGrades(gradeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+            // Load multi-type activities (assignments_v2) from enrollments
+            try {
+                const enSnap = await db.collection('enrollments').where('studentId', '==', userDoc.id).get();
+                const cIds = [...new Set(enSnap.docs.map(d => d.data().courseId))].slice(0, 10);
+                if (cIds.length) {
+                    const chunks = [];
+                    for (let i = 0; i < cIds.length; i += 10) chunks.push(cIds.slice(i, i + 10));
+                    const aSnaps = await Promise.all(
+                        chunks.map(ch => db.collection('assignments_v2').where('courseId', 'in', ch).where('isPublished', '==', true).orderBy('order', 'desc').limit(20).get())
+                    );
+                    const acts = aSnaps.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
+                    // Check which ones student has submitted
+                    const sub2Snap = await db.collection('submissions_v2').where('studentId', '==', userDoc.id).get();
+                    const doneIds = new Set(sub2Snap.docs.map(d => d.data().assignmentId));
+                    setActivities(acts.map(a => ({ ...a, isDone: doneIds.has(a.id) })));
+                }
+            } catch (_) { /* non-critical */ }
         } catch (err) {
             console.error('Dashboard load error:', err);
         } finally {
@@ -474,6 +493,58 @@ const StudentDashboard = () => {
                                     </div>
                                 ))}
                             </div>
+
+                            {/* ── Activities (assignments_v2) ── */}
+                            {activities.length > 0 && (
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-0">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-bold text-gray-800">🎯 กิจกรรมที่ได้รับมอบหมาย</h3>
+                                        <span className="text-xs text-gray-400">{activities.filter(a => !a.isDone).length} รายการที่ยังไม่ได้ทำ</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {activities.map(act => {
+                                            const TYPE_META = {
+                                                coding:        { icon: '💻', label: 'Coding',    bg: '#EDE9FE', color: '#6D28D9', border: '#DDD6FE' },
+                                                autopsy:       { icon: '🔬', label: 'Autopsy',   bg: '#FEF2F2', color: '#B91C1C', border: '#FECACA' },
+                                                quiz_blitz:    { icon: '⚡', label: 'Quiz Blitz', bg: '#FFFBEB', color: '#B45309', border: '#FDE68A' },
+                                                pre_post_test: { icon: '📊', label: 'Test',      bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' },
+                                            };
+                                            const meta = TYPE_META[act.activityType] || TYPE_META.coding;
+                                            return (
+                                                <div key={act.id}
+                                                    className="flex items-center justify-between py-3 px-3 rounded-xl border hover:shadow-sm transition-all cursor-pointer"
+                                                    style={{ borderColor: act.isDone ? '#D1FAE5' : meta.border, background: act.isDone ? '#F0FDF4' : 'white' }}
+                                                    onClick={() => { window.location.hash = `#/student/activity/${act.id}`; }}>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0"
+                                                            style={{ background: meta.bg, border: `1px solid ${meta.border}` }}>
+                                                            {act.isDone ? '✅' : meta.icon}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-gray-800 text-sm leading-tight">{act.title}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-xs px-1.5 py-0.5 rounded font-medium"
+                                                                    style={{ background: meta.bg, color: meta.color }}>
+                                                                    {meta.label}
+                                                                </span>
+                                                                {act.xpReward > 0 && (
+                                                                    <span className="text-xs text-yellow-600">+{act.xpReward} XP</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-xs font-bold shrink-0 px-3 py-1.5 rounded-lg"
+                                                        style={act.isDone
+                                                            ? { background: '#D1FAE5', color: '#065F46' }
+                                                            : { background: meta.bg, color: meta.color, border: `1px solid ${meta.border}` }}>
+                                                        {act.isDone ? 'ดูผล →' : 'เริ่มทำ →'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Recent Submissions */}
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">

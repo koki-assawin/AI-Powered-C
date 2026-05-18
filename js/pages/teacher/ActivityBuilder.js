@@ -212,7 +212,11 @@ const ActivityBuilder = () => {
         db.collection('courses').get().then(snap => {
             const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             setCourses(list);
-            if (list.length) setCourseId(list[0].id);
+            // Pre-select course from URL: #/teacher/activities?course=COURSE_ID
+            const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+            const fromUrl = params.get('course');
+            const initial = (fromUrl && list.find(c => c.id === fromUrl)) ? fromUrl : (list[0]?.id || '');
+            setCourseId(initial);
         }).catch(console.error);
     }, [user?.uid]);
 

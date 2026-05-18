@@ -345,6 +345,11 @@ const CourseBuilder = () => {
                             style={{ background:'#F5F0FF', color:'#6D28D9', border:'1px solid #DDD6FE', textDecoration:'none' }}>
                             📝 โจทย์
                         </a>
+                        <a href={`#/teacher/activities?course=${c.id}`}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-medium text-center"
+                            style={{ background:'#F0F9FF', color:'#0369A1', border:'1px solid #BAE6FD', textDecoration:'none' }}>
+                            🎯 กิจกรรม
+                        </a>
                         <a href={`#/teacher/analytics?course=${c.id}`}
                             className="flex-1 py-1.5 rounded-lg text-xs font-medium text-center"
                             style={{ background:'#FFF7ED', color:'#C2410C', border:'1px solid #FED7AA', textDecoration:'none' }}>
