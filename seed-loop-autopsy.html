@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Seed: กิจกรรม 3.1 Loop Autopsy</title>
+<style>
+  body { font-family: sans-serif; background:#0d0d1f; color:#e2e8f0; padding:32px; max-width:640px; margin:auto; }
+  h2 { color:#8b5cf6; }
+  button { background:linear-gradient(135deg,#7c3aed,#06b6d4); color:white; border:none; padding:14px 28px; border-radius:12px; font-size:16px; font-weight:bold; cursor:pointer; margin-top:16px; width:100%; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  #log { background:#111; border:1px solid #333; border-radius:8px; padding:16px; margin-top:20px; font-family:monospace; font-size:13px; white-space:pre-wrap; min-height:120px; }
+  .ok  { color:#10b981; }
+  .err { color:#ef4444; }
+  .info{ color:#06b6d4; }
+  select, input { background:#1e1e3a; border:1px solid #4c1d95; color:#e2e8f0; padding:8px 12px; border-radius:8px; width:100%; margin-top:6px; font-size:14px; }
+  label { display:block; margin-top:14px; font-size:13px; color:#a78bfa; font-weight:600; }
+</style>
+</head>
+<body>
+<h2>🔬 Seed: กิจกรรม 3.1 — ชันสูตรลูป (Loop Autopsy)</h2>
+<p style="color:#94a3b8;font-size:13px">เปิดหน้านี้ขณะ Login เป็นครูใน APCC แล้วเลือกวิชาและกด Seed</p>
+
+<label>สถานะ Login</label>
+<div id="authStatus" style="color:#f59e0b;margin-top:6px;font-size:13px">กำลังตรวจสอบ...</div>
+
+<label>เลือกวิชา</label>
+<select id="courseSelect"><option value="">กำลังโหลด...</option></select>
+
+<button id="seedBtn" disabled onclick="runSeed()">🚀 Seed กิจกรรม 3.1 ลงใน Firestore</button>
+<div id="log">รอ...</div>
+
+<!-- Firebase compat SDK (same version as main app) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script>
+// Same config as js/firebase.js
+firebase.initializeApp({
+    apiKey: "AIzaSyD_8EGyQoll3B4fgpw-j0cT5o9n42zlGpw",
+    authDomain: "ai-powered-coding-596ed.firebaseapp.com",
+    projectId: "ai-powered-coding-596ed",
+    storageBucket: "ai-powered-coding-596ed.firebasestorage.app",
+    messagingSenderId: "518916777393",
+    appId: "1:518916777393:web:e63d5e780051a1baca4990"
+});
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+const log  = (msg, cls='info') => {
+    const el = document.getElementById('log');
+    el.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+    el.scrollTop = el.scrollHeight;
+};
+
+// Monitor auth state
+auth.onAuthStateChanged(async user => {
+    const statusEl = document.getElementById('authStatus');
+    if (!user) {
+        statusEl.textContent = '❌ ยังไม่ได้ Login — เปิด https://koki-assawin.github.io/AI-Powered-C/ login ก่อนแล้วค่อยมาที่นี่';
+        statusEl.style.color = '#ef4444';
+        return;
+    }
+    // Check role
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    const role = userDoc.exists ? userDoc.data().role : 'unknown';
+    statusEl.textContent = `✅ Login แล้ว: ${user.email} (${role})`;
+    statusEl.style.color = role === 'teacher' || role === 'admin' ? '#10b981' : '#f59e0b';
+
+    if (role !== 'teacher' && role !== 'admin') {
+        statusEl.textContent += ' — ต้องเป็น teacher หรือ admin เท่านั้น';
+        return;
+    }
+
+    // Load courses
+    const cSnap = await db.collection('courses').get();
+    const sel = document.getElementById('courseSelect');
+    sel.innerHTML = '';
+    cSnap.docs.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = d.data().title || d.id;
+        if ((d.data().title || '').includes('1/69')) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    document.getElementById('seedBtn').disabled = false;
+    document.getElementById('log').textContent = 'พร้อม Seed! เลือกวิชาแล้วกดปุ่ม';
+});
+
+async function runSeed() {
+    const courseId = document.getElementById('courseSelect').value;
+    if (!courseId) { alert('เลือกวิชาก่อน'); return; }
+    document.getElementById('seedBtn').disabled = true;
+    document.getElementById('log').textContent = '';
+
+    const courseName = document.getElementById('courseSelect').selectedOptions[0].textContent;
+    log(`📚 วิชา: ${courseName} (${courseId})`, 'info');
+    log('🔬 กำลังสร้าง กิจกรรม 3.1 — ชันสูตรลูป...', 'info');
+
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+
+    // ── Activity document ──────────────────────────────────────
+    const activityDoc = {
+        courseId,
+        title: 'กิจกรรม 3.1 — ด่านย่อยที่ 1: ชันสูตรลูป (Loop Autopsy)',
+        description: 'สแกน 3 เคสซอร์สโค้ดพัง วิเคราะห์พฤติกรรมลูปและบันทึกผลการชันสูตรเชิงตรรกะ',
+        activityType: 'autopsy',
+        isPublished: true,
+        xpReward: 40,
+        order: Date.now(),
+        aiCoach: { allowHint: true, allowAnalysis: false, maxHintsPerSub: 2 },
+        createdBy: auth.currentUser.uid,
+        createdAt: now,
+        updatedAt: now,
+        codingConfig: null,
+        quizConfig: null,
+        prePostConfig: null,
+        autopsyConfig: {
+            language: 'c',
+            totalPoints: 100,
+            cases: [
+                // ── Case 1: Infinite Loop ──────────────────────────────────
+                {
+                    caseId: 'case_1',
+                    label: 'Case 1 — ลูปอนันต์ (Infinite Loop)',
+                    buggyCode:
+`#include <stdio.h>
+int main() {
+    int i;
+    for (i = 1; i > 0; i++) {
+        printf("%d\\n", i);
+    }
+    return 0;
+}`,
+                    bugType: 'infinite_loop',
+                    expectedFix: 'เปลี่ยนเงื่อนไขเป็น i <= 10 (หรือกำหนดเงื่อนไขที่จะเป็นเท็จในที่สุด)',
+                    explanation:
+`เงื่อนไข i > 0 เป็นจริงตลอดเพราะ i เริ่มที่ 1 และเพิ่มขึ้นเรื่อยๆ (i++)
+ตัวแปร i จะวิ่งจาก 1, 2, 3, ... ไปเรื่อยๆ ไม่มีวันเป็นลบหรือศูนย์
+ผลลัพธ์คือตัวเลขน้ำตกรัวไม่หยุด จนกว่า integer overflow จะเกิดขึ้น
+(i จะล้นกลับมาเป็น INT_MIN ซึ่งยังน้อยกว่า 0 จึงหยุดได้ในที่สุด แต่กินเวลานานมาก)`,
+                    hints: [
+                        'ดูที่เงื่อนไข for: i > 0 ... i++ ค่า i จะเป็น 0 ได้หรือไม่?',
+                        'เงื่อนไขการหยุดลูปต้องเป็น false ในที่สุด ลองเปลี่ยน > เป็น <= และกำหนดขอบเขตบน',
+                    ],
+                    points: 34,
+                },
+                // ── Case 2: Dead Loop (ไม่ทำงานเลย) ──────────────────────
+                {
+                    caseId: 'case_2',
+                    label: 'Case 2 — ลูปนิ่งเฉย (Dead Loop / Never Executes)',
+                    buggyCode:
+`#include <stdio.h>
+int main() {
+    int i;
+    for (i = 5; i < 1; i++) {
+        printf("%d\\n", i);
+    }
+    printf("จบการทำงาน\\n");
+    return 0;
+}`,
+                    bugType: 'logic_error',
+                    expectedFix: 'เปลี่ยนเงื่อนไขเป็น i <= 10 หรือเริ่มต้น i = 1 แทน i = 5',
+                    explanation:
+`i เริ่มต้นที่ 5 แต่เงื่อนไขคือ i < 1
+ตั้งแต่ก้าวแรก 5 < 1 เป็นเท็จทันที ลูปไม่ทำงานแม้แต่ครั้งเดียว
+จอจะแสดง "จบการทำงาน" เท่านั้น (ไม่มีตัวเลขใดๆ)
+เปรียบเหมือนประตูที่ถูกล็อคตั้งแต่ก้าวแรก`,
+                    hints: [
+                        'เปรียบค่าเริ่มต้นของ i กับค่าในเงื่อนไข: 5 < 1 เป็นจริงหรือเท็จ?',
+                        'ลูป for จะตรวจเงื่อนไขก่อนรันครั้งแรกเสมอ — ถ้าเงื่อนไขเป็นเท็จทันที จะไม่ทำงานเลย',
+                    ],
+                    points: 33,
+                },
+                // ── Case 3: Skip Step ──────────────────────────────────────
+                {
+                    caseId: 'case_3',
+                    label: 'Case 3 — ลูปข้ามขั้น (Step Loop / Odd Numbers)',
+                    buggyCode:
+`#include <stdio.h>
+int main() {
+    int i;
+    for (i = 1; i <= 5; i = i + 2) {
+        printf("%d\\n", i);
+    }
+    return 0;
+}`,
+                    bugType: 'off_by_one',
+                    expectedFix: 'ถ้าต้องการทุกตัวเลข 1-5 ให้เปลี่ยน i = i + 2 เป็น i++ (หรือ i = i + 1)',
+                    explanation:
+`ลูปนี้ไม่ได้พัง แต่ผลลัพธ์อาจไม่ตรงตามที่คาดหวัง
+i เพิ่มทีละ 2 ในแต่ละรอบ: 1 → 3 → 5 → 7 (7 > 5 หยุด)
+ผลลัพธ์ที่ได้คือ 1, 3, 5 (เฉพาะเลขคี่)
+ถ้าต้องการพิมพ์ 1, 2, 3, 4, 5 ครบทุกตัว ต้องใช้ i++ แทน i = i + 2`,
+                    hints: [
+                        'ติดตามค่า i ในแต่ละรอบ: รอบ 1=?, รอบ 2=?, รอบ 3=? (บวก 2 ทุกรอบ)',
+                        'ส่วน update ของ for คือ i = i + 2 ซึ่งข้ามเลขคู่ทั้งหมด',
+                    ],
+                    points: 33,
+                },
+            ],
+        },
+    };
+
+    try {
+        const ref = await db.collection('assignments_v2').add(activityDoc);
+        log(`✅ สร้างกิจกรรมสำเร็จ! ID: ${ref.id}`, 'ok');
+        log(`📌 นักเรียนจะเห็นใน Dashboard → "🎯 กิจกรรมที่ได้รับมอบหมาย"`, 'ok');
+        log(`🔗 ลิงก์ทดสอบ: #/student/activity/${ref.id}`, 'info');
+        log(`\n✅ เสร็จสมบูรณ์!`, 'ok');
+    } catch (err) {
+        log(`❌ Error: ${err.message}`, 'err');
+        log('ตรวจสอบว่า Login เป็น teacher หรือ admin ก่อน', 'err');
+    }
+
+    document.getElementById('seedBtn').disabled = false;
+}
+</script>
+</body>
+</html>
