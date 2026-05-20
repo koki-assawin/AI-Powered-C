@@ -1,34 +1,36 @@
-// js/pages/teacher/ActivityBuilder.js - v1.0 Multi-Activity Creator
+// js/pages/teacher/ActivityBuilder.js - v1.2 Light-pink theme
 
-const _cyI = "w-full bg-gray-900 border border-purple-700/60 text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 placeholder-gray-600";
-const _cyL = "block text-xs font-semibold text-purple-400 uppercase tracking-widest mb-1";
+const _abI = "w-full border border-pink-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 placeholder-gray-400";
+const _abL = "block text-xs font-semibold text-pink-700 uppercase tracking-wide mb-1";
+const _abCard = { background: 'white', border: '1px solid #FFD1DC', borderRadius: '12px', padding: '16px', marginBottom: '12px' };
+const _abMono = "w-full border border-pink-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-gray-50 font-mono focus:outline-none focus:border-pink-400 placeholder-gray-400";
 
 // ── TestCase Row ──────────────────────────────────────────────────
 const _ABTestRow = ({ tc, idx, onChange, onRemove }) => (
-    <div className="flex gap-2 items-start mb-2 bg-gray-900/60 rounded-lg p-3 border border-gray-700/40">
-        <span className="text-purple-500 text-xs font-mono mt-1.5 w-5 shrink-0">#{idx + 1}</span>
+    <div className="flex gap-2 items-start mb-2 rounded-lg p-3" style={{ background: '#FFF5F7', border: '1px solid #FFD1DC' }}>
+        <span className="text-pink-400 text-xs font-mono mt-1.5 w-5 shrink-0">#{idx + 1}</span>
         <div className="flex-1 grid grid-cols-2 gap-2">
             <div>
-                <label className={_cyL}>Input (stdin)</label>
+                <label className={_abL}>Input (stdin)</label>
                 <textarea value={tc.input} rows={3}
                     onChange={e => onChange(idx, 'input', e.target.value)}
-                    className={_cyI + " font-mono text-xs"} placeholder="5\n3" />
+                    className={_abMono} placeholder="5&#10;3" />
             </div>
             <div>
-                <label className={_cyL}>Expected Output</label>
+                <label className={_abL}>Expected Output</label>
                 <textarea value={tc.expectedOutput} rows={3}
                     onChange={e => onChange(idx, 'expectedOutput', e.target.value)}
-                    className={_cyI + " font-mono text-xs"} placeholder="8" />
+                    className={_abMono} placeholder="8" />
             </div>
         </div>
         <div className="flex flex-col gap-2 shrink-0 pt-5">
-            <label className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer whitespace-nowrap">
+            <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer whitespace-nowrap">
                 <input type="checkbox" checked={tc.isHidden}
                     onChange={e => onChange(idx, 'isHidden', e.target.checked)}
-                    className="accent-purple-500" /> ซ่อน
+                    className="accent-pink-500" /> ซ่อน
             </label>
             {idx > 0 && (
-                <button onClick={() => onRemove(idx)} className="text-red-500 hover:text-red-400 text-xs font-bold">✕ ลบ</button>
+                <button onClick={() => onRemove(idx)} className="text-red-400 hover:text-red-600 text-xs font-bold">✕ ลบ</button>
             )}
         </div>
     </div>
@@ -36,20 +38,20 @@ const _ABTestRow = ({ tc, idx, onChange, onRemove }) => (
 
 // ── Autopsy Case Card ─────────────────────────────────────────────
 const _ABAutopsyCase = ({ c, idx, onChange, onRemove }) => (
-    <div className="bg-gray-900/70 border border-red-900/50 rounded-xl p-4 mb-3">
+    <div className="rounded-xl p-4 mb-3" style={{ background: '#FFF5F7', border: '1px solid #FFD1DC' }}>
         <div className="flex justify-between items-center mb-3">
-            <span className="text-red-400 font-bold text-sm">🔬 เคสที่ {idx + 1}</span>
-            {idx > 0 && <button onClick={() => onRemove(idx)} className="text-red-600 hover:text-red-400 text-xs font-bold">✕ ลบเคส</button>}
+            <span className="text-pink-700 font-bold text-sm">🔬 เคสที่ {idx + 1}</span>
+            {idx > 0 && <button onClick={() => onRemove(idx)} className="text-red-400 hover:text-red-600 text-xs font-bold">✕ ลบเคส</button>}
         </div>
         <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-                <label className={_cyL}>ชื่อเคส</label>
+                <label className={_abL}>ชื่อเคส</label>
                 <input value={c.label} onChange={e => onChange(idx, 'label', e.target.value)}
-                    className={_cyI} placeholder="กรณีที่ 1: ลูปอนันต์" />
+                    className={_abI} placeholder="กรณีที่ 1: ลูปอนันต์" />
             </div>
             <div>
-                <label className={_cyL}>ประเภทบั๊ก</label>
-                <select value={c.bugType} onChange={e => onChange(idx, 'bugType', e.target.value)} className={_cyI}>
+                <label className={_abL}>ประเภทบั๊ก</label>
+                <select value={c.bugType} onChange={e => onChange(idx, 'bugType', e.target.value)} className={_abI}>
                     <option value="infinite_loop">♾️ Infinite Loop</option>
                     <option value="off_by_one">📏 Off-by-one Error</option>
                     <option value="logic_error">🧠 Logic Error</option>
@@ -58,31 +60,31 @@ const _ABAutopsyCase = ({ c, idx, onChange, onRemove }) => (
             </div>
         </div>
         <div className="mb-3">
-            <label className={_cyL}>โค้ดที่มีบั๊ก (นักเรียนจะเห็นนี้)</label>
+            <label className={_abL}>โค้ดที่มีบั๊ก (นักเรียนจะเห็นนี้)</label>
             <textarea rows={6} value={c.buggyCode} onChange={e => onChange(idx, 'buggyCode', e.target.value)}
-                className={_cyI + " font-mono text-xs"} placeholder="#include <stdio.h>&#10;int main() {&#10;    int i = 0;&#10;    while(i < 10) {&#10;        printf(&quot;%d\n&quot;, i);&#10;        // ลืม i++&#10;    }&#10;}" />
+                className={_abMono} placeholder="#include <stdio.h>&#10;int main() { ... }" />
         </div>
         <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-                <label className={_cyL}>เฉลย / วิธีแก้</label>
+                <label className={_abL}>เฉลย / วิธีแก้</label>
                 <textarea rows={3} value={c.expectedFix} onChange={e => onChange(idx, 'expectedFix', e.target.value)}
-                    className={_cyI} placeholder="เพิ่ม i++; ใน loop body" />
+                    className={_abI} placeholder="เพิ่ม i++; ใน loop body" />
             </div>
             <div>
-                <label className={_cyL}>คำอธิบายบั๊ก</label>
+                <label className={_abL}>คำอธิบายบั๊ก</label>
                 <textarea rows={3} value={c.explanation} onChange={e => onChange(idx, 'explanation', e.target.value)}
-                    className={_cyI} placeholder="ตัวนับ i ไม่เคยเพิ่มค่า จึงวนซ้ำไม่หยุด" />
+                    className={_abI} placeholder="ตัวนับ i ไม่เคยเพิ่มค่า จึงวนซ้ำไม่หยุด" />
             </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
             <div>
-                <label className={_cyL}>คะแนน</label>
-                <input type="number" value={c.points} onChange={e => onChange(idx, 'points', +e.target.value)} className={_cyI} />
+                <label className={_abL}>คะแนน</label>
+                <input type="number" value={c.points} onChange={e => onChange(idx, 'points', +e.target.value)} className={_abI} />
             </div>
             <div>
-                <label className={_cyL}>Hints (คั่นด้วย | )</label>
+                <label className={_abL}>Hints (คั่นด้วย | )</label>
                 <input value={(c.hints || []).join('|')} onChange={e => onChange(idx, 'hints', e.target.value.split('|'))}
-                    className={_cyI} placeholder="ดูตัวแปรใน condition|ตัวนับต้องเปลี่ยนค่า" />
+                    className={_abI} placeholder="ดูตัวแปรใน condition|ตัวนับต้องเปลี่ยนค่า" />
             </div>
         </div>
     </div>
@@ -98,45 +100,46 @@ const _ABQuestion = ({ q, idx, onChange, onRemove, showBloom }) => {
         onChange(idx, 'options', opts);
     };
     return (
-        <div className="bg-gray-900/70 border border-cyan-900/40 rounded-xl p-4 mb-3">
+        <div className="rounded-xl p-4 mb-3" style={{ background: '#FFF5F7', border: '1px solid #FFD1DC' }}>
             <div className="flex justify-between items-center mb-3">
-                <span className="text-cyan-400 font-bold text-sm">❓ ข้อที่ {idx + 1}</span>
-                {idx > 0 && <button onClick={() => onRemove(idx)} className="text-red-600 hover:text-red-400 text-xs font-bold">✕ ลบข้อ</button>}
+                <span className="text-pink-700 font-bold text-sm">❓ ข้อที่ {idx + 1}</span>
+                {idx > 0 && <button onClick={() => onRemove(idx)} className="text-red-400 hover:text-red-600 text-xs font-bold">✕ ลบข้อ</button>}
             </div>
             <div className="mb-2">
-                <label className={_cyL}>โจทย์คำถาม</label>
+                <label className={_abL}>โจทย์คำถาม</label>
                 <textarea rows={2} value={q.stem} onChange={e => onChange(idx, 'stem', e.target.value)}
-                    className={_cyI} placeholder="ผลลัพธ์ของโค้ดนี้คืออะไร?" />
+                    className={_abI} placeholder="ผลลัพธ์ของโค้ดนี้คืออะไร?" />
             </div>
             <div className="mb-3">
-                <label className={_cyL}>Code Snippet (ถ้ามี)</label>
+                <label className={_abL}>Code Snippet (ถ้ามี)</label>
                 <textarea rows={4} value={q.code} onChange={e => onChange(idx, 'code', e.target.value)}
-                    className={_cyI + " font-mono text-xs"} placeholder="// วางโค้ดที่ต้องการถามที่นี่..." />
+                    className={_abMono} placeholder="// วางโค้ดที่ต้องการถามที่นี่..." />
             </div>
             <div className="grid grid-cols-2 gap-2 mb-3">
                 {q.options.map((opt, oi) => (
-                    <div key={opt.optId} className={`flex items-center gap-2 rounded-lg p-2.5 border cursor-pointer transition-all ${opt.isCorrect ? 'border-green-500/70 bg-green-900/20' : 'border-gray-700/50 bg-gray-900/40 hover:border-gray-600'}`}
+                    <div key={opt.optId}
+                        className={`flex items-center gap-2 rounded-lg p-2.5 border cursor-pointer transition-all ${opt.isCorrect ? 'border-green-400 bg-green-50' : 'border-pink-200 bg-white hover:border-pink-400'}`}
                         onClick={() => updateOpt(oi, 'isCorrect', true)}>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${opt.isCorrect ? 'border-green-500 bg-green-500' : 'border-gray-600'}`}>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${opt.isCorrect ? 'border-green-500 bg-green-500' : 'border-gray-300'}`}>
                             {opt.isCorrect && <div className="w-2 h-2 rounded-full bg-white" />}
                         </div>
                         <span className="text-gray-400 font-bold text-xs shrink-0">{opt.optId.toUpperCase()}.</span>
                         <input type="text" value={opt.text}
                             onChange={e => { e.stopPropagation(); updateOpt(oi, 'text', e.target.value); }}
                             onClick={e => e.stopPropagation()}
-                            className="flex-1 bg-transparent text-gray-300 text-xs outline-none min-w-0"
+                            className="flex-1 bg-transparent text-gray-700 text-xs outline-none min-w-0"
                             placeholder={`ตัวเลือก ${opt.optId.toUpperCase()}`} />
                     </div>
                 ))}
             </div>
             <div className="grid grid-cols-3 gap-2 mb-2">
                 <div>
-                    <label className={_cyL}>คะแนน</label>
-                    <input type="number" value={q.points} onChange={e => onChange(idx, 'points', +e.target.value)} className={_cyI} />
+                    <label className={_abL}>คะแนน</label>
+                    <input type="number" value={q.points} onChange={e => onChange(idx, 'points', +e.target.value)} className={_abI} />
                 </div>
                 <div>
-                    <label className={_cyL}>ระดับ</label>
-                    <select value={q.difficulty} onChange={e => onChange(idx, 'difficulty', e.target.value)} className={_cyI}>
+                    <label className={_abL}>ระดับ</label>
+                    <select value={q.difficulty} onChange={e => onChange(idx, 'difficulty', e.target.value)} className={_abI}>
                         <option value="easy">ง่าย</option>
                         <option value="medium">ปานกลาง</option>
                         <option value="hard">ยาก</option>
@@ -144,8 +147,8 @@ const _ABQuestion = ({ q, idx, onChange, onRemove, showBloom }) => {
                 </div>
                 {showBloom && (
                     <div>
-                        <label className={_cyL}>Bloom's Level</label>
-                        <select value={q.bloomLevel} onChange={e => onChange(idx, 'bloomLevel', e.target.value)} className={_cyI}>
+                        <label className={_abL}>Bloom's Level</label>
+                        <select value={q.bloomLevel} onChange={e => onChange(idx, 'bloomLevel', e.target.value)} className={_abI}>
                             <option value="remember">จำ (Remember)</option>
                             <option value="understand">เข้าใจ (Understand)</option>
                             <option value="apply">ประยุกต์ (Apply)</option>
@@ -155,9 +158,9 @@ const _ABQuestion = ({ q, idx, onChange, onRemove, showBloom }) => {
                 )}
             </div>
             <div>
-                <label className={_cyL}>คำอธิบายเฉลย</label>
+                <label className={_abL}>คำอธิบายเฉลย</label>
                 <input type="text" value={q.explanation} onChange={e => onChange(idx, 'explanation', e.target.value)}
-                    className={_cyI} placeholder="อธิบายว่าทำไมตัวเลือกนั้นถึงถูก..." />
+                    className={_abI} placeholder="อธิบายว่าทำไมตัวเลือกนั้นถึงถูก..." />
             </div>
         </div>
     );
@@ -215,7 +218,6 @@ const ActivityBuilder = () => {
         db.collection('courses').get().then(snap => {
             const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             setCourses(list);
-            // Pre-select course from URL: #/teacher/activities?course=COURSE_ID
             const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
             const fromUrl = params.get('course');
             const initial = (fromUrl && list.find(c => c.id === fromUrl)) ? fromUrl : (list[0]?.id || '');
@@ -226,8 +228,12 @@ const ActivityBuilder = () => {
     React.useEffect(() => {
         if (!courseId) { setExistingActivities([]); return; }
         setLoadingList(true);
-        db.collection('assignments_v2').where('courseId', '==', courseId).orderBy('order', 'desc').get()
-            .then(snap => setExistingActivities(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+        db.collection('assignments_v2').where('courseId', '==', courseId).get()
+            .then(snap => {
+                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                list.sort((a, b) => (b.order || 0) - (a.order || 0));
+                setExistingActivities(list);
+            })
             .catch(console.error)
             .finally(() => setLoadingList(false));
     }, [courseId]);
@@ -285,8 +291,7 @@ const ActivityBuilder = () => {
             let extra = {};
             if (activityType === 'coding') {
                 const tcIds = await Promise.all(testCases.map(tc =>
-                    db.collection('testCases').add({ ...tc, createdAt: now })
-                        .then(r => r.id)
+                    db.collection('testCases').add({ ...tc, createdAt: now }).then(r => r.id)
                 ));
                 extra.codingConfig = { ...codingConfig, testCaseIds: tcIds, allowedLanguages: [codingConfig.language] };
             } else if (activityType === 'autopsy') {
@@ -298,8 +303,10 @@ const ActivityBuilder = () => {
             }
 
             const ref = await db.collection('assignments_v2').add({ ...base, ...extra });
-            showToast(`บันทึกสำเร็จ! ID: ${ref.id.slice(0, 8)}… 🎮`);
+            showToast(`บันทึกสำเร็จ! ID: ${ref.id.slice(0, 8)}…`);
             setTitle(''); setDescription('');
+            // Refresh list
+            setExistingActivities(p => [{ id: ref.id, ...base, ...extra, isPublished }, ...p]);
         } catch (err) {
             console.error(err);
             showToast('Error: ' + err.message, 'error');
@@ -308,36 +315,42 @@ const ActivityBuilder = () => {
         }
     };
 
+    const TYPE_STYLE = {
+        coding:       { bg: '#F5F0FF', color: '#6D28D9', border: '#DDD6FE', icon: '💻', label: 'Coding' },
+        autopsy:      { bg: '#FFF0F5', color: '#AD1457', border: '#FFD1DC', icon: '🔬', label: 'Autopsy' },
+        quiz_blitz:   { bg: '#FFFBEB', color: '#B45309', border: '#FDE68A', icon: '⚡', label: 'Quiz Blitz' },
+        pre_post_test:{ bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE', icon: '📊', label: 'Pre/Post' },
+    };
+
     const TABS = [
-        { id: 'coding', icon: '💻', label: 'Coding Platform' },
-        { id: 'autopsy', icon: '🔬', label: 'Loop Autopsy' },
-        { id: 'quiz_blitz', icon: '⚡', label: 'Quiz Blitz' },
+        { id: 'coding',        icon: '💻', label: 'Coding Platform' },
+        { id: 'autopsy',       icon: '🔬', label: 'Loop Autopsy' },
+        { id: 'quiz_blitz',    icon: '⚡', label: 'Quiz Blitz' },
         { id: 'pre_post_test', icon: '📊', label: 'Pre / Post Test' },
     ];
 
     return (
-        <div className="min-h-screen" style={{ background: 'linear-gradient(135deg,#0d0d1f 0%,#1a1a3e 100%)' }}>
-            <Navbar title="AI-Powered Coding Coach (APCC)" subtitle="🏗️ สร้างกิจกรรม" />
+        <div className="min-h-screen" style={{ background: '#FFF5F7', fontFamily: "'Prompt',sans-serif" }}>
+            <Navbar title="AI-Powered Coding Coach (APCC)" subtitle="🎯 สร้างกิจกรรม" />
 
             {toast && (
-                <div className={`fixed top-20 right-4 z-50 px-5 py-3 rounded-xl font-bold text-sm shadow-2xl ${toast.type === 'error' ? 'bg-red-950 border border-red-500 text-red-200' : 'bg-emerald-950 border border-emerald-500 text-emerald-200'}`}
-                    style={{ boxShadow: toast.type === 'error' ? '0 0 25px #ef444455' : '0 0 25px #10b98155' }}>
+                <div className={`fixed top-20 right-4 z-50 px-5 py-3 rounded-xl font-bold text-sm shadow-lg ${toast.type === 'error' ? 'bg-red-50 border border-red-300 text-red-700' : 'bg-green-50 border border-green-300 text-green-700'}`}>
                     {toast.msg}
                 </div>
             )}
 
             <main className="max-w-4xl mx-auto px-4 py-8">
-                <div className="mb-8">
-                    <h2 className="text-3xl font-black mb-1" style={{ background: 'linear-gradient(90deg,#8b5cf6,#06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        ⚙️ Activity Builder
-                    </h2>
-                    <p className="text-gray-500 text-sm">สร้างกิจกรรมการเรียนรู้แบบ Multi-Activity Type สำหรับ APCC</p>
+
+                {/* Header */}
+                <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-0.5">⚙️ Activity Builder</h2>
+                    <p className="text-gray-400 text-sm">สร้างกิจกรรมการเรียนรู้แบบ Multi-Activity Type สำหรับ APCC</p>
                 </div>
 
-                {/* Course */}
-                <div className="bg-gray-800/80 border border-purple-800/40 rounded-xl p-4 mb-4">
-                    <label className={_cyL}>📚 รายวิชา</label>
-                    <select value={courseId} onChange={e => setCourseId(e.target.value)} className={_cyI}>
+                {/* Course selector */}
+                <div style={_abCard}>
+                    <label className={_abL}>📚 รายวิชา</label>
+                    <select value={courseId} onChange={e => setCourseId(e.target.value)} className={_abI}>
                         {courses.length === 0 && <option value="">กำลังโหลด...</option>}
                         {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                     </select>
@@ -345,124 +358,142 @@ const ActivityBuilder = () => {
 
                 {/* ── Existing Activities List ── */}
                 {courseId && (
-                    <div className="bg-gray-900/60 border border-cyan-900/40 rounded-xl p-4 mb-6">
+                    <div style={{ background: 'white', border: '1px solid #FFD1DC', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
                         <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-cyan-400 font-bold text-sm">📋 กิจกรรมที่สร้างแล้วในวิชานี้ ({existingActivities.length})</h3>
-                            {loadingList && <span className="text-gray-500 text-xs">กำลังโหลด...</span>}
+                            <h3 className="font-bold text-gray-800 text-sm">
+                                📋 กิจกรรมที่สร้างแล้วในวิชานี้
+                                <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: '#FFF0F5', color: '#AD1457' }}>
+                                    {existingActivities.length}
+                                </span>
+                            </h3>
+                            {loadingList && <span className="text-gray-400 text-xs">กำลังโหลด...</span>}
                         </div>
                         {!loadingList && existingActivities.length === 0 && (
-                            <p className="text-gray-600 text-xs text-center py-3">ยังไม่มีกิจกรรม</p>
+                            <p className="text-gray-400 text-xs text-center py-4">ยังไม่มีกิจกรรม — สร้างใหม่ด้านล่าง</p>
                         )}
                         {existingActivities.map(act => {
-                            const typeColor = { coding:'text-purple-400', autopsy:'text-red-400', quiz_blitz:'text-yellow-400', pre_post_test:'text-blue-400' };
-                            const typeIcon  = { coding:'💻', autopsy:'🔬', quiz_blitz:'⚡', pre_post_test:'📊' };
+                            const ts = TYPE_STYLE[act.activityType] || TYPE_STYLE.coding;
                             return (
-                                <div key={act.id} className="flex items-center gap-3 py-2.5 border-b border-gray-800/60 last:border-0">
-                                    <span className={`text-xs font-bold shrink-0 ${typeColor[act.activityType] || 'text-gray-400'}`}>
-                                        {typeIcon[act.activityType] || '📌'} {(act.activityType || '').replace('_',' ').toUpperCase()}
+                                <div key={act.id} className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid #FFE4EC' }}>
+                                    <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
+                                        style={{ background: ts.bg, color: ts.color, border: `1px solid ${ts.border}` }}>
+                                        {ts.icon} {ts.label}
                                     </span>
-                                    <span className="text-gray-200 text-sm flex-1 truncate">{act.title}</span>
-                                    <span className="text-gray-500 text-xs shrink-0">{act.xpReward || 0} XP</span>
+                                    <span className="text-gray-700 text-sm flex-1 truncate font-medium">{act.title}</span>
+                                    <span className="text-gray-400 text-xs shrink-0">{act.xpReward || 0} XP</span>
                                     <button onClick={() => togglePublish(act)}
-                                        className={`px-2 py-1 rounded-lg text-xs font-bold shrink-0 transition-all ${act.isPublished ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-700/50' : 'bg-gray-800 text-gray-500 border border-gray-700/50'}`}>
+                                        className="px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all"
+                                        style={act.isPublished
+                                            ? { background: '#F0FDF4', color: '#15803D', border: '1px solid #86EFAC' }
+                                            : { background: '#F5F5F5', color: '#6B7280', border: '1px solid #E0E0E0' }}>
                                         {act.isPublished ? '🟢 เผยแพร่' : '⚫ ซ่อน'}
                                     </button>
                                     <a href={`#/student/activity/${act.id}`} target="_blank"
-                                        className="px-2 py-1 rounded-lg text-xs font-bold shrink-0 bg-cyan-900/30 text-cyan-400 border border-cyan-700/50 hover:bg-cyan-900/60 transition-all"
-                                        style={{ textDecoration: 'none' }}>
+                                        className="px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all"
+                                        style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', textDecoration: 'none' }}>
                                         👁 ดู
                                     </a>
                                     <button onClick={() => deleteActivity(act)}
-                                        className="text-red-700 hover:text-red-400 text-xs font-bold shrink-0 transition-all">
-                                        ✕
-                                    </button>
+                                        className="text-xs font-bold shrink-0 transition-all"
+                                        style={{ color: '#EF4444' }}>✕</button>
                                 </div>
                             );
                         })}
                     </div>
                 )}
 
-                <div className="border-t border-purple-900/30 mb-6 pt-2">
-                    <h3 className="text-purple-400 font-bold text-sm">➕ สร้างกิจกรรมใหม่</h3>
+                {/* Divider */}
+                <div className="flex items-center gap-3 mb-5">
+                    <div className="flex-1 h-px" style={{ background: '#FFD1DC' }} />
+                    <span className="text-pink-600 font-bold text-sm">➕ สร้างกิจกรรมใหม่</span>
+                    <div className="flex-1 h-px" style={{ background: '#FFD1DC' }} />
                 </div>
 
-                {/* Common */}
-                <div className="bg-gray-800/80 border border-purple-800/40 rounded-xl p-4 mb-4">
+                {/* Common fields */}
+                <div style={_abCard}>
                     <div className="grid grid-cols-3 gap-3 mb-3">
                         <div className="col-span-2">
-                            <label className={_cyL}>ชื่อกิจกรรม *</label>
-                            <input value={title} onChange={e => setTitle(e.target.value)} className={_cyI}
+                            <label className={_abL}>ชื่อกิจกรรม *</label>
+                            <input value={title} onChange={e => setTitle(e.target.value)} className={_abI}
                                 placeholder="ชันสูตรลูป Unit 3: วงวนอนันต์" />
                         </div>
                         <div>
-                            <label className={_cyL}>XP รางวัล</label>
-                            <input type="number" value={xpReward} onChange={e => setXpReward(e.target.value)} className={_cyI} />
+                            <label className={_abL}>XP รางวัล</label>
+                            <input type="number" value={xpReward} onChange={e => setXpReward(e.target.value)} className={_abI} />
                         </div>
                     </div>
                     <div className="mb-3">
-                        <label className={_cyL}>คำอธิบาย</label>
+                        <label className={_abL}>คำอธิบาย</label>
                         <textarea rows={2} value={description} onChange={e => setDescription(e.target.value)}
-                            className={_cyI} placeholder="รายละเอียดกิจกรรมนี้..." />
+                            className={_abI} placeholder="รายละเอียดกิจกรรมนี้..." />
                     </div>
                     <div className="flex flex-wrap gap-x-6 gap-y-2">
                         {[
-                            [isPublished, v => setIsPublished(v), 'เผยแพร่ทันที', 'accent-purple-500'],
-                            [aiCoach.allowHint, v => setAiCoach(p => ({ ...p, allowHint: v })), 'อนุญาต AI Hint', 'accent-cyan-500'],
-                            [aiCoach.allowAnalysis, v => setAiCoach(p => ({ ...p, allowAnalysis: v })), 'อนุญาต AI Analysis', 'accent-cyan-500'],
-                        ].map(([val, setter, label, cls]) => (
+                            [isPublished, v => setIsPublished(v), 'เผยแพร่ทันที'],
+                            [aiCoach.allowHint, v => setAiCoach(p => ({ ...p, allowHint: v })), 'อนุญาต AI Hint'],
+                            [aiCoach.allowAnalysis, v => setAiCoach(p => ({ ...p, allowAnalysis: v })), 'อนุญาต AI Analysis'],
+                        ].map(([val, setter, label]) => (
                             <label key={label} className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={val} onChange={e => setter(e.target.checked)} className={`${cls} w-4 h-4`} />
-                                <span className="text-gray-300 text-sm">{label}</span>
+                                <input type="checkbox" checked={val} onChange={e => setter(e.target.checked)} className="accent-pink-500 w-4 h-4" />
+                                <span className="text-gray-600 text-sm">{label}</span>
                             </label>
                         ))}
                     </div>
                 </div>
 
-                {/* Type tabs */}
+                {/* Activity type tabs */}
                 <div className="flex gap-2 mb-5 flex-wrap">
-                    {TABS.map(t => (
-                        <button key={t.id} onClick={() => setActivityType(t.id)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${activityType === t.id ? 'bg-purple-700/30 border-purple-500 text-purple-200' : 'bg-gray-800/60 border-gray-700/50 text-gray-400 hover:border-purple-700/50'}`}
-                            style={activityType === t.id ? { boxShadow: '0 0 18px rgba(139,92,246,0.45)' } : {}}>
-                            {t.icon} {t.label}
-                        </button>
-                    ))}
+                    {TABS.map(t => {
+                        const ts = TYPE_STYLE[t.id];
+                        const active = activityType === t.id;
+                        return (
+                            <button key={t.id} onClick={() => setActivityType(t.id)}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
+                                style={active
+                                    ? { background: ts.bg, color: ts.color, border: `2px solid ${ts.border}` }
+                                    : { background: 'white', color: '#9CA3AF', border: '1px solid #FFD1DC' }}>
+                                {t.icon} {t.label}
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* ── CODING ── */}
                 {activityType === 'coding' && (
                     <div>
-                        <div className="bg-gray-800/80 border border-purple-800/40 rounded-xl p-4 mb-4">
-                            <h3 className="text-cyan-400 font-bold mb-3">⚙️ ตั้งค่า Coding</h3>
+                        <div style={_abCard}>
+                            <h3 className="font-bold text-purple-700 mb-3">⚙️ ตั้งค่า Coding</h3>
                             <div className="grid grid-cols-2 gap-3 mb-3">
                                 <div>
-                                    <label className={_cyL}>ภาษา</label>
-                                    <select value={codingConfig.language} onChange={e => setCodingConfig(p => ({ ...p, language: e.target.value }))} className={_cyI}>
+                                    <label className={_abL}>ภาษา</label>
+                                    <select value={codingConfig.language} onChange={e => setCodingConfig(p => ({ ...p, language: e.target.value }))} className={_abI}>
                                         <option value="c">C</option>
                                         <option value="python">Python</option>
                                         <option value="javascript">JavaScript</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className={_cyL}>Time Limit (วิ, 0=ไม่จำกัด)</label>
-                                    <input type="number" value={codingConfig.timeLimit} onChange={e => setCodingConfig(p => ({ ...p, timeLimit: +e.target.value }))} className={_cyI} />
+                                    <label className={_abL}>Time Limit (วิ, 0=ไม่จำกัด)</label>
+                                    <input type="number" value={codingConfig.timeLimit} onChange={e => setCodingConfig(p => ({ ...p, timeLimit: +e.target.value }))} className={_abI} />
                                 </div>
                             </div>
                             <div className="mb-3">
-                                <label className={_cyL}>Starter Code (นักเรียนเห็น)</label>
+                                <label className={_abL}>Starter Code (นักเรียนเห็น)</label>
                                 <textarea rows={8} value={codingConfig.starterCode} onChange={e => setCodingConfig(p => ({ ...p, starterCode: e.target.value }))}
-                                    className={_cyI + " font-mono text-xs"} />
+                                    className={_abMono} />
                             </div>
                             <div>
-                                <label className={_cyL}>Solution Code (ครูเท่านั้น)</label>
+                                <label className={_abL}>Solution Code (ครูเท่านั้น)</label>
                                 <textarea rows={5} value={codingConfig.solutionCode} onChange={e => setCodingConfig(p => ({ ...p, solutionCode: e.target.value }))}
-                                    className={_cyI + " font-mono text-xs"} placeholder="// เฉลย..." />
+                                    className={_abMono} placeholder="// เฉลย..." />
                             </div>
                         </div>
-                        <div className="bg-gray-800/80 border border-purple-800/40 rounded-xl p-4 mb-4">
+                        <div style={_abCard}>
                             <div className="flex justify-between items-center mb-3">
-                                <h3 className="text-cyan-400 font-bold">🧪 Test Cases ({testCases.length})</h3>
-                                <button onClick={tcH.add} className="px-3 py-1.5 bg-cyan-900/40 border border-cyan-700/50 text-cyan-300 rounded-lg text-xs font-bold hover:bg-cyan-900/60 transition-all">
+                                <h3 className="font-bold text-purple-700">🧪 Test Cases ({testCases.length})</h3>
+                                <button onClick={tcH.add}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                    style={{ background: '#F5F0FF', color: '#6D28D9', border: '1px solid #DDD6FE' }}>
                                     + เพิ่ม Test Case
                                 </button>
                             </div>
@@ -475,10 +506,12 @@ const ActivityBuilder = () => {
 
                 {/* ── AUTOPSY ── */}
                 {activityType === 'autopsy' && (
-                    <div className="bg-gray-800/80 border border-red-900/40 rounded-xl p-4 mb-4">
+                    <div style={_abCard}>
                         <div className="flex justify-between items-center mb-3">
-                            <h3 className="text-red-400 font-bold">🔬 Autopsy Cases ({autopsyCases.length} เคส)</h3>
-                            <button onClick={acH.add} className="px-3 py-1.5 bg-red-900/40 border border-red-700/50 text-red-300 rounded-lg text-xs font-bold hover:bg-red-900/60 transition-all">
+                            <h3 className="font-bold text-pink-700">🔬 Autopsy Cases ({autopsyCases.length} เคส)</h3>
+                            <button onClick={acH.add}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                style={{ background: '#FFF0F5', color: '#AD1457', border: '1px solid #FFD1DC' }}>
                                 + เพิ่มเคส
                             </button>
                         </div>
@@ -491,38 +524,40 @@ const ActivityBuilder = () => {
                 {/* ── QUIZ BLITZ ── */}
                 {activityType === 'quiz_blitz' && (
                     <div>
-                        <div className="bg-gray-800/80 border border-yellow-900/40 rounded-xl p-4 mb-4">
-                            <h3 className="text-yellow-400 font-bold mb-3">⚡ ตั้งค่า Quiz Blitz</h3>
+                        <div style={_abCard}>
+                            <h3 className="font-bold text-amber-700 mb-3">⚡ ตั้งค่า Quiz Blitz</h3>
                             <div className="grid grid-cols-3 gap-3 mb-3">
                                 <div>
-                                    <label className={_cyL}>เวลา/ข้อ (วิ)</label>
+                                    <label className={_abL}>เวลา/ข้อ (วิ)</label>
                                     <input type="number" value={quizConfig.timerPerQuestion}
-                                        onChange={e => setQuizConfig(p => ({ ...p, timerPerQuestion: +e.target.value }))} className={_cyI} />
+                                        onChange={e => setQuizConfig(p => ({ ...p, timerPerQuestion: +e.target.value }))} className={_abI} />
                                 </div>
                                 <div>
-                                    <label className={_cyL}>Speed Bonus XP/ข้อ</label>
+                                    <label className={_abL}>Speed Bonus XP/ข้อ</label>
                                     <input type="number" value={quizConfig.speedBonus.bonusXPPerQ}
-                                        onChange={e => setQuizConfig(p => ({ ...p, speedBonus: { ...p.speedBonus, bonusXPPerQ: +e.target.value } }))} className={_cyI} />
+                                        onChange={e => setQuizConfig(p => ({ ...p, speedBonus: { ...p.speedBonus, bonusXPPerQ: +e.target.value } }))} className={_abI} />
                                 </div>
                                 <div>
-                                    <label className={_cyL}>Threshold (% เวลาเหลือ)</label>
+                                    <label className={_abL}>Threshold (% เวลาเหลือ)</label>
                                     <input type="number" value={quizConfig.speedBonus.thresholdPct}
-                                        onChange={e => setQuizConfig(p => ({ ...p, speedBonus: { ...p.speedBonus, thresholdPct: +e.target.value } }))} className={_cyI} />
+                                        onChange={e => setQuizConfig(p => ({ ...p, speedBonus: { ...p.speedBonus, thresholdPct: +e.target.value } }))} className={_abI} />
                                 </div>
                             </div>
                             <div className="flex gap-6 flex-wrap">
                                 {[['shuffleQuestions', 'สุ่มลำดับข้อ'], ['showCorrectAfter', 'แสดงเฉลยทันที'], ['allowReview', 'ดูผลหลังจบ']].map(([k, l]) => (
                                     <label key={k} className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={quizConfig[k]} onChange={e => setQuizConfig(p => ({ ...p, [k]: e.target.checked }))} className="accent-yellow-500 w-4 h-4" />
-                                        <span className="text-gray-300 text-sm">{l}</span>
+                                        <input type="checkbox" checked={quizConfig[k]} onChange={e => setQuizConfig(p => ({ ...p, [k]: e.target.checked }))} className="accent-amber-500 w-4 h-4" />
+                                        <span className="text-gray-600 text-sm">{l}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
-                        <div className="bg-gray-800/80 border border-yellow-900/40 rounded-xl p-4 mb-4">
+                        <div style={_abCard}>
                             <div className="flex justify-between items-center mb-3">
-                                <h3 className="text-yellow-400 font-bold">❓ คำถาม ({quizQs.length} ข้อ)</h3>
-                                <button onClick={qhQ.add} className="px-3 py-1.5 bg-yellow-900/40 border border-yellow-700/50 text-yellow-300 rounded-lg text-xs font-bold hover:bg-yellow-900/60 transition-all">
+                                <h3 className="font-bold text-amber-700">❓ คำถาม ({quizQs.length} ข้อ)</h3>
+                                <button onClick={qhQ.add}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                    style={{ background: '#FFFBEB', color: '#B45309', border: '1px solid #FDE68A' }}>
                                     + เพิ่มข้อ
                                 </button>
                             </div>
@@ -536,38 +571,40 @@ const ActivityBuilder = () => {
                 {/* ── PRE/POST TEST ── */}
                 {activityType === 'pre_post_test' && (
                     <div>
-                        <div className="bg-gray-800/80 border border-blue-900/40 rounded-xl p-4 mb-4">
-                            <h3 className="text-blue-400 font-bold mb-3">📊 ตั้งค่า Pre / Post Test</h3>
+                        <div style={_abCard}>
+                            <h3 className="font-bold text-blue-700 mb-3">📊 ตั้งค่า Pre / Post Test</h3>
                             <div className="grid grid-cols-2 gap-3 mb-3">
                                 <div>
-                                    <label className={_cyL}>Pair ID (ผูก pre ↔ post)</label>
+                                    <label className={_abL}>Pair ID (ผูก pre ↔ post)</label>
                                     <input value={prePostConfig.pairId} onChange={e => setPrePostConfig(p => ({ ...p, pairId: e.target.value }))}
-                                        className={_cyI} placeholder="unit3_loops" />
+                                        className={_abI} placeholder="unit3_loops" />
                                 </div>
                                 <div>
-                                    <label className={_cyL}>บทบาท</label>
-                                    <select value={prePostConfig.testRole} onChange={e => setPrePostConfig(p => ({ ...p, testRole: e.target.value }))} className={_cyI}>
+                                    <label className={_abL}>บทบาท</label>
+                                    <select value={prePostConfig.testRole} onChange={e => setPrePostConfig(p => ({ ...p, testRole: e.target.value }))} className={_abI}>
                                         <option value="pre">🔵 Pre-test (ก่อนเรียน)</option>
                                         <option value="post">🟢 Post-test (หลังเรียน)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className={_cyL}>เวลารวม (วิ)</label>
-                                    <input type="number" value={prePostConfig.timerTotal} onChange={e => setPrePostConfig(p => ({ ...p, timerTotal: +e.target.value }))} className={_cyI} />
+                                    <label className={_abL}>เวลารวม (วิ)</label>
+                                    <input type="number" value={prePostConfig.timerTotal} onChange={e => setPrePostConfig(p => ({ ...p, timerTotal: +e.target.value }))} className={_abI} />
                                 </div>
                                 <div>
-                                    <label className={_cyL}>แสดงผลให้</label>
-                                    <select value={prePostConfig.showResultsTo} onChange={e => setPrePostConfig(p => ({ ...p, showResultsTo: e.target.value }))} className={_cyI}>
+                                    <label className={_abL}>แสดงผลให้</label>
+                                    <select value={prePostConfig.showResultsTo} onChange={e => setPrePostConfig(p => ({ ...p, showResultsTo: e.target.value }))} className={_abI}>
                                         <option value="teacher_only">ครูเท่านั้น</option>
                                         <option value="student">นักเรียนด้วย</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-gray-800/80 border border-blue-900/40 rounded-xl p-4 mb-4">
+                        <div style={_abCard}>
                             <div className="flex justify-between items-center mb-3">
-                                <h3 className="text-blue-400 font-bold">❓ คำถาม + Bloom's Taxonomy ({ppQs.length} ข้อ)</h3>
-                                <button onClick={qhP.add} className="px-3 py-1.5 bg-blue-900/40 border border-blue-700/50 text-blue-300 rounded-lg text-xs font-bold hover:bg-blue-900/60 transition-all">
+                                <h3 className="font-bold text-blue-700">❓ คำถาม + Bloom's Taxonomy ({ppQs.length} ข้อ)</h3>
+                                <button onClick={qhP.add}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                    style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE' }}>
                                     + เพิ่มข้อ
                                 </button>
                             </div>
@@ -578,14 +615,11 @@ const ActivityBuilder = () => {
                     </div>
                 )}
 
-                {/* Save */}
+                {/* Save button */}
                 <button onClick={handleSave} disabled={saving}
-                    className="w-full py-4 rounded-xl font-black text-lg text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-                    style={{
-                        background: saving ? '#1f2937' : 'linear-gradient(135deg,#7c3aed,#06b6d4)',
-                        boxShadow: saving ? 'none' : '0 0 35px rgba(124,58,237,0.5),0 0 70px rgba(6,182,212,0.25)',
-                    }}>
-                    {saving ? '⏳ กำลังบันทึก...' : '💾 SAVE ACTIVITY TO FIRESTORE'}
+                    className="w-full py-3.5 rounded-xl font-bold text-base text-white transition-all duration-200 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: saving ? '#E0E0E0' : 'linear-gradient(135deg,#e91e8c,#c2185b)', color: saving ? '#9E9E9E' : 'white' }}>
+                    {saving ? '⏳ กำลังบันทึก...' : '💾 บันทึกกิจกรรมลง Firestore'}
                 </button>
             </main>
         </div>
