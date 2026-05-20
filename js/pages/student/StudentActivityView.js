@@ -39,12 +39,12 @@ const AutopsyView = ({ assignment, user, userDoc }) => {
 
         // Case-specific simulation (caseId takes priority over bugType)
         const caseSimOutputs = {
-            case_1: { lines: ['1', '2', '3', '4', '5', '(กำลังวนซ้ำ...)', '6', '7', '8', '9', '...'], loop: true, loopFrom: 5 },
+            case_1: { mode: 'counter', loop: true },   // นับ 1,2,3,... ไปไม่มีที่สิ้นสุด
             case_2: { lines: ['[เงื่อนไข i < 1 เป็นเท็จทันที — ลูปไม่ทำงานเลย]', 'จบการทำงาน'], loop: false },
             case_3: { lines: ['1', '3', '5', '[i = 7 > 5 → ลูปจบ]'], loop: false },
         };
         const bugTypeSimOutputs = {
-            infinite_loop: { lines: ['1', '2', '3', '4', '5', '(กำลังวนซ้ำ...)', '6', '7', '8', '...'], loop: true, loopFrom: 5 },
+            infinite_loop: { mode: 'counter', loop: true },
             off_by_one: { lines: ['1', '3', '5', '[ข้ามเลขคู่ทั้งหมด]'], loop: false },
             logic_error: { lines: ['[เงื่อนไขเป็นเท็จตั้งแต่แรก — ลูปไม่ทำงาน]', 'จบการทำงาน'], loop: false },
             runtime_error: { lines: ['Segmentation fault (core dumped)', 'Process exited with code 139 ❌'], loop: false },
@@ -54,20 +54,25 @@ const AutopsyView = ({ assignment, user, userDoc }) => {
         // 2. Use a local array to track timers (avoids stale closure on setRunTimers)
         const localTimers = [];
         let lineIdx = 0;
+        let counter = 1; // for counter mode
 
         const addLine = () => {
-            if (lineIdx >= sim.lines.length) {
-                if (!sim.loop) {
-                    setRunning(p => p.map((v, i) => i === idx ? false : v));
-                    setDiagnostics(p => p.map((v, i) => i === idx ? { ...v, done: true } : v));
-                    db.collection('runtimeStatus').doc(user.uid).set({ isInfiniteLoopDetected: false, lastActivity: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(console.error);
+            let lineText;
+            if (sim.mode === 'counter') {
+                lineText = String(counter++);
+            } else {
+                if (lineIdx >= sim.lines.length) {
+                    if (!sim.loop) {
+                        setRunning(p => p.map((v, i) => i === idx ? false : v));
+                        setDiagnostics(p => p.map((v, i) => i === idx ? { ...v, done: true } : v));
+                        db.collection('runtimeStatus').doc(user.uid).set({ isInfiniteLoopDetected: false, lastActivity: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(console.error);
+                    }
+                    return;
                 }
-                return;
+                lineText = sim.lines[lineIdx++];
             }
-            setDiagnostics(p => p.map((v, i) => i === idx ? { lines: [...(v?.lines || []), sim.lines[lineIdx]], done: false } : v));
-            lineIdx++;
-            if (sim.loop && lineIdx >= sim.lines.length) lineIdx = sim.loopFrom || 5;
-            const tid = setTimeout(addLine, sim.loop ? 300 : 200);
+            setDiagnostics(p => p.map((v, i) => i === idx ? { lines: [...(v?.lines || []), lineText], done: false } : v));
+            const tid = setTimeout(addLine, sim.loop ? 250 : 200);
             localTimers.push(tid);
             setRunTimers([...localTimers]);
         };
