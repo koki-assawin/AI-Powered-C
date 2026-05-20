@@ -130,10 +130,12 @@ const StudentDashboard = () => {
                 .get();
             setGrades(gradeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-            // Load multi-type activities (assignments_v2) from enrollments
+            // Load multi-type activities (assignments_v2)
+            // Use enrolledCourses from user doc (primary) + enrollments collection (secondary)
             try {
                 const enSnap = await db.collection('enrollments').where('studentId', '==', userDoc.id).get();
-                const cIds = [...new Set(enSnap.docs.map(d => d.data().courseId))].slice(0, 10);
+                const fromCollection = enSnap.docs.map(d => d.data().courseId);
+                const cIds = [...new Set([...enrolledIds, ...fromCollection])].slice(0, 10);
                 if (cIds.length) {
                     const chunks = [];
                     for (let i = 0; i < cIds.length; i += 10) chunks.push(cIds.slice(i, i + 10));
@@ -142,7 +144,6 @@ const StudentDashboard = () => {
                     );
                     const acts = aSnaps.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })))
                         .sort((a, b) => (b.order || 0) - (a.order || 0)).slice(0, 20);
-                    // Check which ones student has submitted
                     const sub2Snap = await db.collection('submissions_v2').where('studentId', '==', userDoc.id).get();
                     const doneIds = new Set(sub2Snap.docs.map(d => d.data().assignmentId));
                     setActivities(acts.map(a => ({ ...a, isDone: doneIds.has(a.id) })));
