@@ -15,6 +15,10 @@ const AutopsyView = ({ assignment, user, userDoc }) => {
     const cur = cases[caseIdx] || {};
 
     const simulateDiagnostic = (idx) => {
+        // 1. Kill ALL existing timers from any previous run
+        setRunTimers(prev => { prev.forEach(clearTimeout); return []; });
+        setRunning(p => p.map(() => false));
+
         const c = cases[idx];
         setRunning(p => p.map((v, i) => i === idx ? true : v));
         setDiagnostics(p => p.map((v, i) => i === idx ? { lines: [], done: false } : v));
@@ -47,24 +51,31 @@ const AutopsyView = ({ assignment, user, userDoc }) => {
         };
         const sim = caseSimOutputs[c.caseId] || bugTypeSimOutputs[c.bugType] || bugTypeSimOutputs.logic_error;
 
+        // 2. Use a local array to track timers (avoids stale closure on setRunTimers)
+        const localTimers = [];
         let lineIdx = 0;
+
         const addLine = () => {
             if (lineIdx >= sim.lines.length) {
                 if (!sim.loop) {
                     setRunning(p => p.map((v, i) => i === idx ? false : v));
                     setDiagnostics(p => p.map((v, i) => i === idx ? { ...v, done: true } : v));
-                    // Clear teacher alert
                     db.collection('runtimeStatus').doc(user.uid).set({ isInfiniteLoopDetected: false, lastActivity: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(console.error);
                 }
                 return;
             }
             setDiagnostics(p => p.map((v, i) => i === idx ? { lines: [...(v?.lines || []), sim.lines[lineIdx]], done: false } : v));
             lineIdx++;
-            if (sim.loop && lineIdx >= sim.lines.length) lineIdx = sim.loopFrom || 5; // loop back
-            const tid = setTimeout(addLine, sim.loop ? 300 : 150);
-            setRunTimers(p => [...p, tid]);
+            if (sim.loop && lineIdx >= sim.lines.length) lineIdx = sim.loopFrom || 5;
+            const tid = setTimeout(addLine, sim.loop ? 300 : 200);
+            localTimers.push(tid);
+            setRunTimers([...localTimers]);
         };
-        addLine();
+
+        // 3. Delay first line so React flushes the clear state first
+        const startTid = setTimeout(addLine, 80);
+        localTimers.push(startTid);
+        setRunTimers([startTid]);
     };
 
     const killProcess = (idx) => {
