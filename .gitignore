@@ -34,3 +34,8 @@ firebaseConfig.js
 # Cloud Functions dependencies
 functions/node_modules/
 functions/package-lock.json
+
+# Node
+node_modules/
+package-lock.json
+package.json
