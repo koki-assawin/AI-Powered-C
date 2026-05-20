@@ -207,6 +207,9 @@ const ActivityBuilder = () => {
     });
     const [ppQs, setPpQs] = React.useState([mkQ(0)]);
 
+    const [existingActivities, setExistingActivities] = React.useState([]);
+    const [loadingList, setLoadingList] = React.useState(false);
+
     React.useEffect(() => {
         if (!user?.uid) return;
         db.collection('courses').get().then(snap => {
@@ -219,6 +222,27 @@ const ActivityBuilder = () => {
             setCourseId(initial);
         }).catch(console.error);
     }, [user?.uid]);
+
+    React.useEffect(() => {
+        if (!courseId) { setExistingActivities([]); return; }
+        setLoadingList(true);
+        db.collection('assignments_v2').where('courseId', '==', courseId).orderBy('order', 'desc').get()
+            .then(snap => setExistingActivities(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+            .catch(console.error)
+            .finally(() => setLoadingList(false));
+    }, [courseId]);
+
+    const togglePublish = async (act) => {
+        await db.collection('assignments_v2').doc(act.id).update({ isPublished: !act.isPublished });
+        setExistingActivities(p => p.map(a => a.id === act.id ? { ...a, isPublished: !act.isPublished } : a));
+    };
+
+    const deleteActivity = async (act) => {
+        if (!window.confirm(`ลบ "${act.title}"?\nไม่สามารถกู้คืนได้`)) return;
+        await db.collection('assignments_v2').doc(act.id).delete();
+        setExistingActivities(p => p.filter(a => a.id !== act.id));
+        showToast('ลบกิจกรรมแล้ว', 'error');
+    };
 
     const mkQHandlers = (setter) => ({
         upd: (i, f, v) => setter(p => p.map((q, j) => j === i ? { ...q, [f]: v } : q)),
@@ -317,6 +341,49 @@ const ActivityBuilder = () => {
                         {courses.length === 0 && <option value="">กำลังโหลด...</option>}
                         {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                     </select>
+                </div>
+
+                {/* ── Existing Activities List ── */}
+                {courseId && (
+                    <div className="bg-gray-900/60 border border-cyan-900/40 rounded-xl p-4 mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-cyan-400 font-bold text-sm">📋 กิจกรรมที่สร้างแล้วในวิชานี้ ({existingActivities.length})</h3>
+                            {loadingList && <span className="text-gray-500 text-xs">กำลังโหลด...</span>}
+                        </div>
+                        {!loadingList && existingActivities.length === 0 && (
+                            <p className="text-gray-600 text-xs text-center py-3">ยังไม่มีกิจกรรม</p>
+                        )}
+                        {existingActivities.map(act => {
+                            const typeColor = { coding:'text-purple-400', autopsy:'text-red-400', quiz_blitz:'text-yellow-400', pre_post_test:'text-blue-400' };
+                            const typeIcon  = { coding:'💻', autopsy:'🔬', quiz_blitz:'⚡', pre_post_test:'📊' };
+                            return (
+                                <div key={act.id} className="flex items-center gap-3 py-2.5 border-b border-gray-800/60 last:border-0">
+                                    <span className={`text-xs font-bold shrink-0 ${typeColor[act.activityType] || 'text-gray-400'}`}>
+                                        {typeIcon[act.activityType] || '📌'} {(act.activityType || '').replace('_',' ').toUpperCase()}
+                                    </span>
+                                    <span className="text-gray-200 text-sm flex-1 truncate">{act.title}</span>
+                                    <span className="text-gray-500 text-xs shrink-0">{act.xpReward || 0} XP</span>
+                                    <button onClick={() => togglePublish(act)}
+                                        className={`px-2 py-1 rounded-lg text-xs font-bold shrink-0 transition-all ${act.isPublished ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-700/50' : 'bg-gray-800 text-gray-500 border border-gray-700/50'}`}>
+                                        {act.isPublished ? '🟢 เผยแพร่' : '⚫ ซ่อน'}
+                                    </button>
+                                    <a href={`#/student/activity/${act.id}`} target="_blank"
+                                        className="px-2 py-1 rounded-lg text-xs font-bold shrink-0 bg-cyan-900/30 text-cyan-400 border border-cyan-700/50 hover:bg-cyan-900/60 transition-all"
+                                        style={{ textDecoration: 'none' }}>
+                                        👁 ดู
+                                    </a>
+                                    <button onClick={() => deleteActivity(act)}
+                                        className="text-red-700 hover:text-red-400 text-xs font-bold shrink-0 transition-all">
+                                        ✕
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                <div className="border-t border-purple-900/30 mb-6 pt-2">
+                    <h3 className="text-purple-400 font-bold text-sm">➕ สร้างกิจกรรมใหม่</h3>
                 </div>
 
                 {/* Common */}
