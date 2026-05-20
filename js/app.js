@@ -54,7 +54,7 @@ const renderRoute = (route, role) => {
         if (route === '#/student/editor')
             return guard(React.createElement(FreeEditor));
         if (route.startsWith('#/student/activity'))
-            return guard(React.createElement(StudentActivityView));
+            return React.createElement(ProtectedRoute, { allowedRoles: ['student', 'teacher', 'admin'] }, React.createElement(StudentActivityView));
 
         // Default student route
         return guard(React.createElement(StudentDashboard));
