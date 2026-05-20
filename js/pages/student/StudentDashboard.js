@@ -138,9 +138,10 @@ const StudentDashboard = () => {
                     const chunks = [];
                     for (let i = 0; i < cIds.length; i += 10) chunks.push(cIds.slice(i, i + 10));
                     const aSnaps = await Promise.all(
-                        chunks.map(ch => db.collection('assignments_v2').where('courseId', 'in', ch).where('isPublished', '==', true).orderBy('order', 'desc').limit(20).get())
+                        chunks.map(ch => db.collection('assignments_v2').where('courseId', 'in', ch).where('isPublished', '==', true).get())
                     );
-                    const acts = aSnaps.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
+                    const acts = aSnaps.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })))
+                        .sort((a, b) => (b.order || 0) - (a.order || 0)).slice(0, 20);
                     // Check which ones student has submitted
                     const sub2Snap = await db.collection('submissions_v2').where('studentId', '==', userDoc.id).get();
                     const doneIds = new Set(sub2Snap.docs.map(d => d.data().assignmentId));
