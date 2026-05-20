@@ -33,13 +33,19 @@ const AutopsyView = ({ assignment, user, userDoc }) => {
             }).catch(console.error);
         }
 
-        const simOutputs = {
-            infinite_loop: { lines: ['กำลังรัน...', '0', '1', '2', '3', '4', '5', '(กำลังวนซ้ำ...)', '6', '7', '8', '...'], loop: true },
-            off_by_one: { lines: ['Output:', '1', '2', '3', '4', '5', '6', '7', '8', '9', '(คาดหวัง: ถึง 10 แต่ได้แค่ 9)'], loop: false },
-            logic_error: { lines: ['Output:', 'คำตอบที่ได้: 15', 'คาดหวัง: 55', 'ผลลัพธ์ไม่ถูกต้อง ❌'], loop: false },
+        // Case-specific simulation (caseId takes priority over bugType)
+        const caseSimOutputs = {
+            case_1: { lines: ['1', '2', '3', '4', '5', '(กำลังวนซ้ำ...)', '6', '7', '8', '9', '...'], loop: true, loopFrom: 5 },
+            case_2: { lines: ['[เงื่อนไข i < 1 เป็นเท็จทันที — ลูปไม่ทำงานเลย]', 'จบการทำงาน'], loop: false },
+            case_3: { lines: ['1', '3', '5', '[i = 7 > 5 → ลูปจบ]'], loop: false },
+        };
+        const bugTypeSimOutputs = {
+            infinite_loop: { lines: ['1', '2', '3', '4', '5', '(กำลังวนซ้ำ...)', '6', '7', '8', '...'], loop: true, loopFrom: 5 },
+            off_by_one: { lines: ['1', '3', '5', '[ข้ามเลขคู่ทั้งหมด]'], loop: false },
+            logic_error: { lines: ['[เงื่อนไขเป็นเท็จตั้งแต่แรก — ลูปไม่ทำงาน]', 'จบการทำงาน'], loop: false },
             runtime_error: { lines: ['Segmentation fault (core dumped)', 'Process exited with code 139 ❌'], loop: false },
         };
-        const sim = simOutputs[c.bugType] || simOutputs.logic_error;
+        const sim = caseSimOutputs[c.caseId] || bugTypeSimOutputs[c.bugType] || bugTypeSimOutputs.logic_error;
 
         let lineIdx = 0;
         const addLine = () => {
@@ -54,7 +60,7 @@ const AutopsyView = ({ assignment, user, userDoc }) => {
             }
             setDiagnostics(p => p.map((v, i) => i === idx ? { lines: [...(v?.lines || []), sim.lines[lineIdx]], done: false } : v));
             lineIdx++;
-            if (sim.loop && lineIdx >= sim.lines.length) lineIdx = 7; // loop back
+            if (sim.loop && lineIdx >= sim.lines.length) lineIdx = sim.loopFrom || 5; // loop back
             const tid = setTimeout(addLine, sim.loop ? 300 : 150);
             setRunTimers(p => [...p, tid]);
         };
