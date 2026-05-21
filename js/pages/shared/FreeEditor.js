@@ -166,13 +166,15 @@ const FreeEditor = () => {
         setCollecting(false); setCollectedLines([]); setCurrentLine(''); setEchoedLines([]);
     };
 
-    // ── Piston fallback compiler ──────────────────────────────────────────────
+    // ── Fallback compilers ────────────────────────────────────────────────────
     const PISTON_LANG_MAP = {
         c:      { language: 'c',      version: '*', filename: 'main.c'   },
         cpp:    { language: 'c++',    version: '*', filename: 'main.cpp' },
         python: { language: 'python', version: '*', filename: 'main.py'  },
         java:   { language: 'java',   version: '*', filename: 'Main.java'},
     };
+    const JUDGE0_LANG_MAP = { c: 50, cpp: 54, python: 71, java: 62 };
+
     const runWithPistonEditor = async (stdinStr) => {
         const p = PISTON_LANG_MAP[language] || PISTON_LANG_MAP.c;
         const res = await fetch('https://emkc.org/api/v2/piston/execute', {
@@ -189,6 +191,21 @@ const FreeEditor = () => {
             compiler_error: data.compile?.stderr || '',
             program_output: data.run?.stdout || '',
             program_error:  data.run?.stderr  || '',
+        };
+    };
+
+    const runWithJudge0Editor = async (stdinStr) => {
+        const langId = JUDGE0_LANG_MAP[language] || JUDGE0_LANG_MAP.c;
+        const res = await fetch('https://ce.judge0.com/submissions?base64_encoded=false&wait=true', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source_code: code, language_id: langId, stdin: stdinStr || '' }),
+        });
+        if (!res.ok) throw new Error(`Judge0 HTTP ${res.status}`);
+        const data = await res.json();
+        return {
+            compiler_error: data.compile_output || '',
+            program_output: data.stdout || '',
+            program_error:  data.stderr  || '',
         };
     };
 
@@ -211,10 +228,14 @@ const FreeEditor = () => {
         } catch (_wandboxErr) {
             try {
                 data = await runWithPistonEditor(stdinStr);
-            } catch (pistonErr) {
-                setOutput(`⚠️ ไม่สามารถเชื่อมต่อ compiler ได้ (Wandbox + Piston ล้มเหลว)\n${pistonErr.message}`);
-                setRunStatus('error'); setExecTime(Date.now() - t0);
-                setRunning(false); return;
+            } catch (_pistonErr) {
+                try {
+                    data = await runWithJudge0Editor(stdinStr);
+                } catch (judge0Err) {
+                    setOutput(`⚠️ ไม่สามารถเชื่อมต่อ compiler ได้ (Wandbox + Piston + Judge0 ล้มเหลว)\n${judge0Err.message}`);
+                    setRunStatus('error'); setExecTime(Date.now() - t0);
+                    setRunning(false); return;
+                }
             }
         }
         setExecTime(Date.now() - t0);

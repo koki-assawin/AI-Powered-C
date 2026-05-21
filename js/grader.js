@@ -1,9 +1,10 @@
 // ============================================================
-// js/grader.js - Auto-Grader via Wandbox API (Piston fallback)
+// js/grader.js - Auto-Grader via Wandbox → Piston → Judge0
 // ============================================================
 
 const WANDBOX_URL = 'https://wandbox.org/api/compile.json';
 const PISTON_URL  = 'https://emkc.org/api/v2/piston/execute';
+const JUDGE0_URL  = 'https://ce.judge0.com/submissions?base64_encoded=false&wait=true';
 
 const WANDBOX_COMPILER = {
     c:      'gcc-head',
@@ -20,7 +21,10 @@ const PISTON_LANG = {
     java:   { language: 'java',   version: '*', filename: 'Main.java'   },
 };
 
-// Run via Piston (fallback)
+// Judge0 CE language IDs
+const JUDGE0_LANG = { c: 50, cpp: 54, python: 71, java: 62 };
+
+// Run via Piston (fallback 1)
 const runWithPiston = async (code, language, stdin) => {
     const p = PISTON_LANG[language] || PISTON_LANG.c;
     const res = await fetch(PISTON_URL, {
@@ -41,13 +45,30 @@ const runWithPiston = async (code, language, stdin) => {
     };
 };
 
+// Run via Judge0 CE (fallback 2)
+const runWithJudge0 = async (code, language, stdin) => {
+    const langId = JUDGE0_LANG[language] || JUDGE0_LANG.c;
+    const res = await fetch(JUDGE0_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_code: code, language_id: langId, stdin: stdin || '' }),
+    });
+    if (!res.ok) throw new Error(`Judge0 HTTP ${res.status}`);
+    const data = await res.json();
+    return {
+        program_output: data.stdout || '',
+        program_error:  data.stderr || '',
+        compiler_error: data.compile_output || '',
+    };
+};
+
 // Normalize output for comparison (trim whitespace, unify newlines)
 const normalizeOutput = (str) =>
     (str || '')
         .replace(/\r\n/g, '\n')
         .trim();
 
-// Run code against a single test case input (Wandbox → Piston fallback)
+// Run code against a single test case input (Wandbox → Piston → Judge0)
 const runSingleTest = async (code, language, testCase) => {
     const startTime = Date.now();
     let data;
@@ -68,14 +89,18 @@ const runSingleTest = async (code, language, testCase) => {
     } catch (_wandboxErr) {
         try {
             data = await runWithPiston(code, language, testCase.input || '');
-        } catch (pistonErr) {
-            return {
-                testCaseId: testCase.id, passed: false,
-                actualOutput: '', expectedOutput: normalizeOutput(testCase.expectedOutput || testCase.expected || ''),
-                executionTime: Date.now() - startTime,
-                errorLog: `Compile service unavailable: ${pistonErr.message}`,
-                isCompileError: false,
-            };
+        } catch (_pistonErr) {
+            try {
+                data = await runWithJudge0(code, language, testCase.input || '');
+            } catch (judge0Err) {
+                return {
+                    testCaseId: testCase.id, passed: false,
+                    actualOutput: '', expectedOutput: normalizeOutput(testCase.expectedOutput || testCase.expected || ''),
+                    executionTime: Date.now() - startTime,
+                    errorLog: `Compile service unavailable: ${judge0Err.message}`,
+                    isCompileError: false,
+                };
+            }
         }
     }
 
