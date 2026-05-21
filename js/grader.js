@@ -1,24 +1,44 @@
 // ============================================================
-// js/grader.js - Auto-Grader via Wandbox API
-// Wandbox: https://wandbox.org (free, no API key needed)
+// js/grader.js - Auto-Grader via Wandbox API (Piston fallback)
 // ============================================================
 
 const WANDBOX_URL = 'https://wandbox.org/api/compile.json';
+const PISTON_URL  = 'https://emkc.org/api/v2/piston/execute';
 
-// Wandbox compiler mapping per language
 const WANDBOX_COMPILER = {
     c:      'gcc-head',
     cpp:    'gcc-head',
     python: 'cpython-3.12.0',
     java:   'openjdk-head',
 };
+const WANDBOX_OPTIONS = { c: '-x c', cpp: '', python: '', java: '' };
 
-// Extra compile options per language
-const WANDBOX_OPTIONS = {
-    c:      '-x c',
-    cpp:    '',
-    python: '',
-    java:   '',
+const PISTON_LANG = {
+    c:      { language: 'c',      version: '*', filename: 'main.c'      },
+    cpp:    { language: 'c++',    version: '*', filename: 'main.cpp'    },
+    python: { language: 'python', version: '*', filename: 'main.py'     },
+    java:   { language: 'java',   version: '*', filename: 'Main.java'   },
+};
+
+// Run via Piston (fallback)
+const runWithPiston = async (code, language, stdin) => {
+    const p = PISTON_LANG[language] || PISTON_LANG.c;
+    const res = await fetch(PISTON_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            language: p.language, version: p.version,
+            files: [{ name: p.filename, content: code }],
+            stdin: stdin || '',
+        }),
+    });
+    if (!res.ok) throw new Error(`Piston HTTP ${res.status}`);
+    const data = await res.json();
+    return {
+        program_output: data.run?.stdout || '',
+        program_error:  data.run?.stderr || '',
+        compiler_error: data.compile?.stderr || '',
+    };
 };
 
 // Normalize output for comparison (trim whitespace, unify newlines)
@@ -27,56 +47,48 @@ const normalizeOutput = (str) =>
         .replace(/\r\n/g, '\n')
         .trim();
 
-// Run code against a single test case input
+// Run code against a single test case input (Wandbox → Piston fallback)
 const runSingleTest = async (code, language, testCase) => {
     const startTime = Date.now();
+    let data;
 
     try {
         const body = {
             compiler: WANDBOX_COMPILER[language] || 'gcc-head',
-            code,
-            stdin: testCase.input || '',
+            code, stdin: testCase.input || '',
         };
         if (WANDBOX_OPTIONS[language]) body.options = WANDBOX_OPTIONS[language];
-
         const res = await fetch(WANDBOX_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
         });
-
         if (!res.ok) throw new Error(`Wandbox HTTP ${res.status}`);
-
-        const data = await res.json();
-        const execTime = Date.now() - startTime;
-        const actualOutput = normalizeOutput(data.program_output || '');
-        const expectedOutput = normalizeOutput(testCase.expectedOutput || testCase.expected || '');
-        const passed = actualOutput === expectedOutput;
-        const compilerError = data.compiler_error ? data.compiler_error.trim() : null;
-        const runtimeError = data.program_error ? data.program_error.trim() : null;
-        const errorLog = compilerError || runtimeError || null;
-        const isCompileError = !!compilerError && !data.program_output;
-
-        return {
-            testCaseId: testCase.id,
-            passed,
-            actualOutput,
-            expectedOutput,
-            executionTime: execTime,
-            errorLog,
-            isCompileError,
-        };
-    } catch (err) {
-        return {
-            testCaseId: testCase.id,
-            passed: false,
-            actualOutput: '',
-            expectedOutput: normalizeOutput(testCase.expectedOutput || testCase.expected || ''),
-            executionTime: Date.now() - startTime,
-            errorLog: `Network error: ${err.message}`,
-            isCompileError: false,
-        };
+        data = await res.json();
+    } catch (_wandboxErr) {
+        try {
+            data = await runWithPiston(code, language, testCase.input || '');
+        } catch (pistonErr) {
+            return {
+                testCaseId: testCase.id, passed: false,
+                actualOutput: '', expectedOutput: normalizeOutput(testCase.expectedOutput || testCase.expected || ''),
+                executionTime: Date.now() - startTime,
+                errorLog: `Compile service unavailable: ${pistonErr.message}`,
+                isCompileError: false,
+            };
+        }
     }
+
+    const execTime = Date.now() - startTime;
+    const actualOutput   = normalizeOutput(data.program_output || '');
+    const expectedOutput = normalizeOutput(testCase.expectedOutput || testCase.expected || '');
+    const passed         = actualOutput === expectedOutput;
+    const compilerError  = data.compiler_error ? data.compiler_error.trim() : null;
+    const runtimeError   = data.program_error  ? data.program_error.trim()  : null;
+    const errorLog       = compilerError || runtimeError || null;
+    const isCompileError = !!compilerError && !data.program_output;
+
+    return { testCaseId: testCase.id, passed, actualOutput, expectedOutput, executionTime: execTime, errorLog, isCompileError };
 };
 
 // Run code against visible test cases only (for student preview)

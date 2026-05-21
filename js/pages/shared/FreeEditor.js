@@ -166,12 +166,39 @@ const FreeEditor = () => {
         setCollecting(false); setCollectedLines([]); setCurrentLine(''); setEchoedLines([]);
     };
 
+    // ── Piston fallback compiler ──────────────────────────────────────────────
+    const PISTON_LANG_MAP = {
+        c:      { language: 'c',      version: '*', filename: 'main.c'   },
+        cpp:    { language: 'c++',    version: '*', filename: 'main.cpp' },
+        python: { language: 'python', version: '*', filename: 'main.py'  },
+        java:   { language: 'java',   version: '*', filename: 'Main.java'},
+    };
+    const runWithPistonEditor = async (stdinStr) => {
+        const p = PISTON_LANG_MAP[language] || PISTON_LANG_MAP.c;
+        const res = await fetch('https://emkc.org/api/v2/piston/execute', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                language: p.language, version: p.version,
+                files: [{ name: p.filename, content: code }],
+                stdin: stdinStr || '',
+            }),
+        });
+        if (!res.ok) throw new Error(`Piston HTTP ${res.status}`);
+        const data = await res.json();
+        return {
+            compiler_error: data.compile?.stderr || '',
+            program_output: data.run?.stdout || '',
+            program_error:  data.run?.stderr  || '',
+        };
+    };
+
     // ── Core run ─────────────────────────────────────────────────────────────
     const runCodeCore = async (stdinStr, echo) => {
         setRunning(true);
         setOutput(''); setRunStatus(null); setExecTime(null);
         setEchoedLines(echo || []);
         const t0 = Date.now();
+        let data;
         try {
             const body = { compiler: WANDBOX_COMPILER[language] || 'gcc-head', code, stdin: stdinStr || '' };
             if (WANDBOX_OPTIONS[language]) body.options = WANDBOX_OPTIONS[language];
@@ -180,20 +207,26 @@ const FreeEditor = () => {
                 body: JSON.stringify(body),
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            setExecTime(Date.now() - t0);
-            const compErr = (data.compiler_error || '').trim();
-            const progOut = (data.program_output || '').trimEnd();
-            const progErr = (data.program_error  || '').trim();
-            if (compErr) { setOutput(compErr); setRunStatus('error'); }
-            else {
-                setOutput([progOut, progErr].filter(Boolean).join('\n') || '(ไม่มี Output)');
-                setRunStatus(progErr ? 'error' : 'ok');
+            data = await res.json();
+        } catch (_wandboxErr) {
+            try {
+                data = await runWithPistonEditor(stdinStr);
+            } catch (pistonErr) {
+                setOutput(`⚠️ ไม่สามารถเชื่อมต่อ compiler ได้ (Wandbox + Piston ล้มเหลว)\n${pistonErr.message}`);
+                setRunStatus('error'); setExecTime(Date.now() - t0);
+                setRunning(false); return;
             }
-        } catch (err) {
-            setOutput(`⚠️ เชื่อมต่อ Wandbox ไม่ได้: ${err.message}`);
-            setRunStatus('error'); setExecTime(Date.now() - t0);
-        } finally { setRunning(false); }
+        }
+        setExecTime(Date.now() - t0);
+        const compErr = (data.compiler_error || '').trim();
+        const progOut = (data.program_output || '').trimEnd();
+        const progErr = (data.program_error  || '').trim();
+        if (compErr) { setOutput(compErr); setRunStatus('error'); }
+        else {
+            setOutput([progOut, progErr].filter(Boolean).join('\n') || '(ไม่มี Output)');
+            setRunStatus(progErr ? 'error' : 'ok');
+        }
+        setRunning(false);
     };
 
     const handleRunClick = () => {
