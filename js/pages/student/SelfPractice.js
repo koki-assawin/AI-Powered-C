@@ -108,6 +108,18 @@ const SelfPractice = () => {
     const [submitStatus, setSubmitStatus] = React.useState('');
     const [result, setResult] = React.useState(null);
 
+    // Editor appearance
+    const [fontSize,    setFontSize]    = React.useState(14);
+    const [fontFamily,  setFontFamily]  = React.useState('Consolas');
+    const [editorTheme, setEditorTheme] = React.useState('dracula');
+
+    // Free run state
+    const [freeRunOutput, setFreeRunOutput] = React.useState('');
+    const [freeRunning,   setFreeRunning]   = React.useState(false);
+    const [freeRunStdin,  setFreeRunStdin]  = React.useState('');
+    const [showStdin,     setShowStdin]     = React.useState(false);
+    const [showTerminal,  setShowTerminal]  = React.useState(false);
+
     const [history, setHistory] = React.useState([]);
     const [historyLoading, setHistoryLoading] = React.useState(true);
 
@@ -189,6 +201,39 @@ const SelfPractice = () => {
         } finally {
             setGenerating(false);
         }
+    };
+
+    // ── Free run (Wandbox → Piston → Judge0) ─────────────────────────
+    const SP_WB_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.0', java: 'openjdk-head' };
+    const SP_WB_OPTIONS  = { c: '-x c' };
+    const handleFreeRun = async () => {
+        setFreeRunning(true);
+        setShowTerminal(true);
+        setFreeRunOutput('⏳ กำลังรันโค้ด...');
+        const t0 = Date.now();
+        let data;
+        try {
+            const body = { compiler: SP_WB_COMPILER[language] || 'gcc-head', code, stdin: freeRunStdin };
+            if (SP_WB_OPTIONS[language]) body.options = SP_WB_OPTIONS[language];
+            const res = await fetch('https://wandbox.org/api/compile.json', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+            });
+            if (!res.ok) throw new Error(`Wandbox ${res.status}`);
+            data = await res.json();
+        } catch (_) {
+            try { data = await runWithPiston(code, language, freeRunStdin); }
+            catch (_) {
+                try { data = await runWithJudge0(code, language, freeRunStdin); }
+                catch (e) { setFreeRunOutput(`⚠️ compiler ไม่ว่าง: ${e.message}`); setFreeRunning(false); return; }
+            }
+        }
+        const elapsed = Date.now() - t0;
+        const compErr = (data.compiler_error || '').trim();
+        const progOut = (data.program_output || '').trimEnd();
+        const progErr = (data.program_error  || '').trim();
+        if (compErr) setFreeRunOutput(`❌ Compile Error:\n${compErr}`);
+        else setFreeRunOutput((progOut || '(ไม่มี output)') + (progErr ? `\n⚠️ stderr:\n${progErr}` : '') + `\n\n── เวลา ${elapsed} ms ──`);
+        setFreeRunning(false);
     };
 
     // ── Submit & grade ────────────────────────────────────────────────
@@ -443,30 +488,72 @@ const SelfPractice = () => {
                         {/* Code Editor */}
                         {problem && (
                             <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #E0E0E0' }}>
-                                <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: '#F5F5F5' }}>
-                                    <span className="text-xs font-bold text-gray-500">✏️ เขียนโค้ดที่นี่</span>
-                                    <div className="flex items-center gap-2">
-                                        {language === 'java' && (
-                                            <span className="text-xs text-yellow-600">⚠️ Java: ใช้ class Main</span>
-                                        )}
-                                        <button
-                                            onClick={() => setCode(formatCCode(code, language))}
-                                            title="จัดรูปแบบโค้ด (Alt+Shift+F)"
-                                            className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs hover:bg-gray-200 transition-colors"
-                                        >✨ Format</button>
-                                        {submitting ? (
-                                            <div className="flex items-center gap-2 text-xs text-pink-600">
-                                                <SpinIcon className="w-4 h-4" />
-                                                <span>{submitStatus}</span>
-                                            </div>
-                                        ) : (
-                                            <button onClick={handleSubmit}
-                                                disabled={!code.trim() || submitting}
-                                                className="k-btn-pink px-4 py-1.5 text-sm flex items-center gap-1 disabled:opacity-50">
-                                                ✓ ส่งคำตอบ
+                                {/* Header row: editor settings + action buttons */}
+                                <div className="px-4 py-2.5 border-b" style={{ borderColor: '#F5F5F5' }}>
+                                    <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                        <span className="text-xs font-bold text-gray-500">✏️ เขียนโค้ดที่นี่</span>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {language === 'java' && <span className="text-xs text-yellow-600">⚠️ Java: ใช้ class Main</span>}
+                                            <button onClick={handleFreeRun} disabled={freeRunning}
+                                                className="px-3 py-1 text-white rounded text-xs flex items-center gap-1 disabled:opacity-50"
+                                                style={{ background: '#1E7E34' }}>
+                                                {freeRunning ? <SpinIcon className="w-3 h-3" /> : '▶'} รัน
                                             </button>
-                                        )}
+                                            <button onClick={() => setCode(formatCCode(code, language))}
+                                                className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs hover:bg-gray-200 transition-colors">
+                                                ✨ Format
+                                            </button>
+                                            {submitting ? (
+                                                <div className="flex items-center gap-2 text-xs text-pink-600">
+                                                    <SpinIcon className="w-4 h-4" /><span>{submitStatus}</span>
+                                                </div>
+                                            ) : (
+                                                <button onClick={handleSubmit} disabled={!code.trim() || submitting}
+                                                    className="k-btn-pink px-4 py-1.5 text-sm flex items-center gap-1 disabled:opacity-50">
+                                                    ✓ ส่งคำตอบ
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
+                                    {/* Editor settings row */}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <select value={fontFamily} onChange={e => setFontFamily(e.target.value)}
+                                            className="text-xs px-2 py-1 rounded border bg-white text-gray-600"
+                                            style={{ border: '1px solid #E0E0E0' }}>
+                                            {['Consolas','JetBrains Mono','Fira Code','Source Code Pro','IBM Plex Mono','Courier New'].map(f => (
+                                                <option key={f} value={f}>{f}</option>
+                                            ))}
+                                        </select>
+                                        <button onClick={() => setFontSize(s => Math.max(10, s - 1))}
+                                            className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs border hover:bg-gray-200"
+                                            style={{ border: '1px solid #E0E0E0' }}>A-</button>
+                                        <span className="text-xs text-gray-400 w-6 text-center">{fontSize}</span>
+                                        <button onClick={() => setFontSize(s => Math.min(28, s + 1))}
+                                            className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs border hover:bg-gray-200"
+                                            style={{ border: '1px solid #E0E0E0' }}>A+</button>
+                                        <select value={editorTheme} onChange={e => setEditorTheme(e.target.value)}
+                                            className="text-xs px-2 py-1 rounded border bg-white text-gray-600"
+                                            style={{ border: '1px solid #E0E0E0' }}>
+                                            {[['dracula','🟣 Dracula'],['monokai','🟢 Monokai'],['one-dark','🔵 One Dark'],
+                                              ['material-darker','⚫ Material'],['nord','🧊 Nord'],['ayu-dark','🌙 Ayu Dark'],
+                                              ['eclipse','☀️ Eclipse'],['default','📄 Default']].map(([v,l]) => (
+                                                <option key={v} value={v}>{l}</option>
+                                            ))}
+                                        </select>
+                                        <button onClick={() => setShowStdin(s => !s)}
+                                            className="text-xs px-2 py-1 rounded border transition-colors"
+                                            style={{ border: '1px solid #E0E0E0', background: showStdin ? '#FFF5F7' : 'white', color: showStdin ? '#C2185B' : '#6B7280' }}>
+                                            ⌨️ stdin {showStdin ? '▾' : '▸'}
+                                        </button>
+                                    </div>
+                                    {/* Stdin input */}
+                                    {showStdin && (
+                                        <textarea value={freeRunStdin} onChange={e => setFreeRunStdin(e.target.value)}
+                                            rows="2" placeholder="ป้อน stdin สำหรับการรัน..."
+                                            className="mt-2 w-full text-xs font-mono px-2 py-1.5 rounded resize-none outline-none"
+                                            style={{ background: '#1e1e2e', color: '#cdd6f4', border: '1px solid #45475a' }}
+                                        />
+                                    )}
                                 </div>
                                 <CodeEditor
                                     value={code}
@@ -474,7 +561,24 @@ const SelfPractice = () => {
                                     language={language}
                                     placeholder={`// เขียนโค้ด ${LANGUAGES[language]?.name} ที่นี่...`}
                                     minHeight="340px"
+                                    fontSize={fontSize}
+                                    theme={editorTheme}
+                                    fontFamily={fontFamily}
                                 />
+                                {/* Terminal output */}
+                                {showTerminal && (
+                                    <div>
+                                        <div className="flex items-center justify-between px-4 py-2 border-t" style={{ borderColor: '#1e1e2e', background: '#12121a' }}>
+                                            <span className="text-xs text-gray-400 font-mono">$ Terminal</span>
+                                            <button onClick={() => { setShowTerminal(false); setFreeRunOutput(''); }}
+                                                className="text-xs text-gray-500 hover:text-white transition-colors">✕</button>
+                                        </div>
+                                        <pre className="px-4 py-3 text-xs font-mono whitespace-pre-wrap break-all"
+                                            style={{ background: '#1e1e2e', color: freeRunOutput.startsWith('❌') ? '#f38ba8' : '#cdd6f4', minHeight: '120px', maxHeight: '280px', overflowY: 'auto' }}>
+                                            {freeRunOutput}
+                                        </pre>
+                                    </div>
+                                )}
                             </div>
                         )}
 

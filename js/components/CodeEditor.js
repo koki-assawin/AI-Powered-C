@@ -198,7 +198,7 @@ const EDITOR_MODES = {
     python: 'python',
 };
 
-const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px', fontSize = 14, theme = 'dracula' }) => {
+const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px', fontSize = 14, theme = 'dracula', fontFamily = 'Consolas' }) => {
     const containerRef = React.useRef(null);
     const cmRef        = React.useRef(null);
     const suppressRef  = React.useRef(false);
@@ -384,6 +384,15 @@ const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px
         if (!cmRef.current) return;
         cmRef.current.setOption('theme', theme || 'dracula');
     }, [theme]);
+
+    // Sync font family
+    React.useEffect(() => {
+        if (!cmRef.current) return;
+        const wrapper = cmRef.current.getWrapperElement();
+        wrapper.style.fontFamily = `'${fontFamily}', 'Consolas', monospace`;
+        void wrapper.offsetHeight;
+        cmRef.current.refresh();
+    }, [fontFamily]);
 
     return (
         <div

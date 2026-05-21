@@ -55,6 +55,17 @@ const CodingWorkspace = () => {
     const [loading, setLoading] = React.useState(true);
     const [view, setView] = React.useState('problems'); // 'problems' | 'grade' | 'ai'
 
+    // Editor appearance
+    const [fontSize,     setFontSize]     = React.useState(14);
+    const [fontFamily,   setFontFamily]   = React.useState('Consolas');
+    const [editorTheme,  setEditorTheme]  = React.useState('dracula');
+
+    // Free-run terminal state
+    const [freeRunOutput,  setFreeRunOutput]  = React.useState('');
+    const [freeRunning,    setFreeRunning]    = React.useState(false);
+    const [freeRunStdin,   setFreeRunStdin]   = React.useState('');
+    const [showFreeStdin,  setShowFreeStdin]  = React.useState(false);
+
     // Collapsible tree state
     const [collapsedUnits, setCollapsedUnits] = React.useState({});
     const [collapsedGroups, setCollapsedGroups] = React.useState({});
@@ -447,8 +458,41 @@ const CodingWorkspace = () => {
         const reader = new FileReader();
         reader.onload = (ev) => setCode(ev.target.result);
         reader.readAsText(file, 'UTF-8');
-        // Reset input so the same file can be reloaded
         e.target.value = '';
+    };
+
+    const WB_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.0', java: 'openjdk-head' };
+    const WB_OPTIONS  = { c: '-x c' };
+
+    const handleFreeRun = async () => {
+        setFreeRunning(true);
+        setFreeRunOutput('⏳ กำลังรันโค้ด...');
+        setView('run');
+        const t0 = Date.now();
+        let data;
+        const stdin = freeRunStdin;
+        try {
+            const body = { compiler: WB_COMPILER[selectedLanguage] || 'gcc-head', code, stdin };
+            if (WB_OPTIONS[selectedLanguage]) body.options = WB_OPTIONS[selectedLanguage];
+            const res = await fetch('https://wandbox.org/api/compile.json', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+            });
+            if (!res.ok) throw new Error(`Wandbox ${res.status}`);
+            data = await res.json();
+        } catch (_) {
+            try { data = await runWithPiston(code, selectedLanguage, stdin); }
+            catch (_) {
+                try { data = await runWithJudge0(code, selectedLanguage, stdin); }
+                catch (e) { setFreeRunOutput(`⚠️ compiler ไม่ว่าง: ${e.message}`); setFreeRunning(false); return; }
+            }
+        }
+        const elapsed = Date.now() - t0;
+        const compErr = (data.compiler_error || '').trim();
+        const progOut = (data.program_output || '').trimEnd();
+        const progErr = (data.program_error  || '').trim();
+        if (compErr) setFreeRunOutput(`❌ Compile Error:\n${compErr}`);
+        else setFreeRunOutput((progOut || '(ไม่มี output)') + (progErr ? `\n⚠️ stderr:\n${progErr}` : '') + `\n\n── เวลา ${elapsed} ms ──`);
+        setFreeRunning(false);
     };
 
     if (loading) return (
@@ -720,78 +764,114 @@ const CodingWorkspace = () => {
                 <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                     {/* Code Editor Panel */}
                     <div className="flex-1 flex flex-col p-4 min-w-0">
-                        {/* Toolbar */}
-                        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <div className="flex items-center space-x-2">
+                        {/* Toolbar row 1: Language + actions */}
+                        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                                 {Object.keys(LANGUAGES).map(lang => (
-                                    <button
-                                        key={lang}
+                                    <button key={lang}
                                         onClick={() => setSelectedLanguage(lang)}
-                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all
-                                            ${selectedLanguage === lang ? 'text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                                        style={selectedLanguage === lang ? { background: '#EC407A' } : {}}
-                                    >
-                                        {LANGUAGES[lang].icon} {LANGUAGES[lang].name}
-                                    </button>
+                                        className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                        style={selectedLanguage === lang
+                                            ? { background: '#EC407A', color: '#fff' }
+                                            : { background: '#F3F4F6', color: '#374151' }}
+                                    >{LANGUAGES[lang].icon} {LANGUAGES[lang].name}</button>
                                 ))}
-                                {/* Format code button */}
-                                <button
-                                    onClick={() => setCode(formatCCode(code, selectedLanguage))}
-                                    title="จัดรูปแบบโค้ด (Alt+Shift+F)"
-                                    className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 flex items-center gap-1 transition-colors select-none"
-                                    style={{ border: '1px solid #E0E0E0' }}
-                                >
-                                    ✨ Format
-                                </button>
-                                {/* File attach button */}
-                                <label title="โหลดไฟล์โค้ด"
-                                    className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 cursor-pointer flex items-center gap-1 transition-colors select-none"
+                                <button onClick={() => setCode(formatCCode(code, selectedLanguage))}
+                                    className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition-colors"
+                                    style={{ border: '1px solid #E0E0E0' }}>✨ Format</button>
+                                <label className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 cursor-pointer transition-colors"
                                     style={{ border: '1px solid #E0E0E0' }}>
                                     📎 แนบไฟล์
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept=".c,.cpp,.py,.java,.txt"
-                                        onChange={handleFileAttach}
-                                        className="hidden"
-                                    />
+                                    <input ref={fileInputRef} type="file" accept=".c,.cpp,.py,.java,.txt" onChange={handleFileAttach} className="hidden" />
                                 </label>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                {/* Run sample: hidden in exam mode */}
+                            <div className="flex items-center gap-2">
                                 {!isExamMode && (
-                                    <button
-                                        onClick={handleRunSample}
-                                        disabled={sampleRunning || !currentAssignment}
-                                        className="px-4 py-1.5 text-white rounded-lg text-sm disabled:opacity-50 flex items-center space-x-1"
-                                        style={{ background: '#455A64' }}
-                                    >
-                                        {sampleRunning ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>▶</span>}
-                                        <span>{sampleRunning ? 'รัน...' : 'ทดสอบตัวอย่าง'}</span>
+                                    <button onClick={handleFreeRun} disabled={freeRunning}
+                                        className="px-4 py-1.5 text-white rounded-lg text-sm disabled:opacity-50 flex items-center gap-1"
+                                        style={{ background: '#1E7E34' }}>
+                                        {freeRunning ? <SpinIcon className="w-4 h-4" /> : '▶'} รัน
                                     </button>
                                 )}
-                                <button
-                                    onClick={handleSubmit}
-                                    disabled={submitting || cooldown > 0 || !currentAssignment || examFinished}
-                                    className="k-btn-pink px-4 py-1.5 text-sm disabled:opacity-50 flex items-center space-x-1"
-                                >
-                                    {submitting ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>✓</span>}
-                                    <span>{examFinished ? 'ส่งแล้ว' : cooldown > 0 ? `รอ ${cooldown}s` : submitting ? 'กำลังตรวจ...' : 'Submit'}</span>
-                                </button>
-                                {/* AI buttons: hidden in exam mode */}
                                 {!isExamMode && (
-                                    <button
-                                        onClick={handleAIAnalysis}
-                                        disabled={aiAnalyzing}
-                                        className="px-4 py-1.5 text-white rounded-lg text-sm disabled:opacity-50 flex items-center space-x-1"
-                                        style={{ background: '#7B1FA2' }}
-                                    >
-                                        {aiAnalyzing ? <SpinIcon className="w-4 h-4 mr-1" /> : <span>🤖</span>}
-                                        <span>{aiAnalyzing ? 'AI กำลังวิเคราะห์...' : 'AI วิเคราะห์'}</span>
+                                    <button onClick={handleRunSample} disabled={sampleRunning || !currentAssignment}
+                                        className="px-4 py-1.5 text-white rounded-lg text-sm disabled:opacity-50 flex items-center gap-1"
+                                        style={{ background: '#455A64' }}>
+                                        {sampleRunning ? <SpinIcon className="w-4 h-4" /> : '▶'}{sampleRunning ? 'รัน...' : 'ทดสอบตัวอย่าง'}
+                                    </button>
+                                )}
+                                <button onClick={handleSubmit}
+                                    disabled={submitting || cooldown > 0 || !currentAssignment || examFinished}
+                                    className="k-btn-pink px-4 py-1.5 text-sm disabled:opacity-50 flex items-center gap-1">
+                                    {submitting ? <SpinIcon className="w-4 h-4" /> : '✓'}
+                                    {examFinished ? 'ส่งแล้ว' : cooldown > 0 ? `รอ ${cooldown}s` : submitting ? 'กำลังตรวจ...' : 'Submit'}
+                                </button>
+                                {!isExamMode && (
+                                    <button onClick={handleAIAnalysis} disabled={aiAnalyzing}
+                                        className="px-4 py-1.5 text-white rounded-lg text-sm disabled:opacity-50 flex items-center gap-1"
+                                        style={{ background: '#7B1FA2' }}>
+                                        {aiAnalyzing ? <SpinIcon className="w-4 h-4" /> : '🤖'}{aiAnalyzing ? 'วิเคราะห์...' : 'AI วิเคราะห์'}
                                     </button>
                                 )}
                             </div>
                         </div>
+
+                        {/* Toolbar row 2: Editor settings */}
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            {/* Font family */}
+                            <select value={fontFamily} onChange={e => setFontFamily(e.target.value)}
+                                className="text-xs px-2 py-1 rounded border bg-white text-gray-600"
+                                style={{ border: '1px solid #E0E0E0', fontFamily: fontFamily }}>
+                                {[
+                                    { value: 'Consolas',       label: 'Consolas' },
+                                    { value: 'JetBrains Mono', label: 'JetBrains Mono' },
+                                    { value: 'Fira Code',      label: 'Fira Code' },
+                                    { value: 'Source Code Pro',label: 'Source Code Pro' },
+                                    { value: 'IBM Plex Mono',  label: 'IBM Plex Mono' },
+                                    { value: 'Courier New',    label: 'Courier New' },
+                                ].map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                            {/* Font size */}
+                            <button onClick={() => setFontSize(s => Math.max(10, s - 1))}
+                                className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200 border"
+                                style={{ border: '1px solid #E0E0E0' }}>A-</button>
+                            <span className="text-xs text-gray-500 w-7 text-center">{fontSize}</span>
+                            <button onClick={() => setFontSize(s => Math.min(28, s + 1))}
+                                className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200 border"
+                                style={{ border: '1px solid #E0E0E0' }}>A+</button>
+                            {/* Theme */}
+                            <select value={editorTheme} onChange={e => setEditorTheme(e.target.value)}
+                                className="text-xs px-2 py-1 rounded border bg-white text-gray-600"
+                                style={{ border: '1px solid #E0E0E0' }}>
+                                {[
+                                    ['dracula','🟣 Dracula'],['monokai','🟢 Monokai'],['one-dark','🔵 One Dark'],
+                                    ['material-darker','⚫ Material'],['nord','🧊 Nord'],['ayu-dark','🌙 Ayu Dark'],
+                                    ['eclipse','☀️ Eclipse (สว่าง)'],['default','📄 Default (สว่าง)'],
+                                ].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                            </select>
+                            {/* Stdin toggle */}
+                            {!isExamMode && (
+                                <button onClick={() => setShowFreeStdin(s => !s)}
+                                    className="text-xs px-2 py-1 rounded border transition-colors"
+                                    style={{ border: '1px solid #E0E0E0', background: showFreeStdin ? '#FFF5F7' : 'white', color: showFreeStdin ? '#C2185B' : '#6B7280' }}>
+                                    ⌨️ stdin {showFreeStdin ? '▾' : '▸'}
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Stdin input (collapsible) */}
+                        {showFreeStdin && !isExamMode && (
+                            <div className="mb-2">
+                                <textarea
+                                    value={freeRunStdin}
+                                    onChange={e => setFreeRunStdin(e.target.value)}
+                                    placeholder="ป้อน stdin สำหรับการรัน (แต่ละบรรทัด = แต่ละ input)..."
+                                    rows="3"
+                                    className="w-full text-xs font-mono px-3 py-2 rounded-lg resize-none outline-none"
+                                    style={{ background: '#1e1e2e', color: '#cdd6f4', border: '1px solid #45475a' }}
+                                />
+                            </div>
+                        )}
 
                         <div className="flex-1">
                             <CodeEditor
@@ -799,7 +879,10 @@ const CodingWorkspace = () => {
                                 onChange={setCode}
                                 language={selectedLanguage}
                                 placeholder={`// เขียนโค้ด ${LANGUAGES[selectedLanguage].name} ที่นี่...`}
-                                minHeight="calc(100vh - 280px)"
+                                minHeight="calc(100vh - 310px)"
+                                fontSize={fontSize}
+                                theme={editorTheme}
+                                fontFamily={fontFamily}
                             />
                         </div>
 
@@ -813,6 +896,7 @@ const CodingWorkspace = () => {
                                 { key: 'problems', label: '📋 โจทย์' },
                                 { key: 'grade', label: '✅ ผลตรวจ' },
                                 ...(!isExamMode ? [
+                                    { key: 'run',  label: '▶ รัน' },
                                     { key: 'ai',   label: '🤖 AI Lab' },
                                     { key: 'chat', label: '💬 แชท' },
                                 ] : []),
@@ -883,6 +967,33 @@ const CodingWorkspace = () => {
                                             ⚠️ Java: ต้องใช้ชื่อ class ว่า <code className="font-mono">Main</code> เท่านั้น
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Free Run Terminal */}
+                            {view === 'run' && (
+                                <div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-sm font-semibold text-gray-700">▶ Terminal</h4>
+                                        <button onClick={handleFreeRun} disabled={freeRunning}
+                                            className="px-3 py-1.5 text-white rounded-lg text-xs disabled:opacity-50 flex items-center gap-1"
+                                            style={{ background: '#1E7E34' }}>
+                                            {freeRunning ? <SpinIcon className="w-3 h-3" /> : '▶'} รันอีกครั้ง
+                                        </button>
+                                    </div>
+                                    {/* stdin quick input */}
+                                    <div className="mb-3">
+                                        <label className="text-xs text-gray-400 block mb-1">stdin (optional)</label>
+                                        <textarea value={freeRunStdin} onChange={e => setFreeRunStdin(e.target.value)}
+                                            rows="2" placeholder="ป้อน input..."
+                                            className="w-full text-xs font-mono px-2 py-1.5 rounded resize-none outline-none"
+                                            style={{ background: '#1e1e2e', color: '#cdd6f4', border: '1px solid #45475a' }}
+                                        />
+                                    </div>
+                                    <pre className="text-xs font-mono rounded-lg p-3 whitespace-pre-wrap break-all min-h-32"
+                                        style={{ background: '#1e1e2e', color: freeRunOutput.startsWith('❌') ? '#f38ba8' : '#cdd6f4', minHeight: '200px' }}>
+                                        {freeRunOutput || '(กด รัน เพื่อดูผลลัพธ์)'}
+                                    </pre>
                                 </div>
                             )}
 
