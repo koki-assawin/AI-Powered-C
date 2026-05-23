@@ -10,6 +10,7 @@ const StudentAnalytics = () => {
     const [selectedCourse, setSelectedCourse] = React.useState(courseId || '');
     const [assignments, setAssignments] = React.useState([]);
     const [submissions, setSubmissions] = React.useState([]);
+    const [grades,      setGrades]      = React.useState([]);
     const [enrollments, setEnrollments] = React.useState([]);
     const [students, setStudents] = React.useState({});
     const [loading, setLoading] = React.useState(false);
@@ -68,13 +69,15 @@ const StudentAnalytics = () => {
     const loadAnalytics = async () => {
         setLoading(true);
         try {
-            const [assignSnap, subSnap, enrollSnap] = await Promise.all([
+            const [assignSnap, subSnap, enrollSnap, gradeSnap] = await Promise.all([
                 db.collection('assignments').where('courseId', '==', selectedCourse).get(),
                 db.collection('submissions').where('courseId', '==', selectedCourse).get(),
                 db.collection('enrollments').where('courseId', '==', selectedCourse).get(),
+                db.collection('grades').where('courseId', '==', selectedCourse).get(),
             ]);
             setAssignments(assignSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setGrades(gradeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
             // De-duplicate enrollments by studentId (prevents double-count from duplicate docs)
             const seenEnroll = new Set();
@@ -411,12 +414,17 @@ const StudentAnalytics = () => {
         if (summarySort === 'no') arr.sort((a, b) => parseInt(students[a.studentId]?.number||999) - parseInt(students[b.studentId]?.number||999));
         else if (summarySort === 'name') arr.sort((a, b) => (students[a.studentId]?.displayName||'').localeCompare(students[b.studentId]?.displayName||'', 'th'));
         else if (summarySort === 'score') {
-            // compute grandTotal for each — need bestScore (compute inline)
+            // compute grandTotal for each — merge submissions + grades (same as summary tab)
             const best = {};
             submissions.forEach(sub => {
                 if (!best[sub.studentId]) best[sub.studentId] = {};
                 const cur = best[sub.studentId][sub.assignmentId] || 0;
                 if ((sub.score||0) > cur) best[sub.studentId][sub.assignmentId] = sub.score||0;
+            });
+            grades.forEach(g => {
+                if (!best[g.studentId]) best[g.studentId] = {};
+                const cur = best[g.studentId][g.assignmentId] || 0;
+                if ((g.score||0) > cur) best[g.studentId][g.assignmentId] = g.score||0;
             });
             arr.sort((a, b) => {
                 const tot = (e) => assignments.reduce((s, asn) => s + (asn.rawScore > 0 ? Math.round((best[e.studentId]?.[asn.id]||0) * asn.rawScore / 100) : 0), 0);
@@ -424,7 +432,7 @@ const StudentAnalytics = () => {
             });
         }
         return arr;
-    }, [enrollmentsIndexed, summarySort, students, submissions, assignments]);
+    }, [enrollmentsIndexed, summarySort, students, submissions, grades, assignments]);
 
     // Sorted enrollments for practice tab
     const sortedPracticeEnrollments = React.useMemo(() => {
@@ -923,11 +931,19 @@ const StudentAnalytics = () => {
                                         });
 
                                     // Best score per student per assignment
-                                    const bestScore = {}; // { studentId: { assignmentId: score% } }
+                                    // Seed from submissions (handles assignments without grade doc yet)
+                                    const bestScore = {};
                                     submissions.forEach(sub => {
                                         if (!bestScore[sub.studentId]) bestScore[sub.studentId] = {};
                                         const cur = bestScore[sub.studentId][sub.assignmentId] || 0;
                                         if ((sub.score || 0) > cur) bestScore[sub.studentId][sub.assignmentId] = sub.score || 0;
+                                    });
+                                    // Override/merge with grades collection (authoritative best score,
+                                    // not affected by courseId mismatch in old submissions)
+                                    grades.forEach(g => {
+                                        if (!bestScore[g.studentId]) bestScore[g.studentId] = {};
+                                        const cur = bestScore[g.studentId][g.assignmentId] || 0;
+                                        if ((g.score || 0) > cur) bestScore[g.studentId][g.assignmentId] = g.score || 0;
                                     });
 
                                     const hasRawScore = assignments.some(a => a.rawScore > 0);
