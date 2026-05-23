@@ -61,15 +61,19 @@ const CodingWorkspace = () => {
     const [editorTheme,  setEditorTheme]  = React.useState('dracula');
 
     // Free-run terminal state
-    const [freeRunOutput,  setFreeRunOutput]  = React.useState('');
-    const [freeRunning,    setFreeRunning]    = React.useState(false);
-    const [freeRunStdin,   setFreeRunStdin]   = React.useState('');
-    const [showFreeStdin,  setShowFreeStdin]  = React.useState(false);
+    const [freeRunOutput,    setFreeRunOutput]    = React.useState('');
+    const [freeRunning,      setFreeRunning]      = React.useState(false);
+    const [frCollecting,     setFrCollecting]     = React.useState(false);
+    const [frCollectedLines, setFrCollectedLines] = React.useState([]);
+    const [frCurrentLine,    setFrCurrentLine]    = React.useState('');
+    const [frInputCount,     setFrInputCount]     = React.useState(0);
+    const [frEchoedLines,    setFrEchoedLines]    = React.useState([]);
 
     // Collapsible tree state
     const [collapsedUnits, setCollapsedUnits] = React.useState({});
     const [collapsedGroups, setCollapsedGroups] = React.useState({});
-    const fileInputRef = React.useRef(null);
+    const fileInputRef   = React.useRef(null);
+    const frInputLineRef = React.useRef(null);
 
     // Process analytics (research data)
     const runCountRef = React.useRef(0);
@@ -464,15 +468,40 @@ const CodingWorkspace = () => {
     const WB_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.0', java: 'openjdk-head' };
     const WB_OPTIONS  = { c: '-x c' };
 
-    const handleFreeRun = async () => {
+    // Detect if code reads from stdin
+    const FR_INPUT_PATTERNS = {
+        c:      [/\bscanf\s*\(/, /\bfgets\s*\(/, /\bgets\s*\(/, /\bgetchar\s*\(/],
+        cpp:    [/\bcin\s*>>/, /\bgetline\s*\(/, /\bgetchar\s*\(/],
+        python: [/\binput\s*\(/],
+    };
+    const frStripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    const frCodeNeedsInput = React.useMemo(() => {
+        const s = frStripComments(code);
+        return (FR_INPUT_PATTERNS[selectedLanguage] || []).some(p => p.test(s));
+    }, [code, selectedLanguage]);
+    const frCountInputCalls = () => {
+        const stripped = frStripComments(code);
+        const pat = {
+            c:      [/\bscanf\s*\(/g, /\bfgets\s*\(/g, /\bgets\s*\(/g, /\bgetchar\s*\(/g],
+            cpp:    [/\bcin\s*>>/g, /\bgetline\s*\(/g],
+            python: [/\binput\s*\(/g],
+        };
+        return (pat[selectedLanguage] || []).reduce((n, p) => n + (stripped.match(p) || []).length, 0);
+    };
+
+    const frResetTerminal = () => {
+        setFreeRunOutput(''); setFrEchoedLines([]); setFrCollectedLines([]);
+        setFrCurrentLine(''); setFrCollecting(false);
+    };
+
+    const frRunWithStdin = async (stdinStr, echo) => {
         setFreeRunning(true);
         setFreeRunOutput('⏳ กำลังรันโค้ด...');
-        setView('run');
+        setFrEchoedLines(echo || []);
         const t0 = Date.now();
         let data;
-        const stdin = freeRunStdin;
         try {
-            const body = { compiler: WB_COMPILER[selectedLanguage] || 'gcc-head', code, stdin };
+            const body = { compiler: WB_COMPILER[selectedLanguage] || 'gcc-head', code, stdin: stdinStr || '' };
             if (WB_OPTIONS[selectedLanguage]) body.options = WB_OPTIONS[selectedLanguage];
             const res = await fetch('https://wandbox.org/api/compile.json', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -480,9 +509,9 @@ const CodingWorkspace = () => {
             if (!res.ok) throw new Error(`Wandbox ${res.status}`);
             data = await res.json();
         } catch (_) {
-            try { data = await runWithPiston(code, selectedLanguage, stdin); }
+            try { data = await runWithPiston(code, selectedLanguage, stdinStr); }
             catch (_) {
-                try { data = await runWithJudge0(code, selectedLanguage, stdin); }
+                try { data = await runWithJudge0(code, selectedLanguage, stdinStr); }
                 catch (e) { setFreeRunOutput(`⚠️ compiler ไม่ว่าง: ${e.message}`); setFreeRunning(false); return; }
             }
         }
@@ -493,6 +522,33 @@ const CodingWorkspace = () => {
         if (compErr) setFreeRunOutput(`❌ Compile Error:\n${compErr}`);
         else setFreeRunOutput((progOut || '(ไม่มี output)') + (progErr ? `\n⚠️ stderr:\n${progErr}` : '') + `\n\n── เวลา ${elapsed} ms ──`);
         setFreeRunning(false);
+    };
+
+    const frSubmitLine = () => {
+        const line = frCurrentLine;
+        const newLines = [...frCollectedLines, line];
+        setFrCollectedLines(newLines);
+        setFrCurrentLine('');
+        if (frInputCount > 0 && newLines.length >= frInputCount) {
+            setFrCollecting(false);
+            frRunWithStdin(newLines.join('\n'), newLines);
+        } else {
+            setTimeout(() => frInputLineRef.current && frInputLineRef.current.focus(), 10);
+        }
+    };
+
+    const handleFreeRun = () => {
+        if (freeRunning || frCollecting) return;
+        frResetTerminal();
+        setView('run');
+        if (frCodeNeedsInput) {
+            const n = frCountInputCalls();
+            setFrInputCount(n);
+            setFrCollecting(true);
+            setTimeout(() => frInputLineRef.current && frInputLineRef.current.focus(), 60);
+        } else {
+            frRunWithStdin('', []);
+        }
     };
 
     if (loading) return (
@@ -787,10 +843,10 @@ const CodingWorkspace = () => {
                             </div>
                             <div className="flex items-center gap-2">
                                 {!isExamMode && (
-                                    <button onClick={handleFreeRun} disabled={freeRunning}
+                                    <button onClick={handleFreeRun} disabled={freeRunning || frCollecting}
                                         className="px-4 py-1.5 text-white rounded-lg text-sm disabled:opacity-50 flex items-center gap-1"
-                                        style={{ background: '#1E7E34' }}>
-                                        {freeRunning ? <SpinIcon className="w-4 h-4" /> : '▶'} รัน
+                                        style={{ background: frCollecting ? '#78716c' : '#1E7E34' }}>
+                                        {freeRunning ? <SpinIcon className="w-4 h-4" /> : frCollecting ? '⌨️' : '▶'} {frCollecting ? 'รอรับค่า...' : 'รัน'}
                                     </button>
                                 )}
                                 {!isExamMode && (
@@ -849,29 +905,13 @@ const CodingWorkspace = () => {
                                     ['eclipse','☀️ Eclipse (สว่าง)'],['default','📄 Default (สว่าง)'],
                                 ].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                             </select>
-                            {/* Stdin toggle */}
-                            {!isExamMode && (
-                                <button onClick={() => setShowFreeStdin(s => !s)}
-                                    className="text-xs px-2 py-1 rounded border transition-colors"
-                                    style={{ border: '1px solid #E0E0E0', background: showFreeStdin ? '#FFF5F7' : 'white', color: showFreeStdin ? '#C2185B' : '#6B7280' }}>
-                                    ⌨️ stdin {showFreeStdin ? '▾' : '▸'}
-                                </button>
+                            {!isExamMode && frCodeNeedsInput && (
+                                <span className="text-xs px-2 py-1 rounded"
+                                    style={{ background: '#FFF5F7', color: '#C2185B', border: '1px solid #fce7f3' }}>
+                                    ⌨️ โค้ดนี้รับค่า — กด ▶ รัน เพื่อป้อน Input
+                                </span>
                             )}
                         </div>
-
-                        {/* Stdin input (collapsible) */}
-                        {showFreeStdin && !isExamMode && (
-                            <div className="mb-2">
-                                <textarea
-                                    value={freeRunStdin}
-                                    onChange={e => setFreeRunStdin(e.target.value)}
-                                    placeholder="ป้อน stdin สำหรับการรัน (แต่ละบรรทัด = แต่ละ input)..."
-                                    rows="3"
-                                    className="w-full text-xs font-mono px-3 py-2 rounded-lg resize-none outline-none"
-                                    style={{ background: '#1e1e2e', color: '#cdd6f4', border: '1px solid #45475a' }}
-                                />
-                            </div>
-                        )}
 
                         <div className="flex-1">
                             <CodeEditor
@@ -973,27 +1013,73 @@ const CodingWorkspace = () => {
                             {/* Free Run Terminal */}
                             {view === 'run' && (
                                 <div>
-                                    <div className="flex items-center justify-between mb-3">
-                                        <h4 className="text-sm font-semibold text-gray-700">▶ Terminal</h4>
-                                        <button onClick={handleFreeRun} disabled={freeRunning}
-                                            className="px-3 py-1.5 text-white rounded-lg text-xs disabled:opacity-50 flex items-center gap-1"
-                                            style={{ background: '#1E7E34' }}>
-                                            {freeRunning ? <SpinIcon className="w-3 h-3" /> : '▶'} รันอีกครั้ง
-                                        </button>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="text-sm font-semibold text-gray-700">
+                                            ▶ Terminal
+                                            {frCollecting && <span className="ml-2 text-xs font-normal" style={{ color: '#fbbf24' }}>⌨️ รอรับค่า...</span>}
+                                        </h4>
+                                        {!frCollecting && (
+                                            <button onClick={handleFreeRun} disabled={freeRunning}
+                                                className="px-3 py-1.5 text-white rounded-lg text-xs disabled:opacity-50 flex items-center gap-1"
+                                                style={{ background: '#1E7E34' }}>
+                                                {freeRunning ? <SpinIcon className="w-3 h-3" /> : '▶'} รันอีกครั้ง
+                                            </button>
+                                        )}
                                     </div>
-                                    {/* stdin quick input */}
-                                    <div className="mb-3">
-                                        <label className="text-xs text-gray-400 block mb-1">stdin (optional)</label>
-                                        <textarea value={freeRunStdin} onChange={e => setFreeRunStdin(e.target.value)}
-                                            rows="2" placeholder="ป้อน input..."
-                                            className="w-full text-xs font-mono px-2 py-1.5 rounded resize-none outline-none"
-                                            style={{ background: '#1e1e2e', color: '#cdd6f4', border: '1px solid #45475a' }}
-                                        />
+                                    <div className="rounded-lg overflow-hidden" style={{
+                                        background: '#1e1e2e',
+                                        border: frCollecting ? '1px solid #fbbf2466' : freeRunOutput ? (freeRunOutput.startsWith('❌') ? '1px solid #f8717166' : '1px solid #34d39966') : '1px solid #45475a',
+                                        minHeight: '220px', display: 'flex', flexDirection: 'column',
+                                    }}>
+                                        {/* Terminal header */}
+                                        <div style={{ padding: '6px 12px', borderBottom: '1px solid #181825', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+                                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
+                                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                                            <span style={{ marginLeft: 6, fontSize: 11, color: '#6c7086', fontFamily: 'monospace' }}>terminal</span>
+                                        </div>
+                                        {/* Terminal body */}
+                                        <div style={{ flex: 1, padding: '10px 14px', fontFamily: 'Consolas, monospace', fontSize: 13, overflowY: 'auto' }}>
+                                            {/* Collecting: interactive input */}
+                                            {frCollecting && (
+                                                <>
+                                                    <div style={{ color: '#475569', marginBottom: 4 }}><span style={{ color: '#34d399' }}>$ </span>./main.c</div>
+                                                    {frCollectedLines.map((l, i) => <div key={i} style={{ color: '#e2e8f0' }}>{l}</div>)}
+                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                        <input ref={frInputLineRef} type="text" value={frCurrentLine}
+                                                            onChange={e => setFrCurrentLine(e.target.value)}
+                                                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); frSubmitLine(); } }}
+                                                            autoComplete="off" spellCheck="false"
+                                                            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#e2e8f0', fontFamily: 'Consolas, monospace', fontSize: 13, padding: 0, caretColor: '#34d399' }} />
+                                                        <span style={{ width: 8, height: '1.1em', background: '#34d399', display: 'inline-block', animation: 'termBlink 1s step-start infinite' }} />
+                                                    </div>
+                                                    <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid #313244', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        <span style={{ fontSize: 11, color: '#6c7086' }}>
+                                                            {frInputCount > 0 ? `รอรับค่า ${frCollectedLines.length + 1}/${frInputCount} — กด Enter` : 'พิมพ์แล้วกด Enter'}
+                                                        </span>
+                                                        <button onClick={() => { setFrCollecting(false); frRunWithStdin([...frCollectedLines, ...(frCurrentLine ? [frCurrentLine] : [])].join('\n'), [...frCollectedLines, ...(frCurrentLine ? [frCurrentLine] : [])]); }}
+                                                            style={{ marginLeft: 'auto', padding: '3px 12px', borderRadius: 6, background: '#1E7E34', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontFamily: "'Prompt',sans-serif" }}>
+                                                            ▶ รัน
+                                                        </button>
+                                                        <button onClick={frResetTerminal}
+                                                            style={{ padding: '3px 10px', borderRadius: 6, background: 'transparent', color: '#6c7086', border: '1px solid #313244', cursor: 'pointer', fontSize: 11, fontFamily: "'Prompt',sans-serif" }}>
+                                                            ✕ ยกเลิก
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                            {/* Output */}
+                                            {!frCollecting && (
+                                                <>
+                                                    <div style={{ color: '#475569', marginBottom: 4 }}><span style={{ color: '#34d399' }}>$ </span>./main.c</div>
+                                                    {frEchoedLines.map((l, i) => <div key={i} style={{ color: '#cdd6f4' }}>{l}</div>)}
+                                                    <pre style={{ margin: 0, color: freeRunOutput.startsWith('❌') ? '#f38ba8' : '#cdd6f4', whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontFamily: 'Consolas, monospace', fontSize: 13 }}>
+                                                        {freeRunOutput || '(กด ▶ รัน เพื่อดูผลลัพธ์)'}
+                                                    </pre>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
-                                    <pre className="text-xs font-mono rounded-lg p-3 whitespace-pre-wrap break-all min-h-32"
-                                        style={{ background: '#1e1e2e', color: freeRunOutput.startsWith('❌') ? '#f38ba8' : '#cdd6f4', minHeight: '200px' }}>
-                                        {freeRunOutput || '(กด รัน เพื่อดูผลลัพธ์)'}
-                                    </pre>
                                 </div>
                             )}
 

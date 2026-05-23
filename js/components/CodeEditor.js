@@ -385,11 +385,13 @@ const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px
         cmRef.current.setOption('theme', theme || 'dracula');
     }, [theme]);
 
-    // Sync font family
+    // Sync font family + always disable ligatures (<=, >= must not show as ≤, ≥)
     React.useEffect(() => {
         if (!cmRef.current) return;
         const wrapper = cmRef.current.getWrapperElement();
         wrapper.style.fontFamily = `'${fontFamily}', 'Consolas', monospace`;
+        wrapper.style.fontVariantLigatures = 'none';
+        wrapper.style.fontFeatureSettings = '"liga" 0, "calt" 0';
         void wrapper.offsetHeight;
         cmRef.current.refresh();
     }, [fontFamily]);
