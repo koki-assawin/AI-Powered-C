@@ -1,4 +1,4 @@
-// js/pages/teacher/StudentAnalytics.js - Teacher Analytics Dashboard (v4.4)
+// js/pages/teacher/StudentAnalytics.js - Teacher Analytics Dashboard (v6.1)
 
 const StudentAnalytics = () => {
     const { userDoc } = useAuth();
@@ -9,8 +9,9 @@ const StudentAnalytics = () => {
     const [courses, setCourses] = React.useState([]);
     const [selectedCourse, setSelectedCourse] = React.useState(courseId || '');
     const [assignments, setAssignments] = React.useState([]);
-    const [submissions, setSubmissions] = React.useState([]);
-    const [grades,      setGrades]      = React.useState([]);
+    const [submissions,   setSubmissions]   = React.useState([]);
+    const [submissionsV2, setSubmissionsV2] = React.useState([]);
+    const [grades,        setGrades]        = React.useState([]);
     const [enrollments, setEnrollments] = React.useState([]);
     const [students, setStudents] = React.useState({});
     const [loading, setLoading] = React.useState(false);
@@ -69,14 +70,29 @@ const StudentAnalytics = () => {
     const loadAnalytics = async () => {
         setLoading(true);
         try {
-            const [assignSnap, subSnap, enrollSnap, gradeSnap] = await Promise.all([
+            const [assignSnap, assignV2Snap, subSnap, subV2Snap, enrollSnap, gradeSnap] = await Promise.all([
                 db.collection('assignments').where('courseId', '==', selectedCourse).get(),
+                db.collection('assignments_v2').where('courseId', '==', selectedCourse).get(),
                 db.collection('submissions').where('courseId', '==', selectedCourse).get(),
+                db.collection('submissions_v2').where('courseId', '==', selectedCourse).get(),
                 db.collection('enrollments').where('courseId', '==', selectedCourse).get(),
                 db.collection('grades').where('courseId', '==', selectedCourse).get(),
             ]);
-            setAssignments(assignSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+            // Normalize assignments_v2 — map totalPoints → rawScore for E1 table
+            const v1 = assignSnap.docs.map(d => ({ id: d.id, ...d.data(), _src: 'v1' }));
+            const v2 = assignV2Snap.docs.map(d => {
+                const dt = d.data();
+                let rawScore = 0;
+                if (dt.activityType === 'autopsy')      rawScore = dt.autopsyConfig?.totalPoints  || 0;
+                else if (dt.activityType === 'quiz_blitz')   rawScore = dt.quizConfig?.totalPoints    || 0;
+                else if (dt.activityType === 'pre_post_test') rawScore = dt.prePostConfig?.totalPoints || 0;
+                else if (dt.activityType === 'coding')   rawScore = dt.codingConfig?.totalPoints   || 0;
+                return { id: d.id, ...dt, rawScore, _src: 'v2' };
+            });
+            setAssignments([...v1, ...v2]);
             setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setSubmissionsV2(subV2Snap.docs.map(d => ({ id: d.id, ...d.data() })));
             setGrades(gradeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
             // De-duplicate enrollments by studentId (prevents double-count from duplicate docs)
@@ -124,9 +140,12 @@ const StudentAnalytics = () => {
     };
 
     const getAssignmentStats = (assignId) => {
-        const subs = submissions.filter(s => s.assignmentId === assignId);
+        const subs = [
+            ...submissions.filter(s => s.assignmentId === assignId),
+            ...submissionsV2.filter(s => s.assignmentId === assignId),
+        ];
         if (subs.length === 0) return { attempts: 0, passRate: 0, avgScore: 0, uniqueStudents: 0 };
-        const passed = subs.filter(s => s.status === 'accepted').length;
+        const passed = subs.filter(s => s.status === 'accepted' || s.isPassed === true).length;
         return {
             attempts: subs.length,
             passRate: Math.round((passed / subs.length) * 100),
@@ -368,8 +387,9 @@ const StudentAnalytics = () => {
         .sort((a, b) => a.stats.passRate - b.stats.passRate)
         .slice(0, 5);
     const studentResults = getStudentResults();
-    const overallPassRate = submissions.length
-        ? Math.round(submissions.filter(s => s.status === 'accepted').length / submissions.length * 100) : 0;
+    const totalSubmissionsAll = submissions.length + submissionsV2.length;
+    const overallPassRate = totalSubmissionsAll
+        ? Math.round((submissions.filter(s => s.status === 'accepted').length + submissionsV2.filter(s => s.isPassed === true).length) / totalSubmissionsAll * 100) : 0;
 
     // Practice scores per student
     const practiceByStudent = React.useMemo(() => {
@@ -426,13 +446,18 @@ const StudentAnalytics = () => {
                 const cur = best[g.studentId][g.assignmentId] || 0;
                 if ((g.score||0) > cur) best[g.studentId][g.assignmentId] = g.score||0;
             });
+            submissionsV2.forEach(sub => {
+                if (!best[sub.studentId]) best[sub.studentId] = {};
+                const cur = best[sub.studentId][sub.assignmentId] || 0;
+                if ((sub.score||0) > cur) best[sub.studentId][sub.assignmentId] = sub.score||0;
+            });
             arr.sort((a, b) => {
                 const tot = (e) => assignments.reduce((s, asn) => s + (asn.rawScore > 0 ? Math.round((best[e.studentId]?.[asn.id]||0) * asn.rawScore / 100) : 0), 0);
                 return tot(b) - tot(a);
             });
         }
         return arr;
-    }, [enrollmentsIndexed, summarySort, students, submissions, grades, assignments]);
+    }, [enrollmentsIndexed, summarySort, students, submissions, submissionsV2, grades, assignments]);
 
     // Sorted enrollments for practice tab
     const sortedPracticeEnrollments = React.useMemo(() => {
@@ -506,7 +531,7 @@ const StudentAnalytics = () => {
                             {[
                                 { label: 'นักเรียนลงทะเบียน', value: enrollments.length, icon: '👥', color: '#ec4899' },
                                 { label: 'โจทย์ทั้งหมด', value: assignments.length, icon: '📝', color: '#f472b6' },
-                                { label: 'การส่งทั้งหมด', value: submissions.length, icon: '📋', color: '#be185d' },
+                                { label: 'การส่งทั้งหมด', value: totalSubmissionsAll, icon: '📋', color: '#be185d' },
                                 { label: 'อัตราผ่านรวม', value: `${overallPassRate}%`, icon: '✅', color: overallPassRate >= 70 ? '#16a34a' : overallPassRate >= 40 ? '#d97706' : '#dc2626' },
                             ].map(s => (
                                 <div key={s.label} className="k-card p-5">
@@ -944,6 +969,12 @@ const StudentAnalytics = () => {
                                         if (!bestScore[g.studentId]) bestScore[g.studentId] = {};
                                         const cur = bestScore[g.studentId][g.assignmentId] || 0;
                                         if ((g.score || 0) > cur) bestScore[g.studentId][g.assignmentId] = g.score || 0;
+                                    });
+                                    // Include activity submissions (assignments_v2)
+                                    submissionsV2.forEach(sub => {
+                                        if (!bestScore[sub.studentId]) bestScore[sub.studentId] = {};
+                                        const cur = bestScore[sub.studentId][sub.assignmentId] || 0;
+                                        if ((sub.score || 0) > cur) bestScore[sub.studentId][sub.assignmentId] = sub.score || 0;
                                     });
 
                                     const hasRawScore = assignments.some(a => a.rawScore > 0);
