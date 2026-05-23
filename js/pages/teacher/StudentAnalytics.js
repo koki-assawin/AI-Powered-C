@@ -1,4 +1,4 @@
-// js/pages/teacher/StudentAnalytics.js - Teacher Analytics Dashboard (v6.2)
+// js/pages/teacher/StudentAnalytics.js - Teacher Analytics Dashboard (v6.3)
 
 const StudentAnalytics = () => {
     const { userDoc } = useAuth();
@@ -177,7 +177,7 @@ const StudentAnalytics = () => {
                 labels,
                 datasets: [
                     {
-                        label: 'อัตราผ่าน (%)',
+                        label: 'อัตราผ่านทุกเคส (%)',
                         data: passRates,
                         backgroundColor: passRates.map(v => v >= 70 ? 'rgba(34,197,94,.7)' : v >= 40 ? 'rgba(234,179,8,.7)' : 'rgba(239,68,68,.7)'),
                         borderRadius: 6,
@@ -543,7 +543,7 @@ const StudentAnalytics = () => {
                                 { label: 'นักเรียนลงทะเบียน', value: enrollments.length, icon: '👥', color: '#ec4899' },
                                 { label: 'โจทย์ทั้งหมด', value: assignments.length, icon: '📝', color: '#f472b6' },
                                 { label: 'การส่งทั้งหมด', value: totalSubmissionsAll, icon: '📋', color: '#be185d' },
-                                { label: 'อัตราผ่านรวม', value: `${overallPassRate}%`, icon: '✅', color: overallPassRate >= 70 ? '#16a34a' : overallPassRate >= 40 ? '#d97706' : '#dc2626' },
+                                { label: 'ผ่านทุกเคสรวม', value: `${overallPassRate}%`, icon: '✅', color: overallPassRate >= 70 ? '#16a34a' : overallPassRate >= 40 ? '#d97706' : '#dc2626' },
                             ].map(s => (
                                 <div key={s.label} className="k-card p-5">
                                     <div className="text-2xl mb-2">{s.icon}</div>
@@ -577,7 +577,7 @@ const StudentAnalytics = () => {
                                     <>
                                         {assignments.length > 0 && (
                                             <div className="mb-6">
-                                                <h3 className="font-bold text-gray-700 mb-4">📈 อัตราผ่านและคะแนนเฉลี่ยต่อโจทย์</h3>
+                                                <h3 className="font-bold text-gray-700 mb-4">📈 อัตราผ่านทุกเคสและคะแนนเฉลี่ยต่อโจทย์</h3>
                                                 <canvas ref={chartRef} height={assignments.length > 8 ? 120 : 90}></canvas>
                                             </div>
                                         )}
@@ -599,7 +599,7 @@ const StudentAnalytics = () => {
                                                             </div>
                                                             <div className="text-right">
                                                                 <div className="text-lg font-bold text-red-600">{a.stats.passRate}%</div>
-                                                                <div className="text-xs text-gray-400">อัตราผ่าน</div>
+                                                                <div className="text-xs text-gray-400">ผ่านทุกเคส</div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -612,7 +612,7 @@ const StudentAnalytics = () => {
                                             <div className="flex gap-2 flex-wrap">
                                                 <span className="text-xs text-gray-400 self-center">เรียงตาม:</span>
                                                 <SortBtn active={overviewSort==='unit'}     onClick={()=>setOverviewSort('unit')}>หน่วย 1→4</SortBtn>
-                                                <SortBtn active={overviewSort==='passRate'} onClick={()=>setOverviewSort('passRate')}>อัตราผ่าน↓</SortBtn>
+                                                <SortBtn active={overviewSort==='passRate'} onClick={()=>setOverviewSort('passRate')}>ผ่านทุกเคส↓</SortBtn>
                                                 <SortBtn active={overviewSort==='avgScore'} onClick={()=>setOverviewSort('avgScore')}>คะแนนเฉลี่ย↓</SortBtn>
                                             </div>
                                         </div>
@@ -623,7 +623,7 @@ const StudentAnalytics = () => {
                                                 <table className="w-full text-sm">
                                                     <thead>
                                                         <tr style={{ borderBottom: '2px solid #fce7f3' }}>
-                                                            {['#', 'โจทย์', 'คะแนนดิบ', 'ประเภท', 'นักเรียนที่ลอง', 'ครั้งส่ง', 'อัตราผ่าน', 'คะแนนเฉลี่ย', ''].map(h => (
+                                                            {['#', 'โจทย์', 'คะแนนดิบ', 'ประเภท', 'นักเรียนที่ลอง', 'ครั้งส่ง', 'ผ่านทุกเคส', 'คะแนนเฉลี่ย', ''].map(h => (
                                                                 <th key={h} className="text-left py-3 px-2 text-xs font-semibold text-gray-500 uppercase">{h}</th>
                                                             ))}
                                                         </tr>
