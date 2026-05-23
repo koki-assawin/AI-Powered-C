@@ -1627,6 +1627,9 @@ const _GamificationTab = ({ selectedCourse, submissions = [], students = {} }) =
     const [coachFilter, setCoachFilter] = React.useState('all');
     const [gameStats, setGameStats] = React.useState(null);
     const [gameStatsLoading, setGameStatsLoading] = React.useState(false);
+    const [auditUid, setAuditUid] = React.useState(null);
+    const [auditData, setAuditData] = React.useState(null);
+    const [auditLoading, setAuditLoading] = React.useState(false);
 
     React.useEffect(() => {
         loadGamificationData(selectedCourse || '');
@@ -1691,6 +1694,24 @@ const _GamificationTab = ({ selectedCourse, submissions = [], students = {} }) =
         } finally { setGameStatsLoading(false); }
     };
 
+    const loadXPAudit = async (uid) => {
+        if (auditUid === uid) { setAuditUid(null); setAuditData(null); return; }
+        setAuditUid(uid);
+        setAuditData(null);
+        setAuditLoading(true);
+        try {
+            const snap = await db.collection('xpLedger')
+                .where('uid', '==', uid)
+                .orderBy('createdAt', 'desc')
+                .limit(300)
+                .get();
+            setAuditData(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        } catch (err) {
+            console.warn('[XP Audit]', err);
+            setAuditData([]);
+        } finally { setAuditLoading(false); }
+    };
+
     const exportJSON = () => {
         const data = { playerStats: stats, coachInteractions: coachLogs, exportedAt: new Date().toISOString() };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1726,7 +1747,7 @@ const _GamificationTab = ({ selectedCourse, submissions = [], students = {} }) =
                     <table className="w-full text-sm">
                         <thead>
                             <tr style={{ background: '#fdf2f8' }}>
-                                {['อันดับ', 'ชื่อ', 'Rank', 'XP (รวมทุกวิชา)', 'งานผ่าน (วิชานี้)', 'CodeCoin', 'Streak'].map(h => (
+                                {['อันดับ', 'ชื่อ', 'Rank', 'XP (รวมทุกวิชา)', 'งานผ่าน (วิชานี้)', 'CodeCoin', 'Streak', 'XP Audit'].map(h => (
                                     <th key={h} className="px-4 py-3 text-left font-bold text-gray-600 whitespace-nowrap text-xs">{h}</th>
                                 ))}
                             </tr>
@@ -1754,16 +1775,170 @@ const _GamificationTab = ({ selectedCourse, submissions = [], students = {} }) =
                                         </td>
                                         <td className="px-4 py-3 text-yellow-600">🪙 {s.codeCoin || 0}</td>
                                         <td className="px-4 py-3">🔥 {s.streakDays || 0} วัน</td>
+                                        <td className="px-4 py-3">
+                                            <button onClick={() => loadXPAudit(s.uid)}
+                                                style={{
+                                                    padding: '3px 10px', borderRadius: 8, fontSize: 12, cursor: 'pointer',
+                                                    background: auditUid === s.uid ? '#ec4899' : '#fce7f3',
+                                                    color: auditUid === s.uid ? '#fff' : '#be185d',
+                                                    border: 'none', fontFamily: "'Prompt',sans-serif", fontWeight: 600,
+                                                }}>
+                                                🔍 {auditUid === s.uid ? 'ปิด' : 'ดู XP'}
+                                            </button>
+                                        </td>
                                     </tr>
                                 );
                             })}
                             {stats.length === 0 && (
-                                <tr><td colSpan={7} className="text-center py-8 text-gray-400">ยังไม่มีข้อมูล</td></tr>
+                                <tr><td colSpan={8} className="text-center py-8 text-gray-400">ยังไม่มีข้อมูล</td></tr>
                             )}
                         </tbody>
                     </table>
                 </div>
             )}
+
+            {/* XP Audit Panel */}
+            {auditUid && (() => {
+                const student = stats.find(s => s.uid === auditUid);
+                const SOURCE_META = {
+                    submission_accepted: { label: 'ส่งงาน (โจทย์)', icon: '📝', color: '#3b82f6' },
+                    first_solve:         { label: 'ผ่านครั้งแรก (First Solve)', icon: '🌟', color: '#f59e0b' },
+                    streak_bonus:        { label: 'Streak เข้าเรียน', icon: '🔥', color: '#ef4444' },
+                    minigame:            { label: 'Mini-Game', icon: '🎮', color: '#8b5cf6' },
+                    achievement:         { label: 'Achievement Badge', icon: '🏅', color: '#10b981' },
+                };
+                const entries = auditData || [];
+                const bySource = {};
+                entries.forEach(e => {
+                    const src = e.source || 'other';
+                    if (!bySource[src]) bySource[src] = { count: 0, xp: 0 };
+                    bySource[src].count++;
+                    bySource[src].xp += e.xpAwarded || 0;
+                });
+                const totalAuditXP = Object.values(bySource).reduce((s, v) => s + v.xp, 0);
+                const classAvgXP = stats.length > 0 ? stats.reduce((s, x) => s + (x.xp || 0), 0) / stats.length : 1;
+                const studentTotalXP = student?.xp || 0;
+
+                // Suspicious pattern detection
+                const subEntries = entries.filter(e => e.source === 'submission_accepted');
+                const subXP = subEntries.reduce((s, e) => s + (e.xpAwarded || 0), 0);
+                const avgXPPerSub = subEntries.length > 0 ? subXP / subEntries.length : 0;
+                const subTimes = subEntries.filter(e => e.createdAt?.toDate).map(e => e.createdAt.toDate().getTime()).sort((a,b)=>a-b);
+                let rapidCount = 0;
+                for (let i = 1; i < subTimes.length; i++) { if (subTimes[i]-subTimes[i-1] < 60000) rapidCount++; }
+                const topSrc = Object.entries(bySource).sort(([,a],[,b])=>b.xp-a.xp)[0];
+                const topSrcRatio = topSrc && totalAuditXP > 0 ? topSrc[1].xp / totalAuditXP : 0;
+
+                const flags = [];
+                if (studentTotalXP > classAvgXP * 4)
+                    flags.push({ lvl: 'red', msg: `XP รวม ${studentTotalXP.toLocaleString()} สูงกว่าค่าเฉลี่ยห้อง (${Math.round(classAvgXP).toLocaleString()}) ถึง ${(studentTotalXP/classAvgXP).toFixed(1)} เท่า` });
+                if (subEntries.length > 30 && avgXPPerSub < 20)
+                    flags.push({ lvl: 'red', msg: `ส่งงาน ${subEntries.length} ครั้ง — XP เฉลี่ย ${avgXPPerSub.toFixed(1)}/ครั้ง (ปกติควร ≥ 30) → น่าจะกด Submit รัวด้วยคำตอบผิดเพื่อฟาร์ม 5 XP` });
+                if (rapidCount > 5)
+                    flags.push({ lvl: 'orange', msg: `พบ ${rapidCount} ครั้งที่ส่งห่างกัน < 1 นาที — ส่งเร็วผิดปกติ` });
+                if (topSrcRatio > 0.85 && totalAuditXP > 200)
+                    flags.push({ lvl: 'yellow', msg: `XP ${Math.round(topSrcRatio*100)}% มาจาก "${SOURCE_META[topSrc[0]]?.label || topSrc[0]}" แหล่งเดียว` });
+                if (flags.length === 0 && auditData !== null)
+                    flags.push({ lvl: 'green', msg: 'ไม่พบรูปแบบน่าสงสัย XP มาจากหลายแหล่งตามปกติ' });
+
+                const lvlStyle = { red: '#ef4444', orange: '#f97316', yellow: '#d97706', green: '#16a34a' };
+                const lvlBg   = { red: '#fef2f2', orange: '#fff7ed', yellow: '#fefce8', green: '#f0fdf4' };
+
+                return (
+                    <div style={{ background: '#fff', border: '2px solid #ec4899', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <div>
+                                <h4 style={{ fontWeight: 700, fontSize: 15, color: '#be185d', margin: 0 }}>
+                                    🔍 XP Audit — {student?.displayName || auditUid.slice(-8)}
+                                </h4>
+                                <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>
+                                    แสดงข้อมูลจาก xpLedger (สูงสุด 300 รายการล่าสุด) · XP รวม {studentTotalXP.toLocaleString()} | ค่าเฉลี่ยห้อง {Math.round(classAvgXP).toLocaleString()}
+                                </p>
+                            </div>
+                            <button onClick={() => { setAuditUid(null); setAuditData(null); }}
+                                style={{ background: '#fce7f3', border: 'none', borderRadius: 8, padding: '4px 12px', cursor: 'pointer', color: '#be185d', fontSize: 13, fontFamily: "'Prompt',sans-serif" }}>
+                                ✕ ปิด
+                            </button>
+                        </div>
+
+                        {auditLoading ? (
+                            <div style={{ textAlign: 'center', padding: '24px 0', color: '#9ca3af' }}>⏳ กำลังโหลด xpLedger...</div>
+                        ) : (
+                            <>
+                                {/* Suspicious flags */}
+                                <div style={{ marginBottom: 16 }}>
+                                    <div style={{ fontWeight: 700, fontSize: 12, color: '#6b7280', marginBottom: 6 }}>🚦 ผลการตรวจสอบ</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {flags.map((f, i) => (
+                                            <div key={i} style={{ background: lvlBg[f.lvl], border: `1px solid ${lvlStyle[f.lvl]}33`, borderRadius: 8, padding: '7px 12px', fontSize: 12, color: lvlStyle[f.lvl], fontWeight: f.lvl === 'red' ? 700 : 400 }}>
+                                                {f.lvl === 'red' ? '⛔' : f.lvl === 'orange' ? '⚠️' : f.lvl === 'yellow' ? '💡' : '✅'} {f.msg}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* XP breakdown by source */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 10, marginBottom: 16 }}>
+                                    {Object.entries(bySource).sort(([,a],[,b])=>b.xp-a.xp).map(([src, v]) => {
+                                        const meta = SOURCE_META[src] || { label: src, icon: '❓', color: '#9ca3af' };
+                                        const pct = totalAuditXP > 0 ? Math.round(v.xp/totalAuditXP*100) : 0;
+                                        return (
+                                            <div key={src} style={{ background: '#f9fafb', borderRadius: 10, padding: '10px 14px', borderLeft: `3px solid ${meta.color}` }}>
+                                                <div style={{ fontWeight: 700, fontSize: 13, color: meta.color }}>{meta.icon} {meta.label}</div>
+                                                <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: '4px 0 2px' }}>{v.xp.toLocaleString()} XP</div>
+                                                <div style={{ fontSize: 11, color: '#9ca3af' }}>{v.count} ครั้ง · {pct}% ของ XP ทั้งหมด</div>
+                                                <div style={{ height: 4, background: '#e5e7eb', borderRadius: 4, marginTop: 6 }}>
+                                                    <div style={{ height: 4, borderRadius: 4, background: meta.color, width: pct + '%' }} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {Object.keys(bySource).length === 0 && (
+                                        <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#9ca3af', padding: '16px 0', fontSize: 13 }}>
+                                            ไม่พบข้อมูลใน xpLedger (นักเรียนอาจยังไม่ได้รับ XP ใดๆ)
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Recent XP events */}
+                                {entries.length > 0 && (
+                                    <div>
+                                        <div style={{ fontWeight: 700, fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+                                            📋 รายการ XP ล่าสุด ({Math.min(entries.length, 30)} จาก {entries.length} รายการ)
+                                        </div>
+                                        <div style={{ maxHeight: 280, overflowY: 'auto', border: '1px solid #f3f4f6', borderRadius: 10 }}>
+                                            <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                                                <thead>
+                                                    <tr style={{ background: '#fdf2f8', position: 'sticky', top: 0 }}>
+                                                        {['วันที่', 'แหล่ง', 'XP', 'หมายเหตุ'].map(h => (
+                                                            <th key={h} style={{ padding: '6px 10px', textAlign: 'left', color: '#9ca3af', fontWeight: 600 }}>{h}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {entries.slice(0, 30).map((e, i) => {
+                                                        const meta = SOURCE_META[e.source] || { label: e.source, icon: '❓', color: '#9ca3af' };
+                                                        const scoreNote = e.metadata?.score != null ? `คะแนน ${e.metadata.score}%` : e.metadata?.assignmentTitle || '';
+                                                        const dt = e.createdAt?.toDate ? e.createdAt.toDate().toLocaleString('th-TH', { dateStyle:'short', timeStyle:'short' }) : '—';
+                                                        return (
+                                                            <tr key={e.id} style={{ borderTop: '1px solid #f9fafb', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                                                <td style={{ padding: '5px 10px', color: '#6b7280', whiteSpace: 'nowrap' }}>{dt}</td>
+                                                                <td style={{ padding: '5px 10px', color: meta.color, fontWeight: 600 }}>{meta.icon} {meta.label}</td>
+                                                                <td style={{ padding: '5px 10px', fontWeight: 700, color: '#374151' }}>+{e.xpAwarded || 0}</td>
+                                                                <td style={{ padding: '5px 10px', color: '#9ca3af' }}>{scoreNote}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                );
+            })()}
 
             {/* Mini-Game by Course section */}
             {(() => {
