@@ -1,4 +1,4 @@
-// js/pages/teacher/StudentAnalytics.js - Teacher Analytics Dashboard (v6.1)
+// js/pages/teacher/StudentAnalytics.js - Teacher Analytics Dashboard (v6.2)
 
 const StudentAnalytics = () => {
     const { userDoc } = useAuth();
@@ -145,12 +145,23 @@ const StudentAnalytics = () => {
             ...submissionsV2.filter(s => s.assignmentId === assignId),
         ];
         if (subs.length === 0) return { attempts: 0, passRate: 0, avgScore: 0, uniqueStudents: 0 };
-        const passed = subs.filter(s => s.status === 'accepted' || s.isPassed === true).length;
+
+        const uniqueStudents = new Set(subs.map(s => s.studentId)).size;
+
+        // Pass rate = % of unique students who passed at least once
+        // Use grades collection (authoritative best-score) first; fallback to submissions
+        const passedStudents = [...new Set(subs.map(s => s.studentId))].filter(sid => {
+            const g = grades.find(x => x.studentId === sid && x.assignmentId === assignId);
+            if (g) return (g.score || 0) >= 100;
+            // grades not found: check submissions directly
+            return subs.some(s => s.studentId === sid && (s.status === 'accepted' || s.isPassed === true));
+        }).length;
+
         return {
             attempts: subs.length,
-            passRate: Math.round((passed / subs.length) * 100),
+            passRate: uniqueStudents > 0 ? Math.round((passedStudents / uniqueStudents) * 100) : 0,
             avgScore: Math.round(subs.reduce((sum, s) => sum + (s.score || 0), 0) / subs.length),
-            uniqueStudents: new Set(subs.map(s => s.studentId)).size,
+            uniqueStudents,
         };
     };
 
@@ -421,7 +432,7 @@ const StudentAnalytics = () => {
             arr.sort((a, b) => getAssignmentStats(b.id).avgScore - getAssignmentStats(a.id).avgScore);
         }
         return arr;
-    }, [assignments, overviewSort, submissions]);
+    }, [assignments, overviewSort, submissions, submissionsV2, grades]);
 
     // Enrollment order (original index kept for เลขที่)
     const enrollmentsIndexed = React.useMemo(() =>
