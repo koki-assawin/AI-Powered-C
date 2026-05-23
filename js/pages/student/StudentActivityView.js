@@ -647,7 +647,8 @@ const StudentActivityView = () => {
         return <QuizBlitzView assignment={assignment} user={user} userDoc={userDoc} />;
     }
 
-    // Coding → redirect to existing CodingWorkspace
-    window.location.hash = `#/student/coding/${assignmentId}`;
+    // Coding → redirect to CodingWorkspace with proper route params
+    const courseParam = assignment.courseId ? `?course=${assignment.courseId}&assignment=${assignmentId}` : `?assignment=${assignmentId}`;
+    window.location.hash = `#/student/workspace${courseParam}`;
     return null;
 };

@@ -80,16 +80,19 @@ const StudentAnalytics = () => {
             ]);
 
             // Normalize assignments_v2 — map totalPoints → rawScore for E1 table
+            // Exclude activityType='coding': those redirect to CodingWorkspace (v1) so submissions
+            // land in the v1 'submissions' collection under the v1 assignment ID, not here.
             const v1 = assignSnap.docs.map(d => ({ id: d.id, ...d.data(), _src: 'v1' }));
-            const v2 = assignV2Snap.docs.map(d => {
-                const dt = d.data();
-                let rawScore = 0;
-                if (dt.activityType === 'autopsy')      rawScore = dt.autopsyConfig?.totalPoints  || 0;
-                else if (dt.activityType === 'quiz_blitz')   rawScore = dt.quizConfig?.totalPoints    || 0;
-                else if (dt.activityType === 'pre_post_test') rawScore = dt.prePostConfig?.totalPoints || 0;
-                else if (dt.activityType === 'coding')   rawScore = dt.codingConfig?.totalPoints   || 0;
-                return { id: d.id, ...dt, rawScore, _src: 'v2' };
-            });
+            const v2 = assignV2Snap.docs
+                .filter(d => d.data().activityType !== 'coding')
+                .map(d => {
+                    const dt = d.data();
+                    let rawScore = 0;
+                    if (dt.activityType === 'autopsy')       rawScore = dt.autopsyConfig?.totalPoints  || 0;
+                    else if (dt.activityType === 'quiz_blitz')    rawScore = dt.quizConfig?.totalPoints    || 0;
+                    else if (dt.activityType === 'pre_post_test') rawScore = dt.prePostConfig?.totalPoints || 0;
+                    return { id: d.id, ...dt, rawScore, _src: 'v2' };
+                });
             setAssignments([...v1, ...v2]);
             setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             setSubmissionsV2(subV2Snap.docs.map(d => ({ id: d.id, ...d.data() })));
