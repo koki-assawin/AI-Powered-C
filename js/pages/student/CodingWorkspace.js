@@ -595,7 +595,11 @@ const CodingWorkspace = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            <Navbar title="AI-Powered Coding Coach (APCC)" subtitle={LANGUAGES[selectedLanguage]?.name} />
+            <Navbar title="AI-Powered Coding Coach (APCC)"
+                subtitle={course?.title
+                    ? `${course.title}${course.grade ? ` ม.${course.grade}` : ''}${course.room ? `/ห้อง ${course.room}` : ''} · ${LANGUAGES[selectedLanguage]?.name}`
+                    : LANGUAGES[selectedLanguage]?.name}
+            />
 
             {/* XP Reward Toast */}
             {showXpToast && xpReward && (
@@ -734,6 +738,24 @@ const CodingWorkspace = () => {
             <div className="flex flex-1 overflow-hidden">
                 {/* Left Sidebar - Collapsible assignment tree */}
                 <aside className="w-72 bg-white border-r overflow-y-auto hidden lg:flex flex-col" style={{ borderColor: '#E0E0E0' }}>
+                    {/* Course info banner */}
+                    {course && (
+                        <div style={{
+                            background: 'linear-gradient(135deg, #be185d, #9d174d)',
+                            color: '#fff', padding: '10px 12px',
+                        }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.4, marginBottom: 2 }}>
+                                🏫 {course.title}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#fce7f3', lineHeight: 1.5 }}>
+                                {[
+                                    course.grade ? `ม.${course.grade}` : null,
+                                    course.room  ? `ห้อง ${course.room}` : null,
+                                    course.semester ? `เทอม ${course.semester}${course.academicYear ? `/${course.academicYear}` : ''}` : null,
+                                ].filter(Boolean).join(' · ') || 'รายวิชา'}
+                            </div>
+                        </div>
+                    )}
                     <div className="px-3 py-3 border-b flex items-center justify-between" style={{ borderColor: '#F5F5F5' }}>
                         <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#AD1457' }}>📂 โจทย์</span>
                         <button onClick={() => loadCourse()} title="รีโหลด"
