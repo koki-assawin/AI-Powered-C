@@ -738,7 +738,7 @@ const CodingWorkspace = () => {
             <div className="flex flex-1 overflow-hidden">
                 {/* Left Sidebar - Collapsible assignment tree */}
                 <aside className="w-72 bg-white border-r overflow-y-auto hidden lg:flex flex-col" style={{ borderColor: '#E0E0E0' }}>
-                    {/* Course info banner */}
+                    {/* Course + Assignment info banner */}
                     {course && (
                         <div style={{
                             background: 'linear-gradient(135deg, #be185d, #9d174d)',
@@ -747,13 +747,26 @@ const CodingWorkspace = () => {
                             <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.4, marginBottom: 2 }}>
                                 🏫 {course.title}
                             </div>
-                            <div style={{ fontSize: 10, color: '#fce7f3', lineHeight: 1.5 }}>
+                            <div style={{ fontSize: 10, color: '#fce7f3', lineHeight: 1.5, marginBottom: currentAssignment ? 6 : 0 }}>
                                 {[
                                     course.grade ? `ม.${course.grade}` : null,
                                     course.room  ? `ห้อง ${course.room}` : null,
                                     course.semester ? `เทอม ${course.semester}${course.academicYear ? `/${course.academicYear}` : ''}` : null,
                                 ].filter(Boolean).join(' · ') || 'รายวิชา'}
                             </div>
+                            {currentAssignment && (
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.15)',
+                                    borderRadius: 8, padding: '5px 8px',
+                                    fontSize: 11, lineHeight: 1.4,
+                                }}>
+                                    <div style={{ fontSize: 9, color: '#fce7f3', marginBottom: 1 }}>📝 โจทย์ที่กำลังทำ</div>
+                                    <div style={{ fontWeight: 700, color: '#fff' }}>{currentAssignment.title}</div>
+                                    {currentAssignment.unitName && (
+                                        <div style={{ fontSize: 9, color: '#fbcfe8', marginTop: 1 }}>{currentAssignment.unitName}</div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                     <div className="px-3 py-3 border-b flex items-center justify-between" style={{ borderColor: '#F5F5F5' }}>
