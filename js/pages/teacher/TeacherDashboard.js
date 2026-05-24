@@ -1,5 +1,206 @@
 // js/pages/teacher/TeacherDashboard.js
 
+// ── Research Metrics Panel ────────────────────────────────────────────────────
+const _ResearchMetricsPanel = ({ courses = [] }) => {
+    const [selectedCourse, setSelectedCourse] = React.useState('');
+    const [selectedUnit,   setSelectedUnit]   = React.useState('all');
+    const [midpoint, setMidpoint] = React.useState(() => {
+        // Default: 2 months ago as semester midpoint
+        const d = new Date();
+        d.setMonth(d.getMonth() - 2);
+        return d.toISOString().slice(0, 10);
+    });
+    const [assignments, setAssignments] = React.useState([]);
+    const [unitNames,   setUnitNames]   = React.useState([]);
+    const [metrics,  setMetrics]  = React.useState(null);
+    const [loading,  setLoading]  = React.useState(false);
+
+    // Load unit list when course changes
+    React.useEffect(() => {
+        if (!selectedCourse) { setAssignments([]); setUnitNames([]); setMetrics(null); return; }
+        db.collection('assignments').where('courseId', '==', selectedCourse).get().then(snap => {
+            const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setAssignments(arr);
+            const units = [...new Set(arr.map(a => a.unitName).filter(Boolean))];
+            setUnitNames(units);
+            setSelectedUnit('all');
+            setMetrics(null);
+        });
+    }, [selectedCourse]);
+
+    const analyze = async () => {
+        if (!selectedCourse) return;
+        setLoading(true);
+        setMetrics(null);
+        try {
+            const mid = new Date(midpoint + 'T00:00:00');
+
+            // ── Enrolled students ──
+            const enrollSnap = await db.collection('enrollments').where('courseId', '==', selectedCourse).get();
+            const studentIds = [...new Set(enrollSnap.docs.map(d => d.data().studentId))];
+            const studentCount = studentIds.length;
+
+            // ── Assignment IDs for selected unit ──
+            const filteredAssigns = selectedUnit === 'all'
+                ? assignments
+                : assignments.filter(a => a.unitName === selectedUnit);
+            const assignIdSet = new Set(filteredAssigns.map(a => a.id));
+
+            // ── Submissions ──
+            const subSnap = await db.collection('submissions').where('courseId', '==', selectedCourse).get();
+            const allSubs = subSnap.docs.map(d => d.data());
+            const subs = selectedUnit === 'all' ? allSubs : allSubs.filter(s => assignIdSet.has(s.assignmentId));
+            const totalSubs = subs.length;
+            const avgSubs = studentCount > 0 ? (totalSubs / studentCount).toFixed(1) : '—';
+
+            // ── Hint Lv.3 (early / late) ──
+            // Query coachInteractions in batches of 30 UIDs
+            const hintEarlySet = new Set();
+            const hintLateSet  = new Set();
+            const chunks = [];
+            for (let i = 0; i < studentIds.length; i += 30) chunks.push(studentIds.slice(i, i + 30));
+
+            for (const chunk of chunks) {
+                const snap = await db.collection('coachInteractions')
+                    .where('uid', 'in', chunk)
+                    .where('triggerEvent', '==', 'hint_level_3')
+                    .get();
+                snap.docs.forEach(d => {
+                    const { uid, createdAt } = d.data();
+                    const ts = createdAt?.toDate ? createdAt.toDate() : null;
+                    if (!ts) return;
+                    if (ts < mid) hintEarlySet.add(uid);
+                    else          hintLateSet.add(uid);
+                });
+            }
+            const hintEarlyPct = studentCount > 0 ? Math.round(hintEarlySet.size / studentCount * 100) : 0;
+            const hintLatePct  = studentCount > 0 ? Math.round(hintLateSet.size  / studentCount * 100) : 0;
+
+            // ── Mini-Game Sessions ──
+            let totalGameSessions = 0;
+            for (const chunk of chunks) {
+                const snap = await db.collection('miniGameSessions').where('uid', 'in', chunk).get();
+                totalGameSessions += snap.size;
+            }
+
+            // ── Achievements ──
+            let totalAchievements = 0;
+            for (const chunk of chunks) {
+                const snap = await db.collection('studentAchievements').where('uid', 'in', chunk).get();
+                totalAchievements += snap.size;
+            }
+
+            setMetrics({
+                studentCount, totalSubs, avgSubs,
+                hintEarlyCount: hintEarlySet.size, hintEarlyPct,
+                hintLateCount:  hintLateSet.size,  hintLatePct,
+                totalGameSessions, totalAchievements,
+            });
+        } catch (err) {
+            console.error('[ResearchMetrics]', err);
+            alert('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const KPI = ({ icon, label, value, sub, color }) => (
+        <div style={{
+            background: '#fff', borderRadius: 14, padding: '16px 18px',
+            border: `1.5px solid ${color}22`,
+            borderLeft: `4px solid ${color}`,
+            boxShadow: '0 1px 4px rgba(0,0,0,.04)',
+        }}>
+            <div style={{ fontSize: 22, marginBottom: 6 }}>{icon}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 4 }}>{label}</div>
+            {sub && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{sub}</div>}
+        </div>
+    );
+
+    const courseName = courses.find(c => c.id === selectedCourse)?.title || '';
+
+    return (
+        <div className="k-card p-5 mb-8">
+            <h3 className="font-bold text-gray-700 mb-4" style={{ fontSize: 15 }}>
+                📊 ตัวชี้วัดงานวิจัย
+            </h3>
+
+            {/* Selectors */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 10, marginBottom: 16, alignItems: 'end' }}>
+                <div>
+                    <label style={{ fontSize: 11, color: '#9ca3af', display: 'block', marginBottom: 4 }}>รายวิชา</label>
+                    <select value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)} className="k-input" style={{ fontSize: 13 }}>
+                        <option value="">-- เลือกรายวิชา --</option>
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}{c.grade ? ` · ${c.grade}` : ''}{c.room ? ` ห้อง ${c.room}` : ''}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label style={{ fontSize: 11, color: '#9ca3af', display: 'block', marginBottom: 4 }}>หน่วยการเรียน</label>
+                    <select value={selectedUnit} onChange={e => setSelectedUnit(e.target.value)} className="k-input" style={{ fontSize: 13 }} disabled={!selectedCourse}>
+                        <option value="all">ทุกหน่วย</option>
+                        {unitNames.map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label style={{ fontSize: 11, color: '#9ca3af', display: 'block', marginBottom: 4 }}>
+                        จุดแบ่งต้นภาค/ปลายภาค
+                    </label>
+                    <input type="date" value={midpoint} onChange={e => setMidpoint(e.target.value)}
+                        className="k-input" style={{ fontSize: 13 }} />
+                </div>
+                <button onClick={analyze} disabled={!selectedCourse || loading}
+                    className="k-btn-pink px-5 py-2 text-sm disabled:opacity-40" style={{ whiteSpace: 'nowrap' }}>
+                    {loading ? '⏳ กำลังโหลด...' : '🔍 วิเคราะห์'}
+                </button>
+            </div>
+
+            {/* Results */}
+            {!metrics && !loading && (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af', fontSize: 13 }}>
+                    เลือกรายวิชาแล้วกด "วิเคราะห์" เพื่อดูตัวชี้วัด
+                </div>
+            )}
+
+            {loading && (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af', fontSize: 13 }}>
+                    ⏳ กำลังดึงข้อมูลจาก Firestore...
+                </div>
+            )}
+
+            {metrics && (
+                <>
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 10 }}>
+                        📌 {courseName}{selectedUnit !== 'all' ? ` · ${selectedUnit}` : ' · ทุกหน่วย'}
+                        {' '}· นักเรียน {metrics.studentCount} คน
+                        {' '}· จุดแบ่ง {new Date(midpoint).toLocaleDateString('th-TH')}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+                        <KPI icon="📋" label="รวม Submissions" color="#3b82f6"
+                            value={metrics.totalSubs.toLocaleString()}
+                            sub={`ทั้งหมด ${selectedUnit !== 'all' ? selectedUnit : 'ทุกหน่วย'}`} />
+                        <KPI icon="👤" label="Submissions เฉลี่ย/นักเรียน" color="#8b5cf6"
+                            value={metrics.avgSubs}
+                            sub={`รวม ${metrics.studentCount} คน`} />
+                        <KPI icon="💡" label="ขอ Hint Lv.3 — ต้นภาค" color="#f59e0b"
+                            value={`${metrics.hintEarlyPct}%`}
+                            sub={`${metrics.hintEarlyCount} คน / ก่อน ${new Date(midpoint).toLocaleDateString('th-TH')}`} />
+                        <KPI icon="💡" label="ขอ Hint Lv.3 — ปลายภาค" color="#ef4444"
+                            value={`${metrics.hintLatePct}%`}
+                            sub={`${metrics.hintLateCount} คน / หลัง ${new Date(midpoint).toLocaleDateString('th-TH')}`} />
+                        <KPI icon="🎮" label="Mini-Game Sessions" color="#10b981"
+                            value={metrics.totalGameSessions.toLocaleString()}
+                            sub="รวมทุก game type" />
+                        <KPI icon="🏅" label="Achievements รวม" color="#ec4899"
+                            value={metrics.totalAchievements.toLocaleString()}
+                            sub={`เฉลี่ย ${metrics.studentCount > 0 ? (metrics.totalAchievements / metrics.studentCount).toFixed(1) : '—'} badge/คน`} />
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
 const TeacherDashboard = () => {
     const { userDoc } = useAuth();
     const [courses, setCourses] = React.useState([]);
@@ -95,6 +296,9 @@ const TeacherDashboard = () => {
                                 </div>
                             ))}
                         </div>
+
+                        {/* Research Metrics Panel */}
+                        <_ResearchMetricsPanel courses={courses} />
 
                         {/* Quick links */}
                         <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
