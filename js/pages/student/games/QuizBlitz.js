@@ -26,7 +26,8 @@ const QuizBlitz = () => {
     const [result, setResult] = React.useState(null);
     const [startTime] = React.useState(Date.now());
 
-    const timerRef = React.useRef(null);
+    const timerRef      = React.useRef(null);
+    const submittedRef  = React.useRef(false);
 
     // Load content
     React.useEffect(() => {
@@ -71,6 +72,8 @@ const QuizBlitz = () => {
     };
 
     const finishGame = async (allAnswers) => {
+        if (submittedRef.current) return;
+        submittedRef.current = true;
         setPhase('saving');
         const correct = allAnswers.filter(a => a.isCorrect).length;
         const total = content.questions.length;

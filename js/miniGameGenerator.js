@@ -233,6 +233,11 @@ async function getOrGenerateDailyContent(gameType, unitId) {
 // ── Daily XP cap from games ───────────────────────────────────────────────────
 const DAILY_GAME_XP_CAP = 150;
 
+// Anti-exploit: in-memory dedup + cooldown (per gameType per uid)
+const _sessionLocks   = new Set();    // blocks concurrent calls in same event-loop batch
+const _sessionCooldown = {};          // uid:gameType → last write timestamp (ms)
+const SESSION_COOLDOWN_MS = 60_000;   // minimum 60s between recordings of the same game type
+
 // Single query: returns isFirstPlayToday for this gameType+unitId combo AND total XP today
 async function getDailyGameInfo(uid, gameType, unitId) {
     try {
@@ -285,6 +290,22 @@ async function gradeBugHuntAnswer(bugData, studentAnswer) {
 // ── Record session + award XP ─────────────────────────────────────────────────
 
 async function recordGameSession(uid, { gameType, contentId, unitId, score, correctAnswers, totalQuestions, timeSpentSeconds, answers }) {
+    const lockKey     = `${uid}:${gameType}:${unitId || 'general'}`;
+    const cooldownKey = `${uid}:${gameType}`;
+    const now = Date.now();
+
+    if (_sessionLocks.has(lockKey)) {
+        console.warn('[miniGame] duplicate session blocked (concurrent call)');
+        return { xpEarned: 0, coinEarned: 0, isFirstPlayToday: false, isPerfect: false };
+    }
+    if (now - (_sessionCooldown[cooldownKey] || 0) < SESSION_COOLDOWN_MS) {
+        console.warn('[miniGame] cooldown active — session blocked');
+        return { xpEarned: 0, coinEarned: 0, isFirstPlayToday: false, isPerfect: false };
+    }
+
+    _sessionLocks.add(lockKey);
+    _sessionCooldown[cooldownKey] = now;
+
     try {
         const { isFirstPlayToday, todayTotalXP } = await getDailyGameInfo(uid, gameType, unitId || 'general');
         const xpCfg = GAME_XP[gameType] || GAME_XP.quiz_blitz;
@@ -327,6 +348,8 @@ async function recordGameSession(uid, { gameType, contentId, unitId, score, corr
     } catch (err) {
         console.warn('[miniGame] recordGameSession error:', err);
         return { xpEarned: 0, coinEarned: 0, isFirstPlayToday: false, isPerfect: false };
+    } finally {
+        _sessionLocks.delete(lockKey);
     }
 }
 

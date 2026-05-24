@@ -11,7 +11,8 @@ const BugHunt = () => {
     const [showHint, setShowHint] = React.useState(false);
     const [answers, setAnswers] = React.useState([]);
     const [result, setResult] = React.useState(null);
-    const [startTime] = React.useState(Date.now());
+    const [startTime]  = React.useState(Date.now());
+    const submittedRef = React.useRef(false);
 
     React.useEffect(() => {
         if (!user?.uid) return;
@@ -45,6 +46,8 @@ const BugHunt = () => {
     };
 
     const finishGame = async (allAnswers) => {
+        if (submittedRef.current) return;
+        submittedRef.current = true;
         setPhase('saving');
         const avgScore = allAnswers.length > 0
             ? Math.round(allAnswers.reduce((s, a) => s + a.score, 0) / allAnswers.length)

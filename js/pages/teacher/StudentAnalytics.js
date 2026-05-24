@@ -566,6 +566,7 @@ const StudentAnalytics = () => {
                                     { key: 'practice',  label: '🎯 คะแนนฝึกเอง' },
                                     { key: 'aireport',  label: '🤖 รายงาน AI' },
                                     { key: 'gamification', label: '🎮 Gamification' },
+                                    { key: 'profiles',     label: '🧩 กลุ่มผู้เรียน' },
                                 ].map(t => (
                                     <button key={t.key} style={TAB_STYLE(t.key)} onClick={() => setActiveTab(t.key)}>
                                         {t.label}
@@ -1462,6 +1463,18 @@ const StudentAnalytics = () => {
                                     <_GamificationTab selectedCourse={selectedCourse} submissions={submissions} students={students} />
                                 )}
 
+                                {/* ─── TAB 7: LEARNER PROFILES ─── */}
+                                {activeTab === 'profiles' && (
+                                    <_ProfileGroupTab
+                                        submissions={submissions}
+                                        submissionsV2={submissionsV2}
+                                        assignments={assignments}
+                                        enrollments={enrollments}
+                                        students={students}
+                                        grades={grades}
+                                    />
+                                )}
+
                             </div>
                         </div>
                     </>
@@ -1613,6 +1626,378 @@ const _StudentRadarChart = ({ subs = [], totalAssignments = 0 }) => {
                         </div>
                     ))}
                 </div>
+            </div>
+        </div>
+    );
+};
+
+// ── Learner Profile Classification ───────────────────────────────────────────
+// Priority order: A → B → C → D (first match wins)
+const classifyProfile = (m) => {
+    if (!m) return 'D';
+    const { avgScore, passRate, coverage, effort } = m;
+    // A: high score + high pass + good coverage
+    if (avgScore >= 65 && passRate >= 60 && coverage >= 60) return 'A';
+    // B: accurate but low coverage (selective learner)
+    if (avgScore >= 60 && passRate >= 55 && coverage < 60) return 'B';
+    // C: tries hard + good coverage but not yet accurate
+    if (coverage >= 50 && effort >= 50) return 'C';
+    // D: needs strong support
+    return 'D';
+};
+
+const _PROFILE_DIM_DESC = {
+    A: [
+        { label: 'คะแนนเฉลี่ย', level: 'สูง',      icon: '📊', color: '#16a34a' },
+        { label: 'อัตราผ่าน',   level: 'สูง',      icon: '✅', color: '#16a34a' },
+        { label: 'ครอบคลุม',    level: 'ดี',       icon: '🗺️', color: '#16a34a' },
+        { label: 'ความพยายาม',  level: 'ปานกลาง', icon: '💪', color: '#d97706' },
+        { label: 'พัฒนาการ',    level: 'ดี',       icon: '📈', color: '#16a34a' },
+    ],
+    B: [
+        { label: 'คะแนนเฉลี่ย', level: 'สูง',      icon: '📊', color: '#16a34a' },
+        { label: 'อัตราผ่าน',   level: 'สูง',      icon: '✅', color: '#16a34a' },
+        { label: 'ครอบคลุม',    level: 'ต่ำ',      icon: '🗺️', color: '#ef4444' },
+        { label: 'ความพยายาม',  level: 'ปานกลาง', icon: '💪', color: '#d97706' },
+        { label: 'พัฒนาการ',    level: 'ดี',       icon: '📈', color: '#16a34a' },
+    ],
+    C: [
+        { label: 'คะแนนเฉลี่ย', level: 'ปานกลาง', icon: '📊', color: '#d97706' },
+        { label: 'อัตราผ่าน',   level: 'ปานกลาง', icon: '✅', color: '#d97706' },
+        { label: 'ครอบคลุม',    level: 'ดี',       icon: '🗺️', color: '#16a34a' },
+        { label: 'ความพยายาม',  level: 'สูง',      icon: '💪', color: '#16a34a' },
+        { label: 'พัฒนาการ',    level: 'ดี',       icon: '📈', color: '#16a34a' },
+    ],
+    D: [
+        { label: 'คะแนนเฉลี่ย', level: 'ต่ำ',  icon: '📊', color: '#ef4444' },
+        { label: 'อัตราผ่าน',   level: 'ต่ำ',  icon: '✅', color: '#ef4444' },
+        { label: 'ครอบคลุม',    level: 'ต่ำ',  icon: '🗺️', color: '#ef4444' },
+        { label: 'ความพยายาม',  level: 'ต่ำ',  icon: '💪', color: '#ef4444' },
+        { label: 'พัฒนาการ',    level: 'น้อย', icon: '📈', color: '#ef4444' },
+    ],
+};
+
+const GROUP_META = {
+    A: {
+        color: '#059669', bg: '#ecfdf5', border: '#6ee7b7',
+        label: 'คุณภาพสูงรอบด้าน', icon: '🌟',
+        desc: 'คะแนนสูง ผ่านสูง ครอบคลุมดี พร้อมรับความท้าทาย',
+        apcc: 'Challenge Coach + โจทย์ Hard + โปรเจคพิเศษ',
+    },
+    B: {
+        color: '#2563eb', bg: '#eff6ff', border: '#93c5fd',
+        label: 'ทำน้อยแต่แม่น', icon: '🎯',
+        desc: 'คะแนนสูง ผ่านสูง แต่ทำโจทย์น้อย ครอบคลุมต่ำ',
+        apcc: 'กระตุ้นสำรวจโจทย์เพิ่ม + Gamification Streak',
+    },
+    C: {
+        color: '#d97706', bg: '#fffbeb', border: '#fcd34d',
+        label: 'พยายามแต่ยังไม่แม่น', icon: '💪',
+        desc: 'ครอบคลุมดี ความพยายามสูง แต่คะแนนเฉลี่ยและอัตราผ่านยังกลาง',
+        apcc: 'Socratic Coach + Trace Table ก่อน Code + เน้น Concept ก่อนปริมาณ',
+    },
+    D: {
+        color: '#dc2626', bg: '#fef2f2', border: '#fca5a5',
+        label: 'ต้องการแรงหนุน', icon: '🆘',
+        desc: 'คะแนนต่ำ ผ่านน้อย ครอบคลุมต่ำ ความพยายามน้อย',
+        apcc: 'Mindset Coach + โจทย์ Easy + ครูช่วยรายบุคคล + Hint Lv.3',
+    },
+};
+
+// ── Learner Profile Tab Component ─────────────────────────────────────────────
+const _ProfileGroupTab = ({ submissions = [], submissionsV2 = [], assignments = [], enrollments = [], students = {}, grades = [] }) => {
+    const chartRef  = React.useRef(null);
+    const chartInst = React.useRef(null);
+    const [expandGroup, setExpandGroup] = React.useState(null);
+    const [sortKey, setSortKey] = React.useState('group');
+
+    const totalAssignments = assignments.length;
+
+    // Compute 5-dimension Radar metrics per student (same algo as _StudentRadarChart, mode='best')
+    const profiles = React.useMemo(() => {
+        return enrollments.map(enroll => {
+            const uid = enroll.studentId;
+            const subs = [
+                ...submissions.filter(s => s.studentId === uid),
+                ...submissionsV2.filter(s => s.studentId === uid),
+            ];
+            const name = students[uid]?.displayName || uid.slice(0, 8);
+
+            if (subs.length === 0) return { uid, name, group: 'D', metrics: null };
+
+            const byAssign = {};
+            subs.forEach(s => {
+                if (!byAssign[s.assignmentId]) byAssign[s.assignmentId] = [];
+                byAssign[s.assignmentId].push(s);
+            });
+            const unique = Object.keys(byAssign).length;
+            const repScores = Object.values(byAssign).map(arr => Math.max(...arr.map(s => s.score || 0)));
+
+            const avgScore = Math.round(repScores.reduce((a, b) => a + b, 0) / repScores.length);
+            const passRate = Math.round(repScores.filter(s => s >= 60).length / repScores.length * 100);
+            const coverage = Math.round(Math.min(100, unique / Math.max(1, totalAssignments) * 100));
+            const avgAttempts = subs.length / Math.max(1, unique);
+            const effort = Math.round(Math.min(100, avgAttempts / 5 * 100));
+            const improvements = Object.values(byAssign).map(arr => {
+                const sorted = [...arr].sort((a, b) => (a.submittedAt?.seconds||0) - (b.submittedAt?.seconds||0));
+                return Math.max(...arr.map(s => s.score || 0)) - (sorted[0]?.score || 0);
+            });
+            const progress = Math.round(Math.min(100, Math.max(0, 50 + improvements.reduce((a, b) => a + b, 0) / improvements.length)));
+
+            const metrics = { avgScore, passRate, coverage, effort, progress };
+            return { uid, name, group: classifyProfile(metrics), metrics };
+        });
+    }, [submissions, submissionsV2, assignments, enrollments, students]);
+
+    const counts = { A: 0, B: 0, C: 0, D: 0 };
+    profiles.forEach(p => { if (counts[p.group] != null) counts[p.group]++; });
+
+    // Donut chart
+    React.useEffect(() => {
+        if (!chartRef.current || profiles.length === 0) return;
+        if (chartInst.current) { chartInst.current.destroy(); chartInst.current = null; }
+        chartInst.current = new Chart(chartRef.current, {
+            type: 'doughnut',
+            data: {
+                labels: ['A — คุณภาพสูงรอบด้าน', 'B — ทำน้อยแต่แม่น', 'C — พยายามแต่ยังไม่แม่น', 'D — ต้องการแรงหนุน'],
+                datasets: [{
+                    data: [counts.A, counts.B, counts.C, counts.D],
+                    backgroundColor: ['#059669', '#2563eb', '#d97706', '#dc2626'],
+                    borderColor: '#fff', borderWidth: 3,
+                }],
+            },
+            options: {
+                cutout: '62%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { family: 'Prompt', size: 11 }, padding: 10, boxWidth: 14 },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.parsed} คน (${profiles.length > 0 ? Math.round(ctx.parsed / profiles.length * 100) : 0}%)`,
+                        },
+                    },
+                },
+            },
+        });
+        return () => { if (chartInst.current) { chartInst.current.destroy(); chartInst.current = null; } };
+    }, [profiles]);
+
+    const sortedProfiles = React.useMemo(() => {
+        const arr = [...profiles];
+        if (sortKey === 'group') arr.sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name, 'th'));
+        else if (sortKey === 'avg') arr.sort((a, b) => (b.metrics?.avgScore || 0) - (a.metrics?.avgScore || 0));
+        else if (sortKey === 'name') arr.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+        return arr;
+    }, [profiles, sortKey]);
+
+    const SortB = ({ k, label }) => (
+        <button onClick={() => setSortKey(k)} style={{
+            padding: '4px 12px', borderRadius: 8, fontSize: 12, border: 'none', cursor: 'pointer',
+            background: sortKey === k ? '#ec4899' : '#fce7f3',
+            color: sortKey === k ? '#fff' : '#be185d',
+            fontFamily: "'Prompt',sans-serif", fontWeight: sortKey === k ? 700 : 400,
+        }}>{label}</button>
+    );
+
+    const MetricCell = ({ val, high = 65, med = 40 }) => {
+        const color = val == null ? '#9ca3af' : val >= high ? '#16a34a' : val >= med ? '#d97706' : '#dc2626';
+        return <span style={{ fontWeight: 600, color }}>{val != null ? val + '%' : '—'}</span>;
+    };
+
+    if (enrollments.length === 0) return (
+        <div className="text-center py-12 text-gray-400">
+            <div className="text-5xl mb-3">🧩</div>
+            <p>ไม่มีนักเรียนลงทะเบียน</p>
+        </div>
+    );
+
+    return (
+        <div style={{ color: '#1f2937' }}>
+            {/* Header */}
+            <div style={{ marginBottom: 20 }}>
+                <h3 className="text-lg font-bold text-gray-700 mb-1">🧩 วิเคราะห์กลุ่มโปรไฟล์ผู้เรียน (Learner Profile Clusters)</h3>
+                <p style={{ fontSize: 12, color: '#9ca3af' }}>
+                    จำแนกจาก Radar Chart 5 มิติ · คลิกที่กลุ่มเพื่อดูนักเรียนและคำแนะนำ APCC · นักเรียนที่ยังไม่ส่งงานถูกจัดเป็นกลุ่ม D อัตโนมัติ
+                </p>
+            </div>
+
+            {/* Summary cards + Donut chart */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20, marginBottom: 24, alignItems: 'start' }}>
+                {/* 4 group cards (2×2 grid) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {['A','B','C','D'].map(g => {
+                        const meta = GROUP_META[g];
+                        const count = counts[g];
+                        const pct = profiles.length > 0 ? Math.round(count / profiles.length * 100) : 0;
+                        const isExpanded = expandGroup === g;
+                        return (
+                            <div key={g} onClick={() => setExpandGroup(isExpanded ? null : g)} style={{
+                                background: meta.bg,
+                                border: `2px solid ${isExpanded ? meta.color : meta.border}`,
+                                borderRadius: 16, padding: '16px 18px', cursor: 'pointer',
+                                transition: 'all .15s',
+                                boxShadow: isExpanded ? `0 0 0 3px ${meta.color}22` : 'none',
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                                    <div>
+                                        <span style={{ fontSize: 22 }}>{meta.icon}</span>
+                                        <div style={{ fontWeight: 800, fontSize: 13, color: meta.color, marginTop: 4 }}>กลุ่ม {g}</div>
+                                        <div style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginTop: 1 }}>{meta.label}</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: 36, fontWeight: 900, color: meta.color, lineHeight: 1 }}>{count}</div>
+                                        <div style={{ fontSize: 11, color: '#9ca3af' }}>คน</div>
+                                    </div>
+                                </div>
+                                <div style={{ height: 5, background: '#e5e7eb', borderRadius: 4, marginTop: 8 }}>
+                                    <div style={{ height: 5, borderRadius: 4, background: meta.color, width: pct + '%', transition: 'width .4s' }} />
+                                </div>
+                                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, textAlign: 'right' }}>{pct}%</div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Donut chart */}
+                <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #f3f4f6', padding: '16px 12px' }}>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: '#9ca3af', textAlign: 'center', marginBottom: 10 }}>
+                        สัดส่วนกลุ่มผู้เรียน ({profiles.length} คน)
+                    </div>
+                    <canvas ref={chartRef} style={{ maxHeight: 220 }} />
+                </div>
+            </div>
+
+            {/* Expanded group detail panel */}
+            {expandGroup && (() => {
+                const meta = GROUP_META[expandGroup];
+                const groupStudents = profiles.filter(p => p.group === expandGroup);
+                const dimDesc = _PROFILE_DIM_DESC[expandGroup];
+                return (
+                    <div style={{
+                        background: meta.bg, border: `2px solid ${meta.color}`,
+                        borderRadius: 16, padding: 20, marginBottom: 20,
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                            <div>
+                                <h4 style={{ fontWeight: 800, fontSize: 16, color: meta.color, margin: 0 }}>
+                                    {meta.icon} กลุ่ม {expandGroup} — {meta.label}
+                                </h4>
+                                <p style={{ fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>{meta.desc}</p>
+                            </div>
+                            <button onClick={() => setExpandGroup(null)} style={{
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                color: meta.color, fontWeight: 700, fontSize: 20, padding: '0 4px', lineHeight: 1,
+                            }}>✕</button>
+                        </div>
+
+                        {/* 5-dimension radar profile */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8, marginBottom: 16 }}>
+                            {dimDesc.map(d => (
+                                <div key={d.label} style={{
+                                    textAlign: 'center', background: '#fff', borderRadius: 12,
+                                    padding: '10px 4px', border: `1px solid ${meta.border}`,
+                                }}>
+                                    <div style={{ fontSize: 20 }}>{d.icon}</div>
+                                    <div style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 2px' }}>{d.label}</div>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: d.color }}>{d.level}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* APCC recommendation */}
+                        <div style={{
+                            background: '#fff', borderRadius: 12, padding: '12px 16px',
+                            border: `1px solid ${meta.border}`, marginBottom: 16,
+                        }}>
+                            <div style={{ fontWeight: 700, fontSize: 12, color: '#6b7280', marginBottom: 4 }}>🤖 แนวทาง APCC สำหรับกลุ่มนี้</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: meta.color }}>{meta.apcc}</div>
+                        </div>
+
+                        {/* Student chips */}
+                        <div style={{ fontWeight: 700, fontSize: 12, color: '#6b7280', marginBottom: 10 }}>
+                            นักเรียน {groupStudents.length} คนในกลุ่มนี้:
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {groupStudents.length === 0
+                                ? <span style={{ color: '#9ca3af', fontSize: 13 }}>ไม่มีนักเรียนในกลุ่มนี้</span>
+                                : groupStudents.map(p => (
+                                    <div key={p.uid} style={{
+                                        background: '#fff', borderRadius: 20,
+                                        padding: '5px 14px', fontSize: 12,
+                                        border: `1.5px solid ${meta.border}`,
+                                        color: meta.color, fontWeight: 600,
+                                    }}>
+                                        {p.name}
+                                        {p.metrics && (
+                                            <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: 6 }}>
+                                                avg {p.metrics.avgScore}% | pass {p.metrics.passRate}%
+                                            </span>
+                                        )}
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Full student table */}
+            <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                    <h4 style={{ fontWeight: 700, fontSize: 14, color: '#6b7280', margin: 0 }}>📋 ตารางสรุปนักเรียนทุกคน</h4>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <span style={{ fontSize: 12, color: '#9ca3af' }}>เรียงตาม:</span>
+                        <SortB k="group" label="กลุ่ม A→D" />
+                        <SortB k="avg"   label="คะแนน↓" />
+                        <SortB k="name"  label="ชื่อ A→Z" />
+                    </div>
+                </div>
+                <div className="overflow-x-auto rounded-xl border border-gray-100">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr style={{ background: '#fdf2f8' }}>
+                                {['#', 'ชื่อ', 'กลุ่ม', 'คะแนนเฉลี่ย', 'อัตราผ่าน', 'ครอบคลุม', 'ความพยายาม', 'พัฒนาการ', 'แนวทาง APCC'].map(h => (
+                                    <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', whiteSpace: 'nowrap' }}>{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sortedProfiles.map((p, i) => {
+                                const meta = GROUP_META[p.group];
+                                const m = p.metrics;
+                                return (
+                                    <tr key={p.uid} className="border-t border-gray-50 hover:bg-gray-50"
+                                        onClick={() => setExpandGroup(expandGroup === p.group ? null : p.group)}
+                                        style={{ cursor: 'pointer' }}>
+                                        <td style={{ padding: '8px 12px', color: '#9ca3af', fontSize: 11 }}>{i + 1}</td>
+                                        <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1f2937', whiteSpace: 'nowrap' }}>{p.name}</td>
+                                        <td style={{ padding: '8px 12px' }}>
+                                            <span style={{
+                                                background: meta.bg, color: meta.color,
+                                                border: `1.5px solid ${meta.border}`,
+                                                borderRadius: 20, padding: '3px 12px',
+                                                fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                                            }}>
+                                                {meta.icon} {p.group}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '8px 12px', textAlign: 'center' }}><MetricCell val={m?.avgScore} high={65} med={35} /></td>
+                                        <td style={{ padding: '8px 12px', textAlign: 'center' }}><MetricCell val={m?.passRate} high={60} med={30} /></td>
+                                        <td style={{ padding: '8px 12px', textAlign: 'center' }}><MetricCell val={m?.coverage} high={60} med={40} /></td>
+                                        <td style={{ padding: '8px 12px', textAlign: 'center' }}><MetricCell val={m?.effort} high={60} med={30} /></td>
+                                        <td style={{ padding: '8px 12px', textAlign: 'center' }}><MetricCell val={m?.progress} high={60} med={45} /></td>
+                                        <td style={{ padding: '8px 12px', fontSize: 11, color: '#6b7280', maxWidth: 220 }}>{meta.apcc}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+                <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>
+                    * คลิกแถวใดก็ได้เพื่อดูรายละเอียดกลุ่ม · เกณฑ์: กลุ่ม A ≥65%avg + ≥60%pass + ≥60%cover | กลุ่ม B ≥60%avg + ≥55%pass | กลุ่ม C cover≥50% + effort≥50% | กลุ่ม D อื่นๆ
+                </p>
             </div>
         </div>
     );

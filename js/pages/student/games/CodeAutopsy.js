@@ -9,7 +9,8 @@ const CodeAutopsy = () => {
     const [showAnswer, setShowAnswer] = React.useState(false);
     const [answers, setAnswers] = React.useState([]);
     const [result, setResult] = React.useState(null);
-    const [startTime] = React.useState(Date.now());
+    const [startTime]  = React.useState(Date.now());
+    const submittedRef = React.useRef(false);
 
     React.useEffect(() => {
         if (!user?.uid) return;
@@ -39,6 +40,8 @@ const CodeAutopsy = () => {
     };
 
     const finishGame = async (allAnswers) => {
+        if (submittedRef.current) return;
+        submittedRef.current = true;
         setPhase('saving');
         const correct = allAnswers.filter(a => a.isCorrect).length;
         const total = content.questions.length;
