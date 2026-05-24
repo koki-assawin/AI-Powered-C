@@ -127,7 +127,7 @@ const _ResearchMetricsPanel = ({ courses = [] }) => {
             </h3>
 
             {/* Selectors */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 10, marginBottom: 16, alignItems: 'end' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 150px auto', gap: 10, marginBottom: 16, alignItems: 'end' }}>
                 <div>
                     <label style={{ fontSize: 11, color: '#9ca3af', display: 'block', marginBottom: 4 }}>รายวิชา</label>
                     <select value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)} className="k-input" style={{ fontSize: 13 }}>
