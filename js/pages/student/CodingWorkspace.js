@@ -597,7 +597,7 @@ const CodingWorkspace = () => {
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navbar title="AI-Powered Coding Coach (APCC)"
                 subtitle={course?.title
-                    ? `${course.title}${course.grade ? ` ม.${course.grade}` : ''}${course.room ? `/ห้อง ${course.room}` : ''} · ${LANGUAGES[selectedLanguage]?.name}`
+                    ? `${course.title}${course.grade ? ` ${course.grade}` : ''}${course.room ? `/ห้อง ${course.room}` : ''} · ${LANGUAGES[selectedLanguage]?.name}`
                     : LANGUAGES[selectedLanguage]?.name}
             />
 
@@ -749,7 +749,7 @@ const CodingWorkspace = () => {
                             </div>
                             <div style={{ fontSize: 10, color: '#fce7f3', lineHeight: 1.5, marginBottom: currentAssignment ? 6 : 0 }}>
                                 {[
-                                    course.grade ? `ม.${course.grade}` : null,
+                                    course.grade ? `${course.grade}` : null,
                                     course.room  ? `ห้อง ${course.room}` : null,
                                     course.semester ? `เทอม ${course.semester}${course.academicYear ? `/${course.academicYear}` : ''}` : null,
                                 ].filter(Boolean).join(' · ') || 'รายวิชา'}
