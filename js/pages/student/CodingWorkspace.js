@@ -957,6 +957,22 @@ const CodingWorkspace = () => {
                                     ['eclipse','☀️ Eclipse (สว่าง)'],['default','📄 Default (สว่าง)'],
                                 ].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                             </select>
+                            {/* Reset code to starter */}
+                            {!isExamMode && (
+                                <button
+                                    onClick={() => {
+                                        const starter = currentAssignment?.starterCode || LANGUAGES[selectedLanguage]?.defaultCode || '';
+                                        if (starter && window.confirm('รีเซ็ตโค้ดกลับเป็นโค้ดตั้งต้น?\n(Draft ที่บันทึกไว้จะถูกลบ)')) {
+                                            setCode(starter);
+                                            if (currentAssignment) localStorage.removeItem(`draft_${currentAssignment.id}`);
+                                        }
+                                    }}
+                                    className="text-xs px-2 py-1 rounded border hover:bg-red-50"
+                                    style={{ border: '1px solid #fca5a5', color: '#ef4444', background: 'white' }}
+                                    title="รีเซ็ตโค้ดกลับเป็นโค้ดตั้งต้น">
+                                    🔄 รีเซ็ต
+                                </button>
+                            )}
                             {!isExamMode && frCodeNeedsInput && (
                                 <span className="text-xs px-2 py-1 rounded"
                                     style={{ background: '#FFF5F7', color: '#C2185B', border: '1px solid #fce7f3' }}>
