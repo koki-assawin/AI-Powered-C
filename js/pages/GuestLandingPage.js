@@ -233,7 +233,7 @@ const GuestLandingPage = () => {
         <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#fdf2f8 0%,#fce7f3 50%,#fbcfe8 100%)', fontFamily: "'Prompt',sans-serif" }}>
             {/* Header */}
             <div style={{ background: 'white', borderBottom: '1.5px solid #fce7f3', boxShadow: '0 2px 12px rgba(236,72,153,.08)', padding: '0 24px' }}>
-                <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
+                <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <img src="https://www.triamudomsouth.ac.th/images/theme/150x150.png" alt="โลโก้"
                             style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: '2px solid #fbcfe8' }} />
@@ -253,7 +253,7 @@ const GuestLandingPage = () => {
                 </div>
             </div>
 
-            <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 24px 60px' }}>
+            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px 60px' }}>
                 {/* Hero */}
                 <div style={{ textAlign: 'center', marginBottom: 44 }}>
                     <div style={{ fontSize: 56, marginBottom: 14 }}>💻</div>
@@ -271,8 +271,8 @@ const GuestLandingPage = () => {
                     </div>
                 </div>
 
-                {/* Problem cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 20, marginBottom: 48 }}>
+                {/* Problem cards — 4 columns, single row */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 48 }}>
                     {_DEMO_PROBLEMS.map(p => {
                         const c = p.unitColor;
                         return (
@@ -307,23 +307,33 @@ const GuestLandingPage = () => {
                     })}
                 </div>
 
-                {/* CTA */}
+                {/* CTA — room code */}
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ background: 'white', borderRadius: 24, padding: '28px 40px', display: 'inline-block', boxShadow: '0 4px 24px rgba(236,72,153,.1)' }}>
-                        <p style={{ fontSize: 16, color: '#374151', margin: '0 0 8px', fontWeight: 700 }}>
+                    <div style={{ background: 'white', borderRadius: 24, padding: '32px 40px', display: 'inline-block', boxShadow: '0 4px 24px rgba(236,72,153,.12)', maxWidth: 560, width: '100%' }}>
+                        <p style={{ fontSize: 17, color: '#374151', margin: '0 0 6px', fontWeight: 700 }}>
                             อยากได้ฟีเจอร์เพิ่มเติม?
                         </p>
-                        <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 20px' }}>
-                            สมัครสมาชิกเพื่อปลดล็อก XP, อันดับ, เกม, AI Coach และโจทย์ครบทุกหน่วย
+                        <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 20px', lineHeight: 1.7 }}>
+                            สมัครสมาชิกแล้วเข้าห้องเรียนเพื่อปลดล็อก XP, อันดับ, เกม, AI Coach และโจทย์ครบทุกหน่วย
                         </p>
+
+                        {/* Room code */}
+                        <div style={{ background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '2px dashed #f9a8d4', borderRadius: 16, padding: '16px 24px', marginBottom: 20 }}>
+                            <div style={{ fontSize: 12, color: '#be185d', fontWeight: 600, marginBottom: 6 }}>🏫 รหัสห้องเรียน</div>
+                            <div style={{ fontSize: 44, fontWeight: 900, color: '#be185d', letterSpacing: '0.18em', fontFamily: "'JetBrains Mono','Consolas',monospace" }}>
+                                FQE28Y
+                            </div>
+                            <div style={{ fontSize: 11, color: '#f472b6', marginTop: 4 }}>ใช้รหัสนี้เมื่อสมัครสมาชิกเพื่อเข้าร่วมชั้นเรียน</div>
+                        </div>
+
                         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                             <a href="#/login" style={{
-                                padding: '10px 24px', borderRadius: 12,
+                                padding: '11px 26px', borderRadius: 12,
                                 border: '1.5px solid #f9a8d4', color: '#be185d',
                                 textDecoration: 'none', fontWeight: 600, fontSize: 14,
                             }}>เข้าสู่ระบบ</a>
                             <a href="#/register" style={{
-                                padding: '10px 24px', borderRadius: 12,
+                                padding: '11px 26px', borderRadius: 12,
                                 background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white',
                                 textDecoration: 'none', fontWeight: 700, fontSize: 14,
                             }}>✨ สมัครสมาชิกฟรี</a>
