@@ -103,6 +103,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(UserManager));
         if (route === '#/admin/settings')
             return guard(React.createElement(SystemSettings));
+        if (route === '#/admin/usage')
+            return guard(React.createElement(UsageAnalytics));
 
         return guard(React.createElement(AdminDashboard));
     }

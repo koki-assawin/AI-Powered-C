@@ -1,4 +1,4 @@
-// js/pages/GuestLandingPage.js — Demo/Guest Mode (v2.0)
+// js/pages/GuestLandingPage.js — Demo/Guest Mode (v2.2)
 // ไม่ต้องการ Firebase Auth — ทำงานอิสระโดยสมบูรณ์
 
 const _DEMO_PROBLEMS = [
@@ -48,19 +48,31 @@ const _DEMO_PROBLEMS = [
     },
 ];
 
+const _EDITOR_THEMES = [
+    ['dracula', '🟣 Dracula'], ['monokai', '🟢 Monokai'], ['one-dark', '🔵 One Dark'],
+    ['material-darker', '⚫ Material'], ['nord', '🧊 Nord'], ['ayu-dark', '🌙 Ayu Dark'],
+    ['eclipse', '☀️ Eclipse (สว่าง)'], ['default', '📄 Default (สว่าง)'],
+];
+
 // ── Mini workspace (inline) ─────────────────────────────────────────────────
 const _GuestWorkspace = ({ problem, onBack }) => {
-    const [code, setCode]         = React.useState(problem.starterCode);
-    const [input, setInput]       = React.useState(problem.sampleInput);
-    const [output, setOutput]     = React.useState('');
-    const [running, setRunning]   = React.useState(false);
-    const [verdict, setVerdict]   = React.useState(null); // null | 'pass' | 'fail' | 'error'
-    const [showHint, setShowHint] = React.useState(false);
+    const [code, setCode]               = React.useState(problem.starterCode);
+    const [input, setInput]             = React.useState(problem.sampleInput);
+    const [output, setOutput]           = React.useState('');
+    const [running, setRunning]         = React.useState(false);
+    const [verdict, setVerdict]         = React.useState(null); // null | 'pass' | 'fail' | 'error'
+    const [showHint, setShowHint]       = React.useState(false);
+    const [editorFontSize, setEditorFontSize] = React.useState(14);
+    const [editorTheme, setEditorTheme]       = React.useState('dracula');
     const c = problem.unitColor;
 
     const runCode = async () => {
         if (running) return;
         setRunning(true); setOutput(''); setVerdict(null);
+        // Log usage (non-blocking, may fail silently without auth)
+        if (typeof logUsageEvent === 'function') {
+            logUsageEvent('demo', 'demo_run', { problemId: problem.id, userType: 'demo' });
+        }
         try {
             const res = await runWithPiston(code, 'c', input);
             const out = (res.output || '').trim();
@@ -112,7 +124,7 @@ const _GuestWorkspace = ({ problem, onBack }) => {
             {/* Content */}
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
                 {/* Left: problem panel */}
-                <div style={{ width: 300, background: 'white', borderRight: '1px solid #f1f5f9', padding: 18, overflowY: 'auto', flexShrink: 0 }}>
+                <div style={{ width: 290, background: 'white', borderRight: '1px solid #f1f5f9', padding: 18, overflowY: 'auto', flexShrink: 0 }}>
                     <div style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: c.tagText, marginBottom: 8 }}>📝 โจทย์</div>
                         <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.7, whiteSpace: 'pre-line' }}>
@@ -122,7 +134,10 @@ const _GuestWorkspace = ({ problem, onBack }) => {
 
                     {problem.expectedOutput && (
                         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', marginBottom: 6 }}>✅ ผลลัพธ์ที่ถูกต้อง (Input: {problem.sampleInput || 'ไม่มี'})</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', marginBottom: 6 }}>✅ ผลลัพธ์ที่ถูกต้อง</div>
+                            {problem.sampleInput && (
+                                <div style={{ fontSize: 11, color: '#4b5563', marginBottom: 4 }}>Input: <code style={{ background: '#e5e7eb', padding: '1px 5px', borderRadius: 4 }}>{problem.sampleInput}</code></div>
+                            )}
                             <code style={{ fontSize: 13, color: '#15803d', background: '#dcfce7', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
                                 {problem.expectedOutput}
                             </code>
@@ -138,25 +153,48 @@ const _GuestWorkspace = ({ problem, onBack }) => {
                             {problem.hint}
                         </div>
                     )}
+
+                    {/* CTA */}
+                    <div style={{ marginTop: 20, background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '1px dashed #f9a8d4', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#be185d', fontWeight: 700, marginBottom: 6 }}>ปลดล็อกฟีเจอร์เพิ่มเติม</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 10, lineHeight: 1.5 }}>XP · อันดับ · AI Coach · ส่งงาน</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>รหัสห้องเรียน:</div>
+                        <div style={{ fontSize: 22, fontWeight: 900, color: '#be185d', letterSpacing: '0.15em', fontFamily: "'JetBrains Mono','Consolas',monospace", marginBottom: 10 }}>FQE28Y</div>
+                        <a href="#/register" style={{ display: 'block', padding: '8px', borderRadius: 10, background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 12 }}>
+                            ✨ สมัครสมาชิกฟรี
+                        </a>
+                    </div>
                 </div>
 
                 {/* Right: editor + output */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-                    {/* Code editor */}
-                    <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-                        <div style={{ position: 'absolute', top: 8, right: 12, fontSize: 11, color: '#9ca3af', zIndex: 1 }}>C Language</div>
-                        <textarea
+                    {/* Editor toolbar */}
+                    <div style={{ background: '#1a1a2e', borderBottom: '1px solid #1e293b', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, color: '#64748b', marginRight: 4 }}>C Language</span>
+                        <div style={{ flex: 1 }} />
+                        {/* Font size controls */}
+                        <button onClick={() => setEditorFontSize(s => Math.max(10, s - 1))}
+                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 12, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A-</button>
+                        <span style={{ fontSize: 11, color: '#64748b', minWidth: 24, textAlign: 'center' }}>{editorFontSize}</span>
+                        <button onClick={() => setEditorFontSize(s => Math.min(28, s + 1))}
+                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 12, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A+</button>
+                        {/* Theme selector */}
+                        <select value={editorTheme} onChange={e => setEditorTheme(e.target.value)}
+                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 11, padding: '3px 6px', cursor: 'pointer' }}>
+                            {_EDITOR_THEMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                    </div>
+
+                    {/* CodeEditor */}
+                    <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        <CodeEditor
                             value={code}
-                            onChange={e => setCode(e.target.value)}
-                            spellCheck={false}
-                            style={{
-                                width: '100%', height: '100%', padding: '14px 16px',
-                                background: '#1e1e1e', color: '#e2e8f0',
-                                fontFamily: "'JetBrains Mono','Consolas',monospace",
-                                fontSize: 14, lineHeight: 1.7,
-                                border: 'none', outline: 'none', resize: 'none',
-                                boxSizing: 'border-box',
-                            }}
+                            onChange={setCode}
+                            language="c_cpp"
+                            placeholder="// เขียนโค้ด C ที่นี่..."
+                            minHeight="100%"
+                            fontSize={editorFontSize}
+                            theme={editorTheme}
                         />
                     </div>
 
@@ -201,11 +239,17 @@ const _GuestWorkspace = ({ problem, onBack }) => {
                                         display: 'flex', alignItems: 'center', gap: 6,
                                     }}>
                                         {verdictStyle[verdict].icon} {verdictStyle[verdict].label}
+                                        {verdict === 'fail' && (
+                                            <span style={{ fontWeight: 400, fontSize: 11, marginLeft: 4 }}>
+                                                (คาดหวัง: <code style={{ background: 'rgba(0,0,0,.08)', padding: '1px 4px', borderRadius: 3 }}>{problem.expectedOutput}</code>)
+                                            </span>
+                                        )}
                                     </div>
                                 )}
                                 <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Output:</div>
                                 <pre style={{
-                                    margin: 0, color: output.includes('error') || verdict === 'error' ? '#f87171' : '#4ade80',
+                                    margin: 0,
+                                    color: verdict === 'error' ? '#f87171' : verdict === 'pass' ? '#4ade80' : '#e2e8f0',
                                     fontFamily: "'Consolas',monospace", fontSize: 13,
                                     lineHeight: 1.6, maxHeight: 120, overflowY: 'auto',
                                     background: '#0a0a0a', padding: '8px 10px', borderRadius: 8,
@@ -265,7 +309,7 @@ const GuestLandingPage = () => {
                         ไม่ต้องสมัครสมาชิก ไม่ต้อง login
                     </p>
                     <div style={{ display: 'inline-flex', gap: 20, background: 'white', borderRadius: 20, padding: '12px 24px', boxShadow: '0 2px 16px rgba(236,72,153,.1)' }}>
-                        {['⚡ Compile & Run จริง', '🆓 ฟรี 100%', '📱 ใช้ได้ทุกอุปกรณ์'].map(f => (
+                        {['⚡ Compile & Run จริง', '🆓 ฟรี 100%', '📱 ใช้ได้ทุกอุปกรณ์', '🎨 CodeMirror Editor'].map(f => (
                             <span key={f} style={{ fontSize: 12, color: '#be185d', fontWeight: 600 }}>{f}</span>
                         ))}
                     </div>

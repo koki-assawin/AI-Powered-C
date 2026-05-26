@@ -178,6 +178,7 @@ const CodingWorkspace = () => {
         if (!currentAssignment) return;
         const nextLevel = Math.min(hintLevel + 1, 4);
         setHintLevel(nextLevel);
+        if (typeof logUsageEvent === 'function') logUsageEvent(userDoc?.id, 'ai_hint', { courseId, assignmentId: currentAssignment.id, hintLevel: nextLevel, userType: userDoc?.role || 'student' });
         setHintLoading(true);
         setScaffoldHint('');
         try {
@@ -245,6 +246,7 @@ const CodingWorkspace = () => {
     const handleRunSample = async () => {
         if (!currentAssignment) return;
         setSampleRunning(true);
+        if (typeof logUsageEvent === 'function') logUsageEvent(userDoc?.id, 'sample_test', { courseId, assignmentId: currentAssignment.id, language: selectedLanguage, userType: userDoc?.role || 'student' });
         setSampleResults(null);
         setView('grade');
         // Track run count for process analytics
@@ -277,6 +279,7 @@ const CodingWorkspace = () => {
                 ? await gradeForGuest(currentAssignment.id, code, selectedLanguage)
                 : await gradeSubmission(userDoc.id, currentAssignment.id, courseId, code, selectedLanguage);
             setGradeResult(result);
+            if (typeof logUsageEvent === 'function') logUsageEvent(userDoc?.id, 'submission', { courseId, assignmentId: currentAssignment.id, language: selectedLanguage, score: result?.score, userType: userDoc?.role || 'student' });
 
             // ── Save process analytics (non-blocking, skip for guests) ───────
             if (result.submissionId && !userDoc.isGuest) {
@@ -394,6 +397,7 @@ const CodingWorkspace = () => {
         setAiAnalyzing(true);
         setAiResult(null);
         setView('ai');
+        if (typeof logUsageEvent === 'function') logUsageEvent(userDoc?.id, 'ai_analyze', { courseId, assignmentId: currentAssignment?.id, language: selectedLanguage, userType: userDoc?.role || 'student' });
         try {
             const result = await analyzeCode(code, selectedLanguage);
             setAiResult(result);
@@ -418,6 +422,7 @@ const CodingWorkspace = () => {
         setChatHistory(h => [...h, { role: 'user', text: q }]);
         setChatInput('');
         setChatLoading(true);
+        if (typeof logUsageEvent === 'function') logUsageEvent(userDoc?.id, 'ai_chat', { courseId, assignmentId: currentAssignment?.id, language: selectedLanguage, userType: userDoc?.role || 'student' });
         try {
             const reply = await chatWithAI(q, selectedLanguage);
             setChatHistory(h => [...h, { role: 'bot', text: reply }]);
@@ -540,6 +545,7 @@ const CodingWorkspace = () => {
 
     const handleFreeRun = () => {
         if (freeRunning || frCollecting) return;
+        if (typeof logUsageEvent === 'function') logUsageEvent(userDoc?.id, 'code_run', { courseId, assignmentId: currentAssignment?.id, language: selectedLanguage, userType: userDoc?.role || 'student' });
         frResetTerminal();
         setView('run');
         if (frCodeNeedsInput) {
