@@ -20,6 +20,7 @@ const renderRoute = (route, role) => {
     if (route === '#/login' || route === '') return React.createElement(LoginPage);
     if (route === '#/register') return React.createElement(RegisterPage);
     if (route === '#/privacy') return React.createElement(PrivacyPolicy);
+    if (route === '#/demo') return React.createElement(GuestLandingPage);
 
     // Student routes
     if (route.startsWith('#/student')) {
@@ -114,7 +115,7 @@ const renderRoute = (route, role) => {
 // ── Root App ──
 const App = () => {
     const route = useHashRoute();
-    const { authLoading, user, role } = useAuth();
+    const { authLoading, user, userDoc, role } = useAuth();
 
     // Hide the initial loader once React has mounted
     React.useEffect(() => {
@@ -129,9 +130,9 @@ const App = () => {
         loadGeminiKey();
     }, []);
 
-    // Redirect authenticated users away from login/register
+    // Redirect authenticated users away from login/register (skip for guests)
     React.useEffect(() => {
-        if (!authLoading && user && role) {
+        if (!authLoading && user && role && !userDoc?.isGuest) {
             if (route === '#/login' || route === '#/register' || route === '') {
                 const defaultRoutes = {
                     student: '#/student/dashboard',
@@ -141,7 +142,7 @@ const App = () => {
                 window.location.hash = defaultRoutes[role] || '#/student/dashboard';
             }
         }
-    }, [authLoading, user, role, route]);
+    }, [authLoading, user, userDoc, role, route]);
 
     if (authLoading) {
         return (

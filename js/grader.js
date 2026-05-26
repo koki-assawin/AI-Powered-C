@@ -237,6 +237,35 @@ const gradeSubmission = async (studentId, assignmentId, courseId, code, language
     };
 };
 
+// Grade without writing to Firestore (for guest/demo users)
+const gradeForGuest = async (assignmentId, code, language) => {
+    const snap = await db.collection('testCases')
+        .where('assignmentId', '==', assignmentId)
+        .orderBy('order')
+        .get();
+    const testCases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (testCases.length === 0) throw new Error('ไม่พบ Test Cases สำหรับโจทย์นี้');
+
+    const testResults = [];
+    for (const tc of testCases) {
+        const result = await runSingleTest(code, language, tc);
+        testResults.push(result);
+    }
+
+    const passedTests = testResults.filter(r => r.passed).length;
+    const totalTests  = testCases.length;
+    const pointsEarned = testCases.reduce((s, tc, i) => s + (testResults[i].passed ? (tc.points || 1) : 0), 0);
+    const totalPoints  = testCases.reduce((s, tc) => s + (tc.points || 1), 0);
+    const score = totalPoints > 0 ? Math.round((pointsEarned / totalPoints) * 100) : 0;
+
+    let status = 'accepted';
+    if (testResults.some(r => r.isCompileError))           status = 'compile_error';
+    else if (testResults.some(r => r.errorLog && !r.passed)) status = 'runtime_error';
+    else if (passedTests < totalTests)                      status = 'wrong_answer';
+
+    return { submissionId: null, passedTests, totalTests, status, score, testResults };
+};
+
 // Update or create the grade document keeping the best score
 const updateBestGrade = async (studentId, courseId, assignmentId, score, maxScore, submissionId) => {
     const gradeQuery = await db.collection('grades')

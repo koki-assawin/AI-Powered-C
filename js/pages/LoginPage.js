@@ -188,6 +188,21 @@ const LoginPage = () => {
                             สมัครสมาชิก →
                         </a>
                     </p>
+
+                    <div style={{ borderTop:'1px solid #fce7f3', margin:'20px 0 0' }} />
+                    <a href="#/demo" style={{
+                        display:'block', textAlign:'center', marginTop:'16px',
+                        padding:'11px', borderRadius:'12px',
+                        border:'1.5px dashed #f9a8d4',
+                        color:'#be185d', fontSize:'13px', fontWeight:600,
+                        textDecoration:'none', background:'#fdf2f8',
+                        transition:'background .2s',
+                    }}
+                        onMouseEnter={e => e.currentTarget.style.background='#fce7f3'}
+                        onMouseLeave={e => e.currentTarget.style.background='#fdf2f8'}
+                    >
+                        🎭 ทดลองใช้งานฟรี (ไม่ต้องสมัคร)
+                    </a>
                 </div>
 
                 <p style={s.footer}>

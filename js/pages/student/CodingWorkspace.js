@@ -273,13 +273,13 @@ const CodingWorkspace = () => {
         setGradeResult(null);
         setView('grade');
         try {
-            const result = await gradeSubmission(
-                userDoc.id, currentAssignment.id, courseId, code, selectedLanguage
-            );
+            const result = userDoc.isGuest
+                ? await gradeForGuest(currentAssignment.id, code, selectedLanguage)
+                : await gradeSubmission(userDoc.id, currentAssignment.id, courseId, code, selectedLanguage);
             setGradeResult(result);
 
-            // ── Save process analytics (non-blocking) ────────────────────────
-            if (result.submissionId) {
+            // ── Save process analytics (non-blocking, skip for guests) ───────
+            if (result.submissionId && !userDoc.isGuest) {
                 db.collection('submissions').doc(result.submissionId).update({
                     runCount: runCountRef.current,
                     timeSpentSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
@@ -290,7 +290,8 @@ const CodingWorkspace = () => {
                 sessionStartRef.current = Date.now();
             }
 
-            // ── Non-blocking gamification hook ───────────────────────────────
+            // ── Non-blocking gamification hook (skip for guests) ─────────────
+            if (userDoc.isGuest) return;
             (async () => {
                 try {
                     if (typeof awardXP !== 'function') return;
@@ -738,6 +739,16 @@ const CodingWorkspace = () => {
             <div className="flex flex-1 overflow-hidden">
                 {/* Left Sidebar - Collapsible assignment tree */}
                 <aside className="w-72 bg-white border-r overflow-y-auto hidden lg:flex flex-col" style={{ borderColor: '#E0E0E0' }}>
+                    {/* Guest demo banner */}
+                    {userDoc?.isGuest && (
+                        <div style={{ background: 'linear-gradient(135deg, #d97706, #b45309)', color: '#fff', padding: '10px 12px' }}>
+                            <div style={{ fontSize: 12, fontWeight: 700 }}>🎭 โหมดทดลองใช้งาน</div>
+                            <div style={{ fontSize: 10, color: '#fef3c7', marginTop: 2 }}>ผลลัพธ์ไม่ถูกบันทึก · XP ไม่นับ</div>
+                            <a href="#/login" style={{ display: 'inline-block', marginTop: 6, fontSize: 10, color: '#fef3c7', textDecoration: 'underline' }}>
+                                สมัครสมาชิกเพื่อบันทึกผล →
+                            </a>
+                        </div>
+                    )}
                     {/* Course + Assignment info banner */}
                     {course && (
                         <div style={{

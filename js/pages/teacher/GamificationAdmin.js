@@ -15,6 +15,96 @@ const _downloadJSON = (data, filename) => {
     URL.revokeObjectURL(url);
 };
 
+const _DemoSetupTab = ({ demoConfig, courses, demoSelectedCourse, demoAssignments, demoSaving, onCourseChange, onSave }) => {
+    const [selected, setSelected] = React.useState([]);
+
+    const toggle = (a) => {
+        setSelected(prev => prev.find(x => x.id === a.id) ? prev.filter(x => x.id !== a.id) : [...prev, a]);
+    };
+
+    return (
+        <div style={{ display: 'grid', gap: 16 }}>
+            {/* Current config */}
+            <div style={{ background: 'white', borderRadius: 16, border: '1px solid #fce7f3', padding: 20 }}>
+                <h3 style={{ margin: '0 0 12px', color: '#be185d', fontSize: 14 }}>🌐 ตั้งค่า Demo Course ปัจจุบัน</h3>
+                {demoConfig ? (
+                    <div>
+                        <p style={{ fontSize: 13, color: '#374151', margin: '0 0 8px' }}>
+                            <strong>Course ID:</strong> <code style={{ background: '#f3f4f6', padding: '1px 6px', borderRadius: 4 }}>{demoConfig.courseId}</code>
+                        </p>
+                        <p style={{ fontSize: 13, color: '#374151', margin: '0 0 8px' }}>
+                            <strong>โจทย์:</strong> {(demoConfig.assignments || []).length} ข้อ
+                        </p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 8 }}>
+                            {(demoConfig.assignments || []).map((a, i) => (
+                                <div key={a.id} style={{ background: '#f9fafb', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
+                                    <div style={{ fontWeight: 700, color: '#1f2937' }}>{a.title}</div>
+                                    <div style={{ color: '#9ca3af' }}>{a.unitName}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 12, marginBottom: 0 }}>
+                            🔗 Link สำหรับแชร์: <strong>{window.location.origin + window.location.pathname}#/demo</strong>
+                        </p>
+                    </div>
+                ) : (
+                    <p style={{ fontSize: 13, color: '#9ca3af', margin: 0 }}>ยังไม่ได้ตั้งค่า — กรุณาเลือกด้านล่าง</p>
+                )}
+            </div>
+
+            {/* Setup form */}
+            <div style={{ background: 'white', borderRadius: 16, border: '1px solid #fce7f3', padding: 20 }}>
+                <h3 style={{ margin: '0 0 14px', color: '#be185d', fontSize: 14 }}>⚙️ เลือกโจทย์ Demo ใหม่</h3>
+                <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 6 }}>รายวิชาที่ต้องการใช้เป็น Demo</label>
+                    <select value={demoSelectedCourse} onChange={e => { onCourseChange(e.target.value); setSelected([]); }}
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1.5px solid #fce7f3', fontFamily: "'Prompt',sans-serif", fontSize: 13 }}>
+                        <option value="">— เลือกรายวิชา —</option>
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.title} {c.grade ? `(${c.grade})` : ''}</option>)}
+                    </select>
+                </div>
+
+                {demoAssignments.length > 0 && (
+                    <>
+                        <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>เลือกโจทย์ที่ต้องการให้แสดงในหน้า Demo (แนะนำ 4 ข้อ หน่วยละ 1)</p>
+                        <div style={{ display: 'grid', gap: 6, marginBottom: 16 }}>
+                            {demoAssignments.map(a => {
+                                const isSelected = selected.find(x => x.id === a.id);
+                                return (
+                                    <label key={a.id} style={{
+                                        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                                        borderRadius: 10, cursor: 'pointer',
+                                        background: isSelected ? '#fdf2f8' : '#f9fafb',
+                                        border: `1.5px solid ${isSelected ? '#f9a8d4' : '#e5e7eb'}`,
+                                    }}>
+                                        <input type="checkbox" checked={!!isSelected} onChange={() => toggle(a)}
+                                            style={{ width: 16, height: 16, accentColor: '#ec4899' }} />
+                                        <span style={{ fontSize: 13, color: '#374151', fontWeight: isSelected ? 600 : 400 }}>
+                                            {a.title}
+                                        </span>
+                                        {a.unitName && <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 'auto' }}>{a.unitName}</span>}
+                                    </label>
+                                );
+                            })}
+                        </div>
+                        <button
+                            onClick={() => onSave(selected)}
+                            disabled={demoSaving || selected.length === 0}
+                            style={{
+                                width: '100%', padding: '11px', borderRadius: 12, border: 'none',
+                                background: demoSaving || selected.length === 0 ? '#9ca3af' : 'linear-gradient(135deg,#ec4899,#be185d)',
+                                color: 'white', fontFamily: "'Prompt',sans-serif", fontWeight: 700,
+                                fontSize: 14, cursor: demoSaving || selected.length === 0 ? 'not-allowed' : 'pointer',
+                            }}>
+                            {demoSaving ? '⏳ กำลังบันทึก...' : `🌐 บันทึก Demo Course (${selected.length} โจทย์)`}
+                        </button>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const GamificationAdmin = () => {
     const { userDoc } = useAuth();
     const [tab, setTab] = React.useState('season');
@@ -30,6 +120,10 @@ const GamificationAdmin = () => {
     const [toast, setToast] = React.useState('');
     const [courses, setCourses] = React.useState([]);
     const [selectedCourseId, setSelectedCourseId] = React.useState('');
+    const [demoConfig, setDemoConfig] = React.useState(null);
+    const [demoAssignments, setDemoAssignments] = React.useState([]);
+    const [demoSelectedCourse, setDemoSelectedCourse] = React.useState('');
+    const [demoSaving, setDemoSaving] = React.useState(false);
 
     const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -40,6 +134,9 @@ const GamificationAdmin = () => {
             .catch(() => {});
         db.collection('courses').get()
             .then(snap => setCourses(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+            .catch(() => {});
+        db.collection('appConfig').doc('demo').get()
+            .then(snap => { if (snap.exists) setDemoConfig(snap.data()); })
             .catch(() => {});
     }, []);
 
@@ -141,11 +238,45 @@ const GamificationAdmin = () => {
         } catch (e) { console.warn(e); }
     };
 
+    const loadDemoAssignments = (courseId) => {
+        setDemoSelectedCourse(courseId);
+        if (!courseId) { setDemoAssignments([]); return; }
+        db.collection('assignments').where('courseId', '==', courseId).orderBy('order').get()
+            .then(snap => setDemoAssignments(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+            .catch(() => {});
+    };
+
+    const saveDemoConfig = async (selectedAssignments) => {
+        if (!demoSelectedCourse || selectedAssignments.length === 0) return;
+        setDemoSaving(true);
+        try {
+            const payload = {
+                courseId: demoSelectedCourse,
+                assignments: selectedAssignments.map(a => ({
+                    id: a.id,
+                    title: a.title,
+                    unitName: a.unitName || `หน่วยที่ ${a.unit || ''}`,
+                    description: a.description || '',
+                    icon: a.icon || '💻',
+                })),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            };
+            await db.collection('appConfig').doc('demo').set(payload);
+            setDemoConfig(payload);
+            showToast('✅ บันทึก Demo Course สำเร็จ!');
+        } catch (e) {
+            showToast('❌ บันทึกไม่สำเร็จ: ' + e.message);
+        } finally {
+            setDemoSaving(false);
+        }
+    };
+
     const TABS = [
         { key: 'season', label: '🌟 Season' },
         { key: 'export', label: '📦 Export ข้อมูล' },
         { key: 'manual', label: '🎁 Award XP' },
         { key: 'stats',  label: '🎮 Game Stats' },
+        { key: 'demo',   label: '🌐 Demo Course' },
     ];
 
     const inputStyle = {
@@ -361,6 +492,19 @@ const GamificationAdmin = () => {
                 )}
 
                 {/* ── Game Stats Tab ── */}
+                {/* ── Demo Course Tab ── */}
+                {tab === 'demo' && (
+                    <_DemoSetupTab
+                        demoConfig={demoConfig}
+                        courses={courses}
+                        demoSelectedCourse={demoSelectedCourse}
+                        demoAssignments={demoAssignments}
+                        demoSaving={demoSaving}
+                        onCourseChange={loadDemoAssignments}
+                        onSave={saveDemoConfig}
+                    />
+                )}
+
                 {tab === 'stats' && (
                     <div style={{ display: 'grid', gap: 16 }}>
                         {!gameStats ? (

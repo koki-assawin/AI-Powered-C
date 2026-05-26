@@ -96,14 +96,14 @@ const Navbar = ({ title, subtitle }) => {
     const [playerStats, setPlayerStats] = React.useState(null);
 
     React.useEffect(() => {
-        if (role !== 'student' || !user?.uid) return;
+        if (role !== 'student' || !user?.uid || userDoc?.isGuest) return;
         let unsub = null;
         try {
             unsub = db.collection('playerStats').doc(user.uid)
                 .onSnapshot(snap => { if (snap.exists) setPlayerStats(snap.data()); }, () => {});
         } catch (_) {}
         return () => unsub && unsub();
-    }, [role, user?.uid]);
+    }, [role, user?.uid, userDoc?.isGuest]);
 
     // ── Student: grouped nav (desktop dropdown) ──
     const studentGroups = [
@@ -274,7 +274,12 @@ const Navbar = ({ title, subtitle }) => {
                             );
                         })()}
 
-                        {userDoc && (
+                        {userDoc?.isGuest ? (
+                            <span className="hidden sm:inline"
+                                style={{ fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#fef3c7', color: '#92400e' }}>
+                                👤 ผู้เยี่ยมชม
+                            </span>
+                        ) : userDoc && (
                             <span className={`hidden sm:inline ${roleMeta[role]?.cls || ''}`}
                                 style={{ fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '20px' }}>
                                 {roleMeta[role]?.label}
@@ -317,35 +322,62 @@ const Navbar = ({ title, subtitle }) => {
                                     <div style={{ padding: '10px 16px', borderBottom: '1px solid #fce7f3' }}>
                                         <div style={{ fontWeight: 600, fontSize: '14px', color: '#4b5563',
                                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {userDoc?.displayName}
+                                            {userDoc?.isGuest ? '👤 ผู้เยี่ยมชม (Demo)' : userDoc?.displayName}
                                         </div>
                                         <div style={{ fontSize: '11px', color: '#9ca3af',
                                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {user?.email}
+                                            {userDoc?.isGuest ? 'ไม่ได้เข้าสู่ระบบ' : user?.email}
                                         </div>
                                     </div>
-                                    {role === 'student' && (
-                                        <a href="#/student/profile" onClick={closeAll}
-                                            style={{ display: 'flex', alignItems: 'center', gap: 8,
-                                                     padding: '10px 16px', textDecoration: 'none',
-                                                     fontSize: '13px', color: '#4b5563' }}
-                                            onMouseEnter={e => e.currentTarget.style.background = '#fdf2f8'}
-                                            onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                                        >
-                                            👤 โปรไฟล์ของฉัน
-                                        </a>
+                                    {userDoc?.isGuest ? (
+                                        <>
+                                            <a href="#/login" onClick={closeAll}
+                                                style={{ display: 'flex', alignItems: 'center', gap: 8,
+                                                         padding: '10px 16px', textDecoration: 'none',
+                                                         fontSize: '13px', color: '#ec4899', fontWeight: 600 }}
+                                                onMouseEnter={e => e.currentTarget.style.background = '#fdf2f8'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                            >
+                                                🔐 เข้าสู่ระบบ / สมัครสมาชิก
+                                            </a>
+                                            <button
+                                                onClick={() => { closeAll(); logout(); }}
+                                                style={{ width: '100%', textAlign: 'left', padding: '10px 16px',
+                                                         background: 'none', border: 'none', cursor: 'pointer',
+                                                         fontSize: '13px', color: '#9ca3af', fontFamily: "'Prompt',sans-serif",
+                                                         display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                            >
+                                                🚪 ออกจากโหมดทดลอง
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {role === 'student' && (
+                                                <a href="#/student/profile" onClick={closeAll}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 8,
+                                                             padding: '10px 16px', textDecoration: 'none',
+                                                             fontSize: '13px', color: '#4b5563' }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = '#fdf2f8'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                                >
+                                                    👤 โปรไฟล์ของฉัน
+                                                </a>
+                                            )}
+                                            <button
+                                                onClick={() => { closeAll(); logout(); }}
+                                                style={{ width: '100%', textAlign: 'left', padding: '10px 16px',
+                                                         background: 'none', border: 'none', cursor: 'pointer',
+                                                         fontSize: '13px', color: '#ef4444', fontFamily: "'Prompt',sans-serif",
+                                                         display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                            >
+                                                🚪 ออกจากระบบ
+                                            </button>
+                                        </>
                                     )}
-                                    <button
-                                        onClick={() => { closeAll(); logout(); }}
-                                        style={{ width: '100%', textAlign: 'left', padding: '10px 16px',
-                                                 background: 'none', border: 'none', cursor: 'pointer',
-                                                 fontSize: '13px', color: '#ef4444', fontFamily: "'Prompt',sans-serif",
-                                                 display: 'flex', alignItems: 'center', gap: '8px' }}
-                                        onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
-                                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                                    >
-                                        🚪 ออกจากระบบ
-                                    </button>
                                 </div>
                             )}
                         </div>

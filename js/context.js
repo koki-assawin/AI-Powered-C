@@ -13,6 +13,13 @@ const AuthProvider = ({ children }) => {
     React.useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
             if (firebaseUser) {
+                // Anonymous guest — synthetic userDoc, no Firestore write
+                if (firebaseUser.isAnonymous) {
+                    setUser(firebaseUser);
+                    setUserDoc({ id: firebaseUser.uid, displayName: 'ผู้เยี่ยมชม', role: 'student', isGuest: true, enrolledCourses: [] });
+                    setAuthLoading(false);
+                    return;
+                }
                 setUser(firebaseUser);
                 try {
                     let snap = await db.collection('users').doc(firebaseUser.uid).get();
