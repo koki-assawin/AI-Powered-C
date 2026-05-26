@@ -1,6 +1,126 @@
-// js/pages/student/StudentProfile.js - Edit profile & change password (v4.6)
+// js/pages/student/StudentProfile.js - Edit profile & change password (v4.7)
 
 const GRADE_OPTIONS_P = ['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'];
+
+// ── Self Radar Chart section ──────────────────────────────────────────────────
+const _SelfRadarSection = ({ uid }) => {
+    const [subs,            setSubs]           = React.useState([]);
+    const [totalAssign,     setTotalAssign]    = React.useState(0);
+    const [loading,         setLoading]        = React.useState(true);
+    const [mode,            setMode]           = React.useState('best'); // 'best' | 'latest'
+    const canvasRef = React.useRef(null);
+    const chartRef  = React.useRef(null);
+
+    React.useEffect(() => {
+        if (!uid) return;
+        let alive = true;
+        Promise.all([
+            db.collection('submissions').where('studentId', '==', uid).get(),
+            db.collection('assignments').get(),
+        ]).then(([subSnap, assignSnap]) => {
+            if (!alive) return;
+            setSubs(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setTotalAssign(assignSnap.size);
+            setLoading(false);
+        }).catch(() => { if (alive) setLoading(false); });
+        return () => { alive = false; };
+    }, [uid]);
+
+    const metrics = React.useMemo(() => {
+        if (!subs.length) return [0, 0, 0, 0, 50];
+        const byId = {};
+        subs.forEach(s => {
+            const id = s.assignmentId;
+            if (!byId[id]) byId[id] = [];
+            byId[id].push(s);
+        });
+        const ids = Object.keys(byId);
+
+        const scores = ids.map(id => {
+            const arr = [...byId[id]].sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0));
+            return mode === 'best' ? Math.max(...arr.map(s => s.score || 0)) : (arr[arr.length - 1]?.score || 0);
+        });
+
+        const avgScore  = scores.reduce((a, b) => a + b, 0) / scores.length;
+        const passRate  = (scores.filter(s => s >= 60).length / scores.length) * 100;
+        const coverage  = Math.min(100, totalAssign > 0 ? (ids.length / totalAssign) * 100 : 0);
+        const avgAttempts = ids.reduce((sum, id) => sum + byId[id].length, 0) / ids.length;
+        const effort    = Math.min(100, (avgAttempts / 5) * 100);
+        const progress  = 50 + ids.reduce((sum, id) => {
+            const arr = [...byId[id]].sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0));
+            return sum + ((arr[arr.length - 1]?.score || 0) - (arr[0]?.score || 0));
+        }, 0) / ids.length;
+
+        return [avgScore, passRate, coverage, effort, Math.min(100, Math.max(0, progress))];
+    }, [subs, totalAssign, mode]);
+
+    React.useEffect(() => {
+        if (!canvasRef.current || loading) return;
+        if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; }
+        chartRef.current = new Chart(canvasRef.current.getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: ['คะแนนเฉลี่ย', 'อัตราผ่าน', 'ครอบคลุม', 'ความพยายาม', 'พัฒนาการ'],
+                datasets: [{
+                    label: 'ของคุณ',
+                    data: metrics,
+                    backgroundColor: 'rgba(236,72,153,0.15)',
+                    borderColor: '#ec4899',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#ec4899',
+                    pointRadius: 4,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 10 } }, pointLabels: { font: { size: 12, family: 'Prompt,sans-serif' } } } },
+                plugins: { legend: { display: false } },
+            },
+        });
+        return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
+    }, [metrics, loading]);
+
+    if (loading) return (
+        <div className="bg-white rounded-2xl border p-6 mb-6 shadow-sm text-center text-gray-400 text-sm" style={{ borderColor: '#FFD1DC' }}>
+            กำลังโหลดข้อมูล...
+        </div>
+    );
+    if (!subs.length) return (
+        <div className="bg-white rounded-2xl border p-6 mb-6 shadow-sm text-center text-gray-400 text-sm" style={{ borderColor: '#FFD1DC' }}>
+            📊 ยังไม่มีข้อมูลส่งงาน — ส่งงานเพื่อดู Radar Chart ของคุณ
+        </div>
+    );
+
+    const labels = ['คะแนนเฉลี่ย', 'อัตราผ่าน', 'ครอบคลุม', 'ความพยายาม', 'พัฒนาการ'];
+    return (
+        <div className="bg-white rounded-2xl border p-6 mb-6 shadow-sm" style={{ borderColor: '#FFD1DC' }}>
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-700">📊 โปรไฟล์ความสามารถ 5 มิติ</h3>
+                <div className="flex gap-2">
+                    {['best','latest'].map(m => (
+                        <button key={m} onClick={() => setMode(m)}
+                            className="text-xs px-3 py-1 rounded-full border font-medium transition-all"
+                            style={{ background: mode === m ? '#ec4899' : 'white', color: mode === m ? 'white' : '#6b7280', borderColor: mode === m ? '#ec4899' : '#e5e7eb' }}>
+                            {m === 'best' ? '🏆 คะแนนสูงสุด' : '🕐 ล่าสุด'}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <div style={{ maxWidth: 320, margin: '0 auto' }}>
+                <canvas ref={canvasRef} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginTop: 12 }}>
+                {labels.map((l, i) => (
+                    <div key={l} className="text-center p-2 rounded-xl" style={{ background: '#fff5f7' }}>
+                        <p className="text-xs text-gray-500 mb-0.5">{l}</p>
+                        <p className="font-bold text-sm" style={{ color: '#ec4899' }}>{Math.round(metrics[i])}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const StudentProfile = () => {
     const { user, userDoc } = useAuth();
@@ -194,6 +314,9 @@ const StudentProfile = () => {
                         )}
                     </div>
                 )}
+
+                {/* ── Radar Chart ── */}
+                <_SelfRadarSection uid={user?.uid} />
 
                 {/* ── Password change card ── */}
                 <div className="bg-white rounded-2xl border p-6 shadow-sm" style={{ borderColor: '#FFD1DC' }}>

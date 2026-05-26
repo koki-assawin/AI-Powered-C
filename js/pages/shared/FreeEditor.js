@@ -1,4 +1,4 @@
-// js/pages/shared/FreeEditor.js — v7.0
+// js/pages/shared/FreeEditor.js — v7.4
 // Added: Editor Theme Picker · Drawing/Annotation Canvas Overlay
 
 const CODING_FONTS = [
@@ -766,6 +766,19 @@ const FreeEditor = () => {
                 <button onClick={() => setLigatures(l => !l)} title={ligatures ? 'ปิด Ligature' : 'เปิด Ligature'}
                     style={btn({ background: ligatures ? '#7c3aed33' : bg, color: ligatures ? '#a78bfa' : '#64748b', border: `1px solid ${ligatures ? '#7c3aed88' : border}`, padding: '5px 10px', fontSize: 12 })}>
                     {ligatures ? 'fi≠' : 'fi!='}
+                </button>
+
+                {/* Reset code */}
+                <button onClick={() => {
+                    if (window.confirm('รีเซ็ตโค้ดกลับเป็นค่าเริ่มต้น?')) {
+                        setCode(STARTERS[language]);
+                        resetTerminal();
+                        setAiText(''); setShowAI(false);
+                    }
+                }}
+                    style={btn({ background: bg, color: '#ef4444', border: '1px solid #f8717166', padding: '5px 10px', fontSize: 12 })}
+                    title="รีเซ็ตโค้ดกลับเป็นค่าเริ่มต้น">
+                    🔄 รีเซ็ต
                 </button>
 
                 {language !== 'python' && (
