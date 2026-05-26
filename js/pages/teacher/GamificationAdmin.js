@@ -18,6 +18,13 @@ const _downloadJSON = (data, filename) => {
 const _DemoSetupTab = ({ demoConfig, courses, demoSelectedCourse, demoAssignments, demoSaving, onCourseChange, onSave }) => {
     const [selected, setSelected] = React.useState([]);
 
+    // Auto-load: ถ้า demoConfig มี courseId อยู่แล้ว หรือมีรายวิชาแค่ 1 รายการ
+    React.useEffect(() => {
+        if (demoSelectedCourse) return; // already selected
+        const autoId = demoConfig?.courseId || (courses.length === 1 ? courses[0].id : null);
+        if (autoId) onCourseChange(autoId);
+    }, [courses, demoConfig]);
+
     const toggle = (a) => {
         setSelected(prev => prev.find(x => x.id === a.id) ? prev.filter(x => x.id !== a.id) : [...prev, a]);
     };
@@ -241,9 +248,13 @@ const GamificationAdmin = () => {
     const loadDemoAssignments = (courseId) => {
         setDemoSelectedCourse(courseId);
         if (!courseId) { setDemoAssignments([]); return; }
-        db.collection('assignments').where('courseId', '==', courseId).orderBy('order').get()
-            .then(snap => setDemoAssignments(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-            .catch(() => {});
+        db.collection('assignments').where('courseId', '==', courseId).get()
+            .then(snap => {
+                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                list.sort((a, b) => (a.order || 0) - (b.order || 0));
+                setDemoAssignments(list);
+            })
+            .catch(e => console.warn('[demo] load assignments:', e));
     };
 
     const saveDemoConfig = async (selectedAssignments) => {
