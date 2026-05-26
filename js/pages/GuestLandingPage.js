@@ -265,11 +265,189 @@ const _GuestWorkspace = ({ problem, onBack }) => {
     );
 };
 
+// ── Free Editor (ไม่มีโจทย์ เขียน C อิสระ) ────────────────────────────────────
+const _GuestFreeEditor = ({ onBack }) => {
+    const STARTER = '#include <stdio.h>\n\nint main() {\n    // เขียนโค้ด C ที่นี่\n    \n    return 0;\n}';
+    const [code, setCode]               = React.useState(STARTER);
+    const [input, setInput]             = React.useState('');
+    const [output, setOutput]           = React.useState('');
+    const [running, setRunning]         = React.useState(false);
+    const [hasError, setHasError]       = React.useState(false);
+    const [runCount, setRunCount]       = React.useState(0);
+    const [editorFontSize, setEditorFontSize] = React.useState(14);
+    const [editorTheme, setEditorTheme]       = React.useState('dracula');
+
+    const runCode = async () => {
+        if (running) return;
+        setRunning(true); setOutput(''); setHasError(false);
+        if (typeof logUsageEvent === 'function') {
+            logUsageEvent('demo', 'demo_run', { problemId: 'free_editor', userType: 'demo' });
+        }
+        try {
+            const res = await runWithPiston(code, 'c', input);
+            const out = (res.output || '').trim();
+            const err = res.errorLog || '';
+            if (err && !out) { setOutput(err); setHasError(true); }
+            else { setOutput(out || '(ไม่มีผลลัพธ์)'); }
+        } catch (e) {
+            setOutput('เชื่อมต่อ compiler ไม่สำเร็จ: ' + e.message);
+            setHasError(true);
+        } finally {
+            setRunning(false);
+            setRunCount(c => c + 1);
+        }
+    };
+
+    const resetCode = () => { setCode(STARTER); setOutput(''); setInput(''); setRunCount(0); };
+
+    const _TIPS = [
+        { icon: '📤', text: 'printf("text\\n"); — แสดงข้อความ' },
+        { icon: '📥', text: 'scanf("%d", &x); — รับค่า int' },
+        { icon: '🔄', text: 'for(i=0;i<n;i++) — วนซ้ำ' },
+        { icon: '🌿', text: 'if(a>b) — ตัดสินใจ' },
+        { icon: '🧩', text: 'int fn(int x){...} — ฟังก์ชัน' },
+    ];
+
+    return (
+        <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: "'Prompt',sans-serif", display: 'flex', flexDirection: 'column' }}>
+            {/* Top bar */}
+            <div style={{ background: 'white', borderBottom: '1.5px solid #fce7f3', padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <button onClick={onBack}
+                        style={{ background: '#fdf2f8', border: '1px solid #fce7f3', borderRadius: 8, padding: '5px 12px', fontSize: 13, color: '#be185d', cursor: 'pointer', fontFamily: "'Prompt',sans-serif" }}>
+                        ← กลับ
+                    </button>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#1f2937' }}>✏️ Free C Editor</span>
+                    <span style={{ fontSize: 11, background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>🎭 Demo</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    {runCount > 0 && (
+                        <span style={{ fontSize: 11, background: '#f0fdf4', color: '#166534', padding: '3px 10px', borderRadius: 10, fontWeight: 700, border: '1px solid #bbf7d0' }}>
+                            ▶ รัน {runCount} ครั้ง
+                        </span>
+                    )}
+                    <a href="#/register" style={{ fontSize: 12, fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#ec4899,#be185d)', padding: '6px 14px', borderRadius: 16 }}>
+                        ✨ สมัครสมาชิก
+                    </a>
+                </div>
+            </div>
+
+            {/* Content */}
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+                {/* Left panel */}
+                <div style={{ width: 240, background: 'white', borderRight: '1px solid #f1f5f9', padding: '18px 16px', overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {/* Info */}
+                    <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '12px 14px' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#1e40af', marginBottom: 6 }}>✏️ เขียนโค้ด C อิสระ</div>
+                        <p style={{ fontSize: 12, color: '#374151', margin: 0, lineHeight: 1.7 }}>
+                            ไม่มีโจทย์ ไม่มีเกณฑ์ตัดสิน<br/>เขียนเองได้ตามต้องการ<br/>รัน Compile & Run ได้ทันที
+                        </p>
+                    </div>
+
+                    {/* Tips */}
+                    <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>💡 C Quick Tips</div>
+                        {_TIPS.map(t => (
+                            <div key={t.text} style={{ fontSize: 11, color: '#374151', marginBottom: 6, display: 'flex', alignItems: 'flex-start', gap: 6, lineHeight: 1.5 }}>
+                                <span style={{ flexShrink: 0 }}>{t.icon}</span>
+                                <code style={{ background: '#f1f5f9', padding: '1px 4px', borderRadius: 4, fontSize: 10, color: '#475569' }}>{t.text}</code>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Reset button */}
+                    <button onClick={resetCode}
+                        style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e7eb', background: '#f9fafb', fontSize: 12, color: '#6b7280', cursor: 'pointer', fontFamily: "'Prompt',sans-serif", textAlign: 'center' }}>
+                        🔄 รีเซ็ตโค้ด
+                    </button>
+
+                    {/* CTA */}
+                    <div style={{ background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '1px dashed #f9a8d4', borderRadius: 12, padding: '14px', textAlign: 'center', marginTop: 'auto' }}>
+                        <div style={{ fontSize: 11, color: '#be185d', fontWeight: 700, marginBottom: 4 }}>บันทึกโค้ด + ส่งงาน</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8, lineHeight: 1.5 }}>สมัครสมาชิกเพื่อปลดล็อก XP · AI Coach · Grade</div>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#be185d', letterSpacing: '0.12em', fontFamily: "'JetBrains Mono',monospace", marginBottom: 8 }}>FQE28Y</div>
+                        <a href="#/register" style={{ display: 'block', padding: '7px', borderRadius: 8, background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 11 }}>
+                            ✨ สมัครฟรี
+                        </a>
+                    </div>
+                </div>
+
+                {/* Right: editor + output */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+                    {/* Editor toolbar */}
+                    <div style={{ background: '#1a1a2e', borderBottom: '1px solid #1e293b', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, color: '#64748b', marginRight: 4 }}>C Language</span>
+                        <div style={{ flex: 1 }} />
+                        <button onClick={() => setEditorFontSize(s => Math.max(10, s - 1))}
+                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 12, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A-</button>
+                        <span style={{ fontSize: 11, color: '#64748b', minWidth: 24, textAlign: 'center' }}>{editorFontSize}</span>
+                        <button onClick={() => setEditorFontSize(s => Math.min(28, s + 1))}
+                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 12, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A+</button>
+                        <select value={editorTheme} onChange={e => setEditorTheme(e.target.value)}
+                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 11, padding: '3px 6px', cursor: 'pointer' }}>
+                            {_EDITOR_THEMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                    </div>
+
+                    {/* CodeEditor */}
+                    <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        <CodeEditor
+                            value={code}
+                            onChange={setCode}
+                            language="c_cpp"
+                            placeholder="// เขียนโค้ด C ที่นี่..."
+                            minHeight="100%"
+                            fontSize={editorFontSize}
+                            theme={editorTheme}
+                        />
+                    </div>
+
+                    {/* Input + Run + Output */}
+                    <div style={{ background: '#0f172a', borderTop: '1px solid #334155', padding: '12px 16px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: output || running ? 10 : 0 }}>
+                            <span style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0 }}>📥 Input:</span>
+                            <input
+                                value={input}
+                                onChange={e => setInput(e.target.value)}
+                                placeholder="ว่างไว้ถ้าไม่มี input"
+                                style={{ flex: 1, padding: '5px 10px', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0', fontFamily: "'Consolas',monospace", fontSize: 13, outline: 'none' }}
+                            />
+                            <button onClick={runCode} disabled={running}
+                                style={{ padding: '7px 20px', borderRadius: 10, border: 'none', background: running ? '#334155' : 'linear-gradient(135deg,#3b82f6,#1d4ed8)', color: 'white', fontFamily: "'Prompt',sans-serif", fontWeight: 700, fontSize: 13, cursor: running ? 'wait' : 'pointer', flexShrink: 0 }}>
+                                {running ? '⏳ กำลังรัน...' : '▶ Run'}
+                            </button>
+                        </div>
+
+                        {(output || running) && (
+                            <div>
+                                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Output:</div>
+                                <pre style={{
+                                    margin: 0,
+                                    color: hasError ? '#f87171' : '#4ade80',
+                                    fontFamily: "'Consolas',monospace", fontSize: 13,
+                                    lineHeight: 1.6, maxHeight: 160, overflowY: 'auto',
+                                    background: '#0a0a0a', padding: '8px 10px', borderRadius: 8,
+                                    whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                                }}>
+                                    {running ? '...' : output}
+                                </pre>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ── Main Landing Page ────────────────────────────────────────────────────────
 const GuestLandingPage = () => {
-    const [active, setActive] = React.useState(null);
+    const [active, setActive] = React.useState(null); // null | problem_obj | 'editor'
 
-    if (active) {
+    if (active === 'editor') {
+        return <_GuestFreeEditor onBack={() => setActive(null)} />;
+    }
+    if (active && typeof active === 'object') {
         return <_GuestWorkspace problem={active} onBack={() => setActive(null)} />;
     }
 
@@ -349,6 +527,31 @@ const GuestLandingPage = () => {
                             </div>
                         );
                     })}
+                </div>
+
+                {/* Free Editor banner */}
+                <div
+                    onClick={() => setActive('editor')}
+                    style={{ cursor: 'pointer', borderRadius: 20, marginBottom: 28, overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg,#1e1b4b,#312e81,#1e3a5f)', boxShadow: '0 8px 32px rgba(99,102,241,.25)', transition: 'transform .2s, box-shadow .2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px rgba(99,102,241,.35)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(99,102,241,.25)'; }}
+                >
+                    {/* fake code lines decorative */}
+                    <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '45%', padding: '16px 24px', opacity: 0.18, fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: '#a5b4fc', lineHeight: 1.8, overflow: 'hidden', pointerEvents: 'none' }}>
+                        {'#include <stdio.h>\n\nint main() {\n    int n, sum = 0;\n    scanf("%d", &n);\n    for(int i=1;i<=n;i++)\n        sum += i;\n    printf("%d\\n", sum);\n    return 0;\n}'.split('\n').map((ln, i) => <div key={i}>{ln}</div>)}
+                    </div>
+                    <div style={{ position: 'relative', padding: '28px 36px', display: 'flex', alignItems: 'center', gap: 28 }}>
+                        <div style={{ fontSize: 48, flexShrink: 0 }}>✏️</div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: 'white', marginBottom: 6 }}>Free C Editor — เขียนโค้ดอิสระ</div>
+                            <div style={{ fontSize: 13, color: '#a5b4fc', lineHeight: 1.7 }}>
+                                ไม่มีโจทย์ ไม่มีเกณฑ์ · CodeMirror Editor · Compile & Run ผ่าน Piston API · เลือก Theme & Font ได้
+                            </div>
+                        </div>
+                        <div style={{ flexShrink: 0, background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: 'white', padding: '12px 28px', borderRadius: 14, fontWeight: 700, fontSize: 14, boxShadow: '0 4px 16px rgba(99,102,241,.5)' }}>
+                            เปิด Editor →
+                        </div>
+                    </div>
                 </div>
 
                 {/* CTA — room code */}
