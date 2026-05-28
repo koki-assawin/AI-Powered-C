@@ -1,17 +1,89 @@
-// js/pages/GuestLandingPage.js — Demo/Guest Mode (v2.2)
+// js/pages/GuestLandingPage.js — Demo/Guest Mode (v3.0)
+// Multi-language: C · C++ · Python · Java
 // ไม่ต้องการ Firebase Auth — ทำงานอิสระโดยสมบูรณ์
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const _DEMO_LANGS = [
+    { value: 'c',      label: 'C',      ext: 'c',    color: '#3b82f6' },
+    { value: 'cpp',    label: 'C++',    ext: 'cpp',  color: '#6366f1' },
+    { value: 'python', label: 'Python', ext: 'py',   color: '#f59e0b' },
+    { value: 'java',   label: 'Java',   ext: 'java', color: '#ef4444' },
+];
+
+const _DEMO_CODING_FONTS = [
+    { value: 'Consolas',        label: 'Consolas'        },
+    { value: 'JetBrains Mono',  label: 'JetBrains Mono'  },
+    { value: 'Fira Code',       label: 'Fira Code'       },
+    { value: 'Source Code Pro', label: 'Source Code Pro' },
+    { value: 'IBM Plex Mono',   label: 'IBM Plex Mono'   },
+    { value: 'Courier New',     label: 'Courier New'     },
+];
+
+const _DEMO_THEMES = [
+    ['dracula', '🟣 Dracula'], ['monokai', '🟢 Monokai'], ['one-dark', '🔵 One Dark'],
+    ['material-darker', '⚫ Material Darker'], ['nord', '🧊 Nord'], ['ayu-dark', '🌙 Ayu Dark'],
+    ['cobalt', '💙 Cobalt'], ['eclipse', '☀️ Eclipse (สว่าง)'], ['default', '📄 Default (สว่าง)'],
+];
+
+const _LANG_STARTERS = {
+    c:      `#include <stdio.h>\n\nint main() {\n    // เขียนโค้ด C ที่นี่\n    \n    return 0;\n}`,
+    cpp:    `#include <iostream>\nusing namespace std;\n\nint main() {\n    // เขียนโค้ด C++ ที่นี่\n    \n    return 0;\n}`,
+    python: `# เขียนโค้ด Python ที่นี่\n\n`,
+    java:   `public class Main {\n    public static void main(String[] args) {\n        // เขียนโค้ด Java ที่นี่\n        \n    }\n}`,
+};
+
+const _LANG_TIPS = {
+    c: [
+        { icon: '📤', code: 'printf("text\\n");',  desc: 'แสดงข้อความ' },
+        { icon: '📥', code: 'scanf("%d", &x);',    desc: 'รับค่า int' },
+        { icon: '🔄', code: 'for(i=0;i<n;i++)',    desc: 'วนซ้ำ' },
+        { icon: '🌿', code: 'if(a>b) { ... }',     desc: 'ตัดสินใจ' },
+        { icon: '🧩', code: 'int fn(int x){...}', desc: 'ฟังก์ชัน' },
+    ],
+    cpp: [
+        { icon: '📤', code: 'cout << x << endl;',     desc: 'แสดงข้อความ' },
+        { icon: '📥', code: 'cin >> x;',              desc: 'รับค่า' },
+        { icon: '🔄', code: 'for(int i=0;i<n;i++)',   desc: 'วนซ้ำ' },
+        { icon: '🌿', code: 'if(a>b) { ... }',        desc: 'ตัดสินใจ' },
+        { icon: '🧩', code: 'int fn(int x){...}',     desc: 'ฟังก์ชัน' },
+    ],
+    python: [
+        { icon: '📤', code: 'print("text")',          desc: 'แสดงข้อความ' },
+        { icon: '📥', code: 'x = int(input())',       desc: 'รับค่า int' },
+        { icon: '🔄', code: 'for i in range(n):',     desc: 'วนซ้ำ' },
+        { icon: '🌿', code: 'if a > b:',              desc: 'ตัดสินใจ' },
+        { icon: '🧩', code: 'def fn(x):',             desc: 'ฟังก์ชัน' },
+    ],
+    java: [
+        { icon: '📤', code: 'System.out.println(x);',   desc: 'แสดงข้อความ' },
+        { icon: '📥', code: 'Scanner sc = new Scanner(System.in);', desc: 'เตรียมรับค่า' },
+        { icon: '🔄', code: 'for(int i=0;i<n;i++)',      desc: 'วนซ้ำ' },
+        { icon: '🌿', code: 'if(a>b) { ... }',            desc: 'ตัดสินใจ' },
+        { icon: '🧩', code: 'static int fn(int x){...}', desc: 'ฟังก์ชัน' },
+    ],
+};
 
 const _DEMO_PROBLEMS = [
     {
         id: 'd1', icon: '👋',
-        unitName: 'หน่วยที่ 1: โครงสร้างโปรแกรม C',
+        unitName: 'หน่วยที่ 1: โครงสร้างโปรแกรม',
         unitColor: { bg: '#eff6ff', border: '#bfdbfe', btn: '#3b82f6', tag: '#dbeafe', tagText: '#1e40af' },
         title: 'Hello, World!',
-        description: 'เขียนโปรแกรมภาษา C ที่แสดงข้อความ\nHello, World!\nออกหน้าจอ (ขึ้นบรรทัดใหม่ท้ายข้อความ)',
+        description: 'เขียนโปรแกรมที่แสดงข้อความ\nHello, World!\nออกหน้าจอ (ขึ้นบรรทัดใหม่ท้ายข้อความ)',
         sampleInput: '',
         expectedOutput: 'Hello, World!',
-        hint: 'ใช้ printf("Hello, World!\\n"); ภายใน main()',
-        starterCode: '#include <stdio.h>\n\nint main() {\n    // เขียนโค้ดที่นี่\n    \n    return 0;\n}',
+        hint: {
+            c:      'ใช้ printf("Hello, World!\\n"); ภายใน main()',
+            cpp:    'ใช้ cout << "Hello, World!" << endl; ภายใน main()',
+            python: 'ใช้ print("Hello, World!")',
+            java:   'ใช้ System.out.println("Hello, World!"); ภายใน main()',
+        },
+        starterCode: {
+            c:      '#include <stdio.h>\n\nint main() {\n    // เขียนโค้ดที่นี่\n    \n    return 0;\n}',
+            cpp:    '#include <iostream>\nusing namespace std;\n\nint main() {\n    // เขียนโค้ดที่นี่\n    \n    return 0;\n}',
+            python: '# เขียนโค้ดที่นี่\n',
+            java:   'public class Main {\n    public static void main(String[] args) {\n        // เขียนโค้ดที่นี่\n        \n    }\n}',
+        },
     },
     {
         id: 'd2', icon: '➕',
@@ -21,8 +93,18 @@ const _DEMO_PROBLEMS = [
         description: 'รับคะแนน (0-100) 1 ค่า แล้วแสดงเกรด\n≥80 → A\n≥70 → B\n≥60 → C\n≥50 → D\nอื่นๆ → F',
         sampleInput: '75',
         expectedOutput: 'B',
-        hint: 'ใช้ if-else if ตรวจสอบเงื่อนไขจากมากไปน้อย',
-        starterCode: '#include <stdio.h>\n\nint main() {\n    int score;\n    scanf("%d", &score);\n    \n    // ตรวจสอบเกรดที่นี่\n    \n    return 0;\n}',
+        hint: {
+            c:      'ใช้ if-else if ตรวจสอบเงื่อนไขจากมากไปน้อย',
+            cpp:    'ใช้ if-else if ตรวจสอบเงื่อนไขจากมากไปน้อย',
+            python: 'ใช้ if / elif / else ตรวจสอบเงื่อนไขจากมากไปน้อย',
+            java:   'ใช้ if-else if ตรวจสอบเงื่อนไขจากมากไปน้อย',
+        },
+        starterCode: {
+            c:      '#include <stdio.h>\n\nint main() {\n    int score;\n    scanf("%d", &score);\n    \n    // ตรวจสอบเกรดที่นี่\n    \n    return 0;\n}',
+            cpp:    '#include <iostream>\nusing namespace std;\n\nint main() {\n    int score;\n    cin >> score;\n    \n    // ตรวจสอบเกรดที่นี่\n    \n    return 0;\n}',
+            python: 'score = int(input())\n\n# ตรวจสอบเกรดที่นี่\n',
+            java:   'import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int score = sc.nextInt();\n        \n        // ตรวจสอบเกรดที่นี่\n        \n    }\n}',
+        },
     },
     {
         id: 'd3', icon: '🔄',
@@ -32,8 +114,18 @@ const _DEMO_PROBLEMS = [
         description: 'รับค่า N (จำนวนเต็มบวก) แล้วแสดง\nผลรวมของ 1+2+3+...+N',
         sampleInput: '5',
         expectedOutput: '15',
-        hint: 'ใช้ for loop สะสมค่าใน sum แล้ว printf ผลลัพธ์',
-        starterCode: '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    \n    int sum = 0;\n    // วนซ้ำที่นี่\n    \n    printf("%d\\n", sum);\n    return 0;\n}',
+        hint: {
+            c:      'ใช้ for loop สะสมค่าใน sum แล้ว printf ผลลัพธ์',
+            cpp:    'ใช้ for loop สะสมค่าใน sum แล้ว cout ผลลัพธ์',
+            python: 'ใช้ for i in range(1, n+1): แล้ว sum += i หรือใช้ sum(range(1,n+1))',
+            java:   'ใช้ for loop สะสมค่าใน sum แล้ว System.out.println',
+        },
+        starterCode: {
+            c:      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    \n    int sum = 0;\n    // วนซ้ำที่นี่\n    \n    printf("%d\\n", sum);\n    return 0;\n}',
+            cpp:    '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    \n    int sum = 0;\n    // วนซ้ำที่นี่\n    \n    cout << sum << endl;\n    return 0;\n}',
+            python: 'n = int(input())\n\nsum = 0\n# วนซ้ำที่นี่\n\nprint(sum)\n',
+            java:   'import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        \n        int sum = 0;\n        // วนซ้ำที่นี่\n        \n        System.out.println(sum);\n    }\n}',
+        },
     },
     {
         id: 'd4', icon: '🏆',
@@ -43,55 +135,82 @@ const _DEMO_PROBLEMS = [
         description: 'เขียนฟังก์ชัน maxOfThree(a, b, c)\nรับ 3 จำนวนเต็ม แล้วแสดงค่าที่มากที่สุด',
         sampleInput: '4 9 2',
         expectedOutput: '9',
-        hint: 'เขียนฟังก์ชัน int maxOfThree(int a, int b, int c) ก่อน main',
-        starterCode: '#include <stdio.h>\n\nint maxOfThree(int a, int b, int c) {\n    // คืนค่าที่มากที่สุด\n    \n}\n\nint main() {\n    int a, b, c;\n    scanf("%d %d %d", &a, &b, &c);\n    printf("%d\\n", maxOfThree(a, b, c));\n    return 0;\n}',
+        hint: {
+            c:      'เขียนฟังก์ชัน int maxOfThree(int a, int b, int c) ก่อน main',
+            cpp:    'เขียนฟังก์ชัน int maxOfThree(int a, int b, int c) ก่อน main',
+            python: 'เขียน def maxOfThree(a, b, c): แล้ว return max(a,b,c) หรือใช้ if-elif',
+            java:   'เขียน static int maxOfThree(int a, int b, int c) ภายในคลาส Main',
+        },
+        starterCode: {
+            c:      '#include <stdio.h>\n\nint maxOfThree(int a, int b, int c) {\n    // คืนค่าที่มากที่สุด\n    \n}\n\nint main() {\n    int a, b, c;\n    scanf("%d %d %d", &a, &b, &c);\n    printf("%d\\n", maxOfThree(a, b, c));\n    return 0;\n}',
+            cpp:    '#include <iostream>\nusing namespace std;\n\nint maxOfThree(int a, int b, int c) {\n    // คืนค่าที่มากที่สุด\n    \n}\n\nint main() {\n    int a, b, c;\n    cin >> a >> b >> c;\n    cout << maxOfThree(a, b, c) << endl;\n    return 0;\n}',
+            python: 'def maxOfThree(a, b, c):\n    # คืนค่าที่มากที่สุด\n    pass\n\nvals = list(map(int, input().split()))\nprint(maxOfThree(vals[0], vals[1], vals[2]))\n',
+            java:   'import java.util.Scanner;\n\npublic class Main {\n    static int maxOfThree(int a, int b, int c) {\n        // คืนค่าที่มากที่สุด\n        return 0;\n    }\n    \n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int a = sc.nextInt(), b = sc.nextInt(), c = sc.nextInt();\n        System.out.println(maxOfThree(a, b, c));\n    }\n}',
+        },
     },
 ];
 
-const _EDITOR_THEMES = [
-    ['dracula', '🟣 Dracula'], ['monokai', '🟢 Monokai'], ['one-dark', '🔵 One Dark'],
-    ['material-darker', '⚫ Material'], ['nord', '🧊 Nord'], ['ayu-dark', '🌙 Ayu Dark'],
-    ['eclipse', '☀️ Eclipse (สว่าง)'], ['default', '📄 Default (สว่าง)'],
-];
+// ── Run helper (Piston → Judge0 fallback, correct field names) ────────────────
+const _runCode = async (code, language, input) => {
+    const tryRun = async (fn) => {
+        const res = await fn(code, language, input || '');
+        const out = (res.program_output || '').trim();
+        const err = (res.compiler_error || res.program_error || '').trim();
+        if (err && !out) return { output: err, isError: true };
+        return { output: out || '(ไม่มีผลลัพธ์)', isError: false };
+    };
+    try { return await tryRun(runWithPiston); }
+    catch (_) {
+        try { return await tryRun(runWithJudge0); }
+        catch (e) { return { output: 'เชื่อมต่อ compiler ไม่สำเร็จ: ' + e.message, isError: true }; }
+    }
+};
 
-// ── Mini workspace (inline) ─────────────────────────────────────────────────
+// ── Problem Workspace ─────────────────────────────────────────────────────────
 const _GuestWorkspace = ({ problem, onBack }) => {
-    const [code, setCode]               = React.useState(problem.starterCode);
-    const [input, setInput]             = React.useState(problem.sampleInput);
-    const [output, setOutput]           = React.useState('');
-    const [running, setRunning]         = React.useState(false);
-    const [verdict, setVerdict]         = React.useState(null); // null | 'pass' | 'fail' | 'error'
-    const [showHint, setShowHint]       = React.useState(false);
-    const [editorFontSize, setEditorFontSize] = React.useState(14);
-    const [editorTheme, setEditorTheme]       = React.useState('dracula');
+    const [language,  setLanguage]  = React.useState('c');
+    const [code,      setCode]      = React.useState(problem.starterCode.c);
+    const [input,     setInput]     = React.useState(problem.sampleInput);
+    const [output,    setOutput]    = React.useState('');
+    const [running,   setRunning]   = React.useState(false);
+    const [verdict,   setVerdict]   = React.useState(null);
+    const [showHint,  setShowHint]  = React.useState(false);
+    const [fontSize,  setFontSize]  = React.useState(14);
+    const [fontFamily,setFontFamily]= React.useState('Consolas');
+    const [theme,     setTheme]     = React.useState('dracula');
+
     const c = problem.unitColor;
+    const bg = '#0f172a', panel = '#1e293b', border = '#334155';
+
+    const handleLangChange = (lang) => {
+        if (code !== problem.starterCode[language]) {
+            if (!window.confirm('เปลี่ยนภาษา — โค้ดปัจจุบันจะถูกแทนที่ด้วย starter code ของภาษาใหม่\nดำเนินการต่อ?')) return;
+        }
+        setLanguage(lang);
+        setCode(problem.starterCode[lang]);
+        setOutput(''); setVerdict(null);
+    };
 
     const runCode = async () => {
         if (running) return;
         setRunning(true); setOutput(''); setVerdict(null);
-        // Log usage (non-blocking, may fail silently without auth)
         if (typeof logUsageEvent === 'function') {
-            logUsageEvent('demo', 'demo_run', { problemId: problem.id, userType: 'demo' });
+            logUsageEvent('demo', 'demo_run', { problemId: problem.id, userType: 'demo', lang: language });
         }
-        try {
-            const res = await runWithPiston(code, 'c', input);
-            const out = (res.output || '').trim();
-            const err = res.errorLog || '';
-            if (err && !out) {
-                setOutput(err);
-                setVerdict('error');
-            } else {
-                setOutput(out || '(ไม่มีผลลัพธ์)');
-                if (problem.expectedOutput) {
-                    const exp = problem.expectedOutput.trim();
-                    setVerdict(out === exp ? 'pass' : 'fail');
-                }
-            }
-        } catch (e) {
-            setOutput('เชื่อมต่อ compiler ไม่สำเร็จ: ' + e.message);
+        const { output: out, isError } = await _runCode(code, language, input);
+        setOutput(out);
+        if (!isError && problem.expectedOutput) {
+            setVerdict(out.trim() === problem.expectedOutput.trim() ? 'pass' : 'fail');
+        } else if (isError) {
             setVerdict('error');
-        } finally {
-            setRunning(false);
+        }
+        setRunning(false);
+    };
+
+    const resetCode = () => {
+        if (window.confirm('รีเซ็ตโค้ดกลับเป็น starter code?')) {
+            setCode(problem.starterCode[language]);
+            setOutput(''); setVerdict(null);
         }
     };
 
@@ -101,143 +220,156 @@ const _GuestWorkspace = ({ problem, onBack }) => {
         error: { bg: '#fef2f2', border: '#fca5a5', color: '#991b1b', icon: '❌', label: 'เกิดข้อผิดพลาด' },
     };
 
+    const btnSt = (extra = {}) => ({
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '5px 12px', borderRadius: 7, border: 'none',
+        cursor: 'pointer', fontFamily: "'Prompt',sans-serif",
+        fontSize: 12, fontWeight: 600, ...extra,
+    });
+
+    const langInfo = _DEMO_LANGS.find(l => l.value === language) || _DEMO_LANGS[0];
+    const tips = _LANG_TIPS[language] || _LANG_TIPS.c;
+
     return (
         <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: "'Prompt',sans-serif", display: 'flex', flexDirection: 'column' }}>
             {/* Top bar */}
-            <div style={{ background: 'white', borderBottom: '1.5px solid #fce7f3', padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56, flexShrink: 0 }}>
+            <div style={{ background: bg, borderBottom: `1px solid ${border}`, padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 52, flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <button onClick={onBack}
-                        style={{ background: '#fdf2f8', border: '1px solid #fce7f3', borderRadius: 8, padding: '5px 12px', fontSize: 13, color: '#be185d', cursor: 'pointer', fontFamily: "'Prompt',sans-serif" }}>
-                        ← โจทย์อื่น
-                    </button>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: '#1f2937' }}>{problem.icon} {problem.title}</span>
-                    <span style={{ fontSize: 11, background: c.tag, color: c.tagText, padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>{problem.unitName}</span>
+                    <button onClick={onBack} style={btnSt({ background: '#1e293b', border: `1px solid ${border}`, color: '#94a3b8' })}>← โจทย์อื่น</button>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>{problem.icon} {problem.title}</span>
+                    <span style={{ fontSize: 10, background: c.tag, color: c.tagText, padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>{problem.unitName}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, background: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: 10, fontWeight: 600 }}>🎭 Demo</span>
-                    <a href="#/register" style={{ fontSize: 12, fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#ec4899,#be185d)', padding: '6px 14px', borderRadius: 16 }}>
-                        ✨ สมัครสมาชิก
-                    </a>
+                    <span style={{ fontSize: 10, background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>🎭 Demo</span>
+                    <a href="#/register" style={btnSt({ background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white' })}>✨ สมัครสมาชิก</a>
                 </div>
+            </div>
+
+            {/* Toolbar */}
+            <div style={{ background: panel, borderBottom: `1px solid ${border}`, padding: '7px 14px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+                {/* Language selector */}
+                <div style={{ display: 'flex', gap: 4 }}>
+                    {_DEMO_LANGS.map(l => (
+                        <button key={l.value} onClick={() => handleLangChange(l.value)}
+                            style={btnSt({
+                                background: language === l.value ? l.color : bg,
+                                color: language === l.value ? 'white' : '#64748b',
+                                border: `1px solid ${language === l.value ? l.color : border}`,
+                                padding: '4px 10px', fontSize: 12,
+                            })}>
+                            {l.label}
+                        </button>
+                    ))}
+                </div>
+                <div style={{ flex: 1 }} />
+                {/* Font size */}
+                <button onClick={() => setFontSize(f => Math.max(10, f-1))} style={btnSt({ background: bg, color: '#94a3b8', border: `1px solid ${border}`, padding: '4px 8px' })}>A−</button>
+                <span style={{ fontSize: 11, color: '#64748b', minWidth: 20, textAlign: 'center' }}>{fontSize}</span>
+                <button onClick={() => setFontSize(f => Math.min(24, f+1))} style={btnSt({ background: bg, color: '#94a3b8', border: `1px solid ${border}`, padding: '4px 8px' })}>A+</button>
+                {/* Font family */}
+                <select value={fontFamily} onChange={e => setFontFamily(e.target.value)}
+                    style={{ background: bg, color: '#94a3b8', border: `1px solid ${border}`, borderRadius: 7, padding: '4px 7px', fontFamily: "'Prompt',sans-serif", fontSize: 11, cursor: 'pointer' }}>
+                    {_DEMO_CODING_FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                </select>
+                {/* Theme */}
+                <select value={theme} onChange={e => setTheme(e.target.value)}
+                    style={{ background: bg, color: '#a78bfa', border: '1px solid #7c3aed44', borderRadius: 7, padding: '4px 7px', fontFamily: "'Prompt',sans-serif", fontSize: 11, cursor: 'pointer' }}>
+                    {_DEMO_THEMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+                {/* Reset */}
+                <button onClick={resetCode} style={btnSt({ background: bg, color: '#ef4444', border: '1px solid #f8717166' })}>🔄 รีเซ็ต</button>
+                {/* Run */}
+                <button onClick={runCode} disabled={running}
+                    style={btnSt({ background: running ? '#334155' : `linear-gradient(135deg,${c.btn},${c.btn}cc)`, color: 'white', opacity: running ? 0.7 : 1, padding: '5px 16px' })}>
+                    {running ? '⏳ กำลังรัน...' : '▶ รันโค้ด'}
+                </button>
             </div>
 
             {/* Content */}
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-                {/* Left: problem panel */}
-                <div style={{ width: 290, background: 'white', borderRight: '1px solid #f1f5f9', padding: 18, overflowY: 'auto', flexShrink: 0 }}>
-                    <div style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: c.tagText, marginBottom: 8 }}>📝 โจทย์</div>
-                        <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.7, whiteSpace: 'pre-line' }}>
-                            {problem.description}
-                        </p>
+                {/* Left panel */}
+                <div style={{ width: 270, background: 'white', borderRight: '1px solid #f1f5f9', padding: 16, overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {/* Problem description */}
+                    <div style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: '12px 14px' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: c.tagText, marginBottom: 6 }}>📝 โจทย์</div>
+                        <p style={{ fontSize: 12, color: '#374151', margin: 0, lineHeight: 1.7, whiteSpace: 'pre-line' }}>{problem.description}</p>
                     </div>
 
+                    {/* Expected output */}
                     {problem.expectedOutput && (
-                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', marginBottom: 6 }}>✅ ผลลัพธ์ที่ถูกต้อง</div>
+                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '10px 14px' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#166534', marginBottom: 4 }}>✅ ผลลัพธ์ที่ถูกต้อง</div>
                             {problem.sampleInput && (
-                                <div style={{ fontSize: 11, color: '#4b5563', marginBottom: 4 }}>Input: <code style={{ background: '#e5e7eb', padding: '1px 5px', borderRadius: 4 }}>{problem.sampleInput}</code></div>
+                                <div style={{ fontSize: 11, color: '#4b5563', marginBottom: 4 }}>
+                                    Input: <code style={{ background: '#e5e7eb', padding: '1px 5px', borderRadius: 4, fontSize: 10 }}>{problem.sampleInput}</code>
+                                </div>
                             )}
-                            <code style={{ fontSize: 13, color: '#15803d', background: '#dcfce7', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
+                            <code style={{ fontSize: 13, color: '#15803d', background: '#dcfce7', padding: '3px 8px', borderRadius: 6, display: 'inline-block' }}>
                                 {problem.expectedOutput}
                             </code>
                         </div>
                     )}
 
+                    {/* Hint */}
                     <button onClick={() => setShowHint(h => !h)}
-                        style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', fontSize: 13, color: '#92400e', cursor: 'pointer', fontFamily: "'Prompt',sans-serif", marginBottom: 8 }}>
+                        style={{ padding: '7px 12px', borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', fontSize: 12, color: '#92400e', cursor: 'pointer', fontFamily: "'Prompt',sans-serif" }}>
                         💡 {showHint ? 'ซ่อนคำใบ้' : 'ขอคำใบ้'}
                     </button>
                     {showHint && (
                         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
-                            {problem.hint}
+                            {problem.hint[language] || problem.hint.c}
                         </div>
                     )}
 
+                    {/* Tips */}
+                    <div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            💡 {_DEMO_LANGS.find(l => l.value === language)?.label || 'C'} Quick Tips
+                        </div>
+                        {tips.map(t => (
+                            <div key={t.code} style={{ fontSize: 11, color: '#374151', marginBottom: 5, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+                                <span style={{ flexShrink: 0 }}>{t.icon}</span>
+                                <span><code style={{ background: '#f1f5f9', padding: '1px 4px', borderRadius: 3, fontSize: 10, color: '#475569' }}>{t.code}</code> {t.desc}</span>
+                            </div>
+                        ))}
+                    </div>
+
                     {/* CTA */}
-                    <div style={{ marginTop: 20, background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '1px dashed #f9a8d4', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: '#be185d', fontWeight: 700, marginBottom: 6 }}>ปลดล็อกฟีเจอร์เพิ่มเติม</div>
-                        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 10, lineHeight: 1.5 }}>XP · อันดับ · AI Coach · ส่งงาน</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>รหัสห้องเรียน:</div>
-                        <div style={{ fontSize: 22, fontWeight: 900, color: '#be185d', letterSpacing: '0.15em', fontFamily: "'JetBrains Mono','Consolas',monospace", marginBottom: 10 }}>FQE28Y</div>
-                        <a href="#/register" style={{ display: 'block', padding: '8px', borderRadius: 10, background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 12 }}>
-                            ✨ สมัครสมาชิกฟรี
-                        </a>
+                    <div style={{ marginTop: 'auto', background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '1px dashed #f9a8d4', borderRadius: 12, padding: 12, textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#be185d', fontWeight: 700, marginBottom: 4 }}>ปลดล็อกฟีเจอร์เพิ่มเติม</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8, lineHeight: 1.5 }}>XP · อันดับ · AI Coach · ส่งงาน</div>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#be185d', letterSpacing: '0.12em', fontFamily: "'JetBrains Mono',monospace", marginBottom: 8 }}>FQE28Y</div>
+                        <a href="#/register" style={{ display: 'block', padding: '7px', borderRadius: 8, background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 11 }}>✨ สมัครสมาชิกฟรี</a>
                     </div>
                 </div>
 
                 {/* Right: editor + output */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-                    {/* Editor toolbar */}
-                    <div style={{ background: '#1a1a2e', borderBottom: '1px solid #1e293b', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        <span style={{ fontSize: 11, color: '#64748b', marginRight: 4 }}>C Language</span>
-                        <div style={{ flex: 1 }} />
-                        {/* Font size controls */}
-                        <button onClick={() => setEditorFontSize(s => Math.max(10, s - 1))}
-                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 12, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A-</button>
-                        <span style={{ fontSize: 11, color: '#64748b', minWidth: 24, textAlign: 'center' }}>{editorFontSize}</span>
-                        <button onClick={() => setEditorFontSize(s => Math.min(28, s + 1))}
-                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 12, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A+</button>
-                        {/* Theme selector */}
-                        <select value={editorTheme} onChange={e => setEditorTheme(e.target.value)}
-                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 11, padding: '3px 6px', cursor: 'pointer' }}>
-                            {_EDITOR_THEMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                        </select>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, background: bg }}>
+                    <style>{`
+                        .gwp-editor .CodeMirror, .gwp-editor .CodeMirror-scroll {
+                            font-size: ${fontSize}px !important;
+                            font-family: '${fontFamily}', Consolas, monospace !important;
+                            line-height: 1.6 !important;
+                        }
+                    `}</style>
+                    <div className="gwp-editor" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        <CodeEditor value={code} onChange={setCode} language={language}
+                            placeholder={`// เขียนโค้ดที่นี่`} minHeight="100%"
+                            fontSize={fontSize} theme={theme} fontFamily={fontFamily} />
                     </div>
 
-                    {/* CodeEditor */}
-                    <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                        <CodeEditor
-                            value={code}
-                            onChange={setCode}
-                            language="c_cpp"
-                            placeholder="// เขียนโค้ด C ที่นี่..."
-                            minHeight="100%"
-                            fontSize={editorFontSize}
-                            theme={editorTheme}
-                        />
-                    </div>
-
-                    {/* Input + Run + Output */}
-                    <div style={{ background: '#0f172a', borderTop: '1px solid #334155', padding: '12px 16px', flexShrink: 0 }}>
-                        {/* Input row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                            <span style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0 }}>📥 Input:</span>
-                            <input
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
+                    {/* Bottom: Input + Output */}
+                    <div style={{ background: '#020617', borderTop: `1px solid ${border}`, padding: '10px 14px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: output || running ? 10 : 0 }}>
+                            <span style={{ fontSize: 11, color: '#64748b', flexShrink: 0 }}>📥 Input:</span>
+                            <input value={input} onChange={e => setInput(e.target.value)}
                                 placeholder="ว่างไว้ถ้าไม่มี input"
-                                style={{
-                                    flex: 1, padding: '5px 10px', background: '#1e293b',
-                                    border: '1px solid #334155', borderRadius: 8,
-                                    color: '#e2e8f0', fontFamily: "'Consolas',monospace",
-                                    fontSize: 13, outline: 'none',
-                                }}
-                            />
-                            <button onClick={runCode} disabled={running}
-                                style={{
-                                    padding: '7px 20px', borderRadius: 10, border: 'none',
-                                    background: running ? '#334155' : `linear-gradient(135deg,${c.btn},${c.btn}cc)`,
-                                    color: 'white', fontFamily: "'Prompt',sans-serif",
-                                    fontWeight: 700, fontSize: 13, cursor: running ? 'wait' : 'pointer',
-                                    flexShrink: 0,
-                                }}>
-                                {running ? '⏳ กำลังรัน...' : '▶ Run'}
-                            </button>
+                                style={{ flex: 1, padding: '4px 10px', background: '#1e293b', border: `1px solid ${border}`, borderRadius: 7, color: '#e2e8f0', fontFamily: "'Consolas',monospace", fontSize: 12, outline: 'none' }} />
                         </div>
-
-                        {/* Output */}
                         {(output || running) && (
                             <div>
-                                {verdict && (
-                                    <div style={{
-                                        background: verdictStyle[verdict].bg,
-                                        border: `1px solid ${verdictStyle[verdict].border}`,
-                                        borderRadius: 8, padding: '6px 12px',
-                                        fontSize: 13, color: verdictStyle[verdict].color,
-                                        fontWeight: 600, marginBottom: 8,
-                                        display: 'flex', alignItems: 'center', gap: 6,
-                                    }}>
+                                {verdict && verdictStyle[verdict] && (
+                                    <div style={{ background: verdictStyle[verdict].bg, border: `1px solid ${verdictStyle[verdict].border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, color: verdictStyle[verdict].color, fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                                         {verdictStyle[verdict].icon} {verdictStyle[verdict].label}
                                         {verdict === 'fail' && (
                                             <span style={{ fontWeight: 400, fontSize: 11, marginLeft: 4 }}>
@@ -246,14 +378,8 @@ const _GuestWorkspace = ({ problem, onBack }) => {
                                         )}
                                     </div>
                                 )}
-                                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Output:</div>
-                                <pre style={{
-                                    margin: 0,
-                                    color: verdict === 'error' ? '#f87171' : verdict === 'pass' ? '#4ade80' : '#e2e8f0',
-                                    fontFamily: "'Consolas',monospace", fontSize: 13,
-                                    lineHeight: 1.6, maxHeight: 120, overflowY: 'auto',
-                                    background: '#0a0a0a', padding: '8px 10px', borderRadius: 8,
-                                }}>
+                                <div style={{ fontSize: 10, color: '#475569', marginBottom: 4 }}>Output:</div>
+                                <pre style={{ margin: 0, color: verdict === 'error' ? '#f87171' : verdict === 'pass' ? '#4ade80' : '#e2e8f0', fontFamily: "'Consolas',monospace", fontSize: 12, lineHeight: 1.6, maxHeight: 150, overflowY: 'auto', background: '#0a0a0a', padding: '8px 10px', borderRadius: 8, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                                     {running ? '...' : output}
                                 </pre>
                             </div>
@@ -265,60 +391,102 @@ const _GuestWorkspace = ({ problem, onBack }) => {
     );
 };
 
-// ── Free Editor (ไม่มีโจทย์ เขียน C อิสระ) ────────────────────────────────────
+// ── Free Editor (multi-language, matches enrolled student editor) ──────────────
 const _GuestFreeEditor = ({ onBack }) => {
-    const STARTER = '#include <stdio.h>\n\nint main() {\n    // เขียนโค้ด C ที่นี่\n    \n    return 0;\n}';
-    const [code, setCode]               = React.useState(STARTER);
-    const [input, setInput]             = React.useState('');
-    const [output, setOutput]           = React.useState('');
-    const [running, setRunning]         = React.useState(false);
-    const [hasError, setHasError]       = React.useState(false);
-    const [runCount, setRunCount]       = React.useState(0);
-    const [editorFontSize, setEditorFontSize] = React.useState(14);
-    const [editorTheme, setEditorTheme]       = React.useState('dracula');
+    const [language,   setLanguage]  = React.useState('c');
+    const [code,       setCode]      = React.useState(_LANG_STARTERS.c);
+    const [filename,   setFilename]  = React.useState('main');
+    const [input,      setInput]     = React.useState('');
+    const [output,     setOutput]    = React.useState('');
+    const [running,    setRunning]   = React.useState(false);
+    const [hasError,   setHasError]  = React.useState(false);
+    const [runCount,   setRunCount]  = React.useState(0);
+    const [fontSize,   setFontSize]  = React.useState(14);
+    const [fontFamily, setFontFamily]= React.useState('Consolas');
+    const [theme,      setTheme]     = React.useState('dracula');
+    const [copied,     setCopied]    = React.useState(false);
+    const fileInputRef = React.useRef(null);
+
+    const bg = '#0f172a', panel = '#1e293b', border = '#334155';
+    const btnSt = (extra = {}) => ({
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '6px 12px', borderRadius: 8, border: 'none',
+        cursor: 'pointer', fontFamily: "'Prompt',sans-serif",
+        fontSize: 12, fontWeight: 600, transition: 'opacity .15s', ...extra,
+    });
+
+    const handleLangChange = (lang) => {
+        if (code !== _LANG_STARTERS[language]) {
+            if (!window.confirm('เปลี่ยนภาษา — โค้ดปัจจุบันจะถูกแทนที่ด้วย starter code\nดำเนินการต่อ?')) return;
+        }
+        setLanguage(lang);
+        setCode(_LANG_STARTERS[lang]);
+        setOutput(''); setHasError(false);
+        // auto-set class name for Java
+        if (lang === 'java') setFilename('Main');
+    };
+
+    const langInfo = _DEMO_LANGS.find(l => l.value === language) || _DEMO_LANGS[0];
+    const tips = _LANG_TIPS[language] || _LANG_TIPS.c;
 
     const runCode = async () => {
         if (running) return;
         setRunning(true); setOutput(''); setHasError(false);
         if (typeof logUsageEvent === 'function') {
-            logUsageEvent('demo', 'demo_run', { problemId: 'free_editor', userType: 'demo' });
+            logUsageEvent('demo', 'demo_run', { problemId: 'free_editor', userType: 'demo', lang: language });
         }
-        try {
-            const res = await runWithPiston(code, 'c', input);
-            const out = (res.output || '').trim();
-            const err = res.errorLog || '';
-            if (err && !out) { setOutput(err); setHasError(true); }
-            else { setOutput(out || '(ไม่มีผลลัพธ์)'); }
-        } catch (e) {
-            setOutput('เชื่อมต่อ compiler ไม่สำเร็จ: ' + e.message);
-            setHasError(true);
-        } finally {
-            setRunning(false);
-            setRunCount(c => c + 1);
+        const { output: out, isError } = await _runCode(code, language, input);
+        setOutput(out); setHasError(isError);
+        setRunning(false);
+        setRunCount(c => c + 1);
+    };
+
+    const resetCode = () => {
+        if (window.confirm('รีเซ็ตโค้ดกลับเป็นค่าเริ่มต้น?')) {
+            setCode(_LANG_STARTERS[language]);
+            setOutput(''); setInput(''); setHasError(false); setRunCount(0);
         }
     };
 
-    const resetCode = () => { setCode(STARTER); setOutput(''); setInput(''); setRunCount(0); };
+    const copyCode = () => {
+        navigator.clipboard?.writeText(code).catch(() => {});
+        setCopied(true); setTimeout(() => setCopied(false), 1500);
+    };
 
-    const _TIPS = [
-        { icon: '📤', text: 'printf("text\\n"); — แสดงข้อความ' },
-        { icon: '📥', text: 'scanf("%d", &x); — รับค่า int' },
-        { icon: '🔄', text: 'for(i=0;i<n;i++) — วนซ้ำ' },
-        { icon: '🌿', text: 'if(a>b) — ตัดสินใจ' },
-        { icon: '🧩', text: 'int fn(int x){...} — ฟังก์ชัน' },
-    ];
+    const downloadCode = () => {
+        const blob = new Blob([code], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${filename || 'main'}.${langInfo.ext}`;
+        a.click();
+    };
+
+    const openFile = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => { setCode(ev.target.result || ''); setOutput(''); };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
 
     return (
-        <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: "'Prompt',sans-serif", display: 'flex', flexDirection: 'column' }}>
-            {/* Top bar */}
-            <div style={{ background: 'white', borderBottom: '1.5px solid #fce7f3', padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56, flexShrink: 0 }}>
+        <div style={{ minHeight: '100vh', background: bg, color: '#f1f5f9', fontFamily: "'Prompt',sans-serif", display: 'flex', flexDirection: 'column' }}>
+            <style>{`
+                @keyframes termBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+                .gfe-editor .CodeMirror, .gfe-editor .CodeMirror-scroll {
+                    font-size: ${fontSize}px !important;
+                    font-family: '${fontFamily}', Consolas, monospace !important;
+                    line-height: 1.6 !important;
+                }
+            `}</style>
+
+            {/* Navbar */}
+            <div style={{ background: '#ffffff', borderBottom: '1.5px solid #fce7f3', padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 52, flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <button onClick={onBack}
-                        style={{ background: '#fdf2f8', border: '1px solid #fce7f3', borderRadius: 8, padding: '5px 12px', fontSize: 13, color: '#be185d', cursor: 'pointer', fontFamily: "'Prompt',sans-serif" }}>
-                        ← กลับ
-                    </button>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: '#1f2937' }}>✏️ Free C Editor</span>
-                    <span style={{ fontSize: 11, background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>🎭 Demo</span>
+                    <button onClick={onBack} style={{ background: '#fdf2f8', border: '1px solid #fce7f3', borderRadius: 8, padding: '5px 12px', fontSize: 13, color: '#be185d', cursor: 'pointer', fontFamily: "'Prompt',sans-serif" }}>← กลับ</button>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#1f2937' }}>✏️ Free {langInfo.label} Editor</span>
+                    <span style={{ fontSize: 10, background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>🎭 Demo</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     {runCount > 0 && (
@@ -326,113 +494,165 @@ const _GuestFreeEditor = ({ onBack }) => {
                             ▶ รัน {runCount} ครั้ง
                         </span>
                     )}
-                    <a href="#/register" style={{ fontSize: 12, fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#ec4899,#be185d)', padding: '6px 14px', borderRadius: 16 }}>
-                        ✨ สมัครสมาชิก
-                    </a>
+                    <a href="#/register" style={{ fontSize: 12, fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#ec4899,#be185d)', padding: '6px 14px', borderRadius: 16 }}>✨ สมัครสมาชิก</a>
                 </div>
             </div>
 
-            {/* Content */}
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-                {/* Left panel */}
-                <div style={{ width: 240, background: 'white', borderRight: '1px solid #f1f5f9', padding: '18px 16px', overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Toolbar */}
+            <div style={{ background: panel, borderBottom: `1px solid ${border}`, padding: '8px 14px', display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center' }}>
+                {/* Language selector */}
+                <select value={language} onChange={e => handleLangChange(e.target.value)}
+                    style={{ background: bg, color: '#f1f5f9', border: `1px solid ${border}`, borderRadius: 8, padding: '5px 10px', fontFamily: "'Prompt',sans-serif", fontSize: 12, cursor: 'pointer', outline: 'none' }}>
+                    {_DEMO_LANGS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                </select>
+
+                {/* Filename */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <input value={filename} onChange={e => setFilename(e.target.value)} placeholder="ชื่อไฟล์"
+                        style={{ background: bg, color: '#f1f5f9', border: `1px solid ${border}`, borderRadius: 8, padding: '5px 10px', fontFamily: "'Prompt',sans-serif", fontSize: 12, width: 90, outline: 'none' }} />
+                    <span style={{ color: '#64748b', fontSize: 12 }}>.{langInfo.ext}</span>
+                </div>
+
+                <div style={{ flex: 1 }} />
+
+                {/* Font size */}
+                <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                    <button onClick={() => setFontSize(f => Math.max(10, f-1))} style={btnSt({ background: bg, color: '#94a3b8', border: `1px solid ${border}`, padding: '4px 9px' })}>A−</button>
+                    <span style={{ fontSize: 11, color: '#64748b', minWidth: 22, textAlign: 'center' }}>{fontSize}</span>
+                    <button onClick={() => setFontSize(f => Math.min(24, f+1))} style={btnSt({ background: bg, color: '#94a3b8', border: `1px solid ${border}`, padding: '4px 9px' })}>A+</button>
+                </div>
+
+                {/* Font family */}
+                <select value={fontFamily} onChange={e => setFontFamily(e.target.value)}
+                    style={{ background: bg, color: '#94a3b8', border: `1px solid ${border}`, borderRadius: 8, padding: '4px 7px', fontFamily: "'Prompt',sans-serif", fontSize: 11, cursor: 'pointer', maxWidth: 140 }}>
+                    {_DEMO_CODING_FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                </select>
+
+                {/* Theme */}
+                <select value={theme} onChange={e => setTheme(e.target.value)}
+                    style={{ background: bg, color: '#a78bfa', border: '1px solid #7c3aed44', borderRadius: 8, padding: '4px 7px', fontFamily: "'Prompt',sans-serif", fontSize: 11, cursor: 'pointer', maxWidth: 170 }}>
+                    {_DEMO_THEMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+
+                {/* Reset */}
+                <button onClick={resetCode} style={btnSt({ background: bg, color: '#ef4444', border: '1px solid #f8717166' })}>🔄 รีเซ็ต</button>
+
+                {/* Open file */}
+                <input ref={fileInputRef} type="file" accept=".c,.cpp,.cc,.cxx,.py,.java,.txt" style={{ display: 'none' }} onChange={openFile} />
+                <button onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                    style={btnSt({ background: bg, color: '#fbbf24', border: '1px solid #fbbf24' })}>📂 เปิดไฟล์</button>
+
+                {/* Copy */}
+                <button onClick={copyCode} style={btnSt({ background: copied ? '#10b981' : bg, color: copied ? '#fff' : '#94a3b8', border: `1px solid ${copied ? '#10b981' : border}` })}>
+                    {copied ? '✓ คัดลอกแล้ว' : '📋 คัดลอก'}
+                </button>
+
+                {/* Download */}
+                <button onClick={downloadCode} style={btnSt({ background: bg, color: '#34d399', border: '1px solid #34d399' })}>
+                    💾 ดาวน์โหลด .{langInfo.ext}
+                </button>
+
+                {/* AI teaser */}
+                <a href="#/register" style={{ ...btnSt({ background: '#7c3aed', color: '#fff', textDecoration: 'none' }), whiteSpace: 'nowrap' }}>
+                    🤖 AI (สมัครเพื่อใช้)
+                </a>
+
+                {/* Run */}
+                <button onClick={runCode} disabled={running}
+                    style={btnSt({ background: running ? '#475569' : 'linear-gradient(135deg,#3b82f6,#1d4ed8)', color: '#fff', opacity: running ? 0.7 : 1, padding: '6px 18px' })}>
+                    {running ? '⏳ กำลังรัน...' : '▶ รันโค้ด'}
+                </button>
+            </div>
+
+            {/* Main area */}
+            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: 0 }}>
+                {/* Left: tips + CTA */}
+                <div style={{ background: '#ffffff', borderRight: '1px solid #f1f5f9', padding: '16px 14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     {/* Info */}
-                    <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '12px 14px' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#1e40af', marginBottom: 6 }}>✏️ เขียนโค้ด C อิสระ</div>
-                        <p style={{ fontSize: 12, color: '#374151', margin: 0, lineHeight: 1.7 }}>
+                    <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#1e40af', marginBottom: 5 }}>✏️ เขียนโค้ดอิสระ</div>
+                        <p style={{ fontSize: 11, color: '#374151', margin: 0, lineHeight: 1.6 }}>
                             ไม่มีโจทย์ ไม่มีเกณฑ์ตัดสิน<br/>เขียนเองได้ตามต้องการ<br/>รัน Compile & Run ได้ทันที
                         </p>
                     </div>
 
-                    {/* Tips */}
+                    {/* Language tips */}
                     <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>💡 C Quick Tips</div>
-                        {_TIPS.map(t => (
-                            <div key={t.text} style={{ fontSize: 11, color: '#374151', marginBottom: 6, display: 'flex', alignItems: 'flex-start', gap: 6, lineHeight: 1.5 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            💡 {langInfo.label} Quick Tips
+                        </div>
+                        {tips.map(t => (
+                            <div key={t.code} style={{ fontSize: 11, color: '#374151', marginBottom: 6, display: 'flex', alignItems: 'flex-start', gap: 5, lineHeight: 1.5 }}>
                                 <span style={{ flexShrink: 0 }}>{t.icon}</span>
-                                <code style={{ background: '#f1f5f9', padding: '1px 4px', borderRadius: 4, fontSize: 10, color: '#475569' }}>{t.text}</code>
+                                <span>
+                                    <code style={{ background: '#f1f5f9', padding: '1px 4px', borderRadius: 4, fontSize: 10, color: '#475569', display: 'block', marginBottom: 1 }}>{t.code}</code>
+                                    <span style={{ fontSize: 10, color: '#6b7280' }}>{t.desc}</span>
+                                </span>
                             </div>
                         ))}
                     </div>
 
-                    {/* Reset button */}
-                    <button onClick={resetCode}
-                        style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e7eb', background: '#f9fafb', fontSize: 12, color: '#6b7280', cursor: 'pointer', fontFamily: "'Prompt',sans-serif", textAlign: 'center' }}>
-                        🔄 รีเซ็ตโค้ด
-                    </button>
-
                     {/* CTA */}
-                    <div style={{ background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '1px dashed #f9a8d4', borderRadius: 12, padding: '14px', textAlign: 'center', marginTop: 'auto' }}>
+                    <div style={{ marginTop: 'auto', background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '1px dashed #f9a8d4', borderRadius: 12, padding: 12, textAlign: 'center' }}>
                         <div style={{ fontSize: 11, color: '#be185d', fontWeight: 700, marginBottom: 4 }}>บันทึกโค้ด + ส่งงาน</div>
                         <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8, lineHeight: 1.5 }}>สมัครสมาชิกเพื่อปลดล็อก XP · AI Coach · Grade</div>
                         <div style={{ fontSize: 18, fontWeight: 900, color: '#be185d', letterSpacing: '0.12em', fontFamily: "'JetBrains Mono',monospace", marginBottom: 8 }}>FQE28Y</div>
-                        <a href="#/register" style={{ display: 'block', padding: '7px', borderRadius: 8, background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 11 }}>
-                            ✨ สมัครฟรี
-                        </a>
+                        <a href="#/register" style={{ display: 'block', padding: '7px', borderRadius: 8, background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 11 }}>✨ สมัครฟรี</a>
                     </div>
                 </div>
 
-                {/* Right: editor + output */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-                    {/* Editor toolbar */}
-                    <div style={{ background: '#1a1a2e', borderBottom: '1px solid #1e293b', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        <span style={{ fontSize: 11, color: '#64748b', marginRight: 4 }}>C Language</span>
-                        <div style={{ flex: 1 }} />
-                        <button onClick={() => setEditorFontSize(s => Math.max(10, s - 1))}
-                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 12, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A-</button>
-                        <span style={{ fontSize: 11, color: '#64748b', minWidth: 24, textAlign: 'center' }}>{editorFontSize}</span>
-                        <button onClick={() => setEditorFontSize(s => Math.min(28, s + 1))}
-                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 12, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A+</button>
-                        <select value={editorTheme} onChange={e => setEditorTheme(e.target.value)}
-                            style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 11, padding: '3px 6px', cursor: 'pointer' }}>
-                            {_EDITOR_THEMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                        </select>
+                {/* Right: editor + terminal */}
+                <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    {/* Editor */}
+                    <div className="gfe-editor" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        <CodeEditor value={code} onChange={setCode} language={language}
+                            placeholder={`// เขียนโค้ด ${langInfo.label} ที่นี่`}
+                            minHeight="100%" fontSize={fontSize} theme={theme} fontFamily={fontFamily} />
                     </div>
 
-                    {/* CodeEditor */}
-                    <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                        <CodeEditor
-                            value={code}
-                            onChange={setCode}
-                            language="c_cpp"
-                            placeholder="// เขียนโค้ด C ที่นี่..."
-                            minHeight="100%"
-                            fontSize={editorFontSize}
-                            theme={editorTheme}
-                        />
-                    </div>
-
-                    {/* Input + Run + Output */}
-                    <div style={{ background: '#0f172a', borderTop: '1px solid #334155', padding: '12px 16px', flexShrink: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: output || running ? 10 : 0 }}>
-                            <span style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0 }}>📥 Input:</span>
-                            <input
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                placeholder="ว่างไว้ถ้าไม่มี input"
-                                style={{ flex: 1, padding: '5px 10px', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0', fontFamily: "'Consolas',monospace", fontSize: 13, outline: 'none' }}
-                            />
-                            <button onClick={runCode} disabled={running}
-                                style={{ padding: '7px 20px', borderRadius: 10, border: 'none', background: running ? '#334155' : 'linear-gradient(135deg,#3b82f6,#1d4ed8)', color: 'white', fontFamily: "'Prompt',sans-serif", fontWeight: 700, fontSize: 13, cursor: running ? 'wait' : 'pointer', flexShrink: 0 }}>
-                                {running ? '⏳ กำลังรัน...' : '▶ Run'}
-                            </button>
+                    {/* Terminal */}
+                    <div style={{ background: '#020617', borderTop: `1px solid ${border}`, flexShrink: 0 }}>
+                        {/* Terminal header */}
+                        <div style={{ padding: '6px 14px', borderBottom: `1px solid #0f172a`, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+                            <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
+                            <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                            <span style={{ marginLeft: 8, fontFamily: "'Consolas',monospace", fontSize: 11, color: '#475569' }}>
+                                {filename || 'main'}.{langInfo.ext}
+                            </span>
+                            {output && (
+                                <button onClick={() => { setOutput(''); setHasError(false); }}
+                                    style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 11 }}>
+                                    ↺ ล้าง
+                                </button>
+                            )}
                         </div>
-
-                        {(output || running) && (
-                            <div>
-                                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Output:</div>
-                                <pre style={{
-                                    margin: 0,
-                                    color: hasError ? '#f87171' : '#4ade80',
-                                    fontFamily: "'Consolas',monospace", fontSize: 13,
-                                    lineHeight: 1.6, maxHeight: 160, overflowY: 'auto',
-                                    background: '#0a0a0a', padding: '8px 10px', borderRadius: 8,
-                                    whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                                }}>
-                                    {running ? '...' : output}
+                        {/* Input row */}
+                        <div style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid #0f172a` }}>
+                            <span style={{ fontSize: 11, color: '#64748b', flexShrink: 0 }}>📥 Input:</span>
+                            <input value={input} onChange={e => setInput(e.target.value)}
+                                placeholder="ว่างไว้ถ้าไม่มี input"
+                                style={{ flex: 1, padding: '4px 10px', background: '#1e293b', border: `1px solid ${border}`, borderRadius: 7, color: '#e2e8f0', fontFamily: "'Consolas',monospace", fontSize: 12, outline: 'none' }} />
+                        </div>
+                        {/* Output area */}
+                        <div style={{ padding: '10px 14px', minHeight: 80, maxHeight: 200, overflowY: 'auto' }}>
+                            {running ? (
+                                <div style={{ fontFamily: "'Consolas',monospace", fontSize: 12, color: '#94a3b8' }}>
+                                    <span style={{ color: '#34d399' }}>$ </span>กำลังประมวลผล...
+                                    <span style={{ display: 'inline-block', width: 8, height: '1.1em', background: '#34d399', marginLeft: 4, verticalAlign: 'middle', animation: 'termBlink 1s step-start infinite' }} />
+                                </div>
+                            ) : output ? (
+                                <pre style={{ margin: 0, fontFamily: "'Consolas',monospace", fontSize: 12, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: hasError ? '#f87171' : '#4ade80' }}>
+                                    {output}
                                 </pre>
-                            </div>
-                        )}
+                            ) : (
+                                <div style={{ fontFamily: "'Consolas',monospace", fontSize: 12, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ color: '#34d399' }}>$</span><span>กด </span>
+                                    <span style={{ color: '#3b82f6', fontWeight: 700 }}>▶ รันโค้ด</span>
+                                    <span style={{ display: 'inline-block', width: 8, height: '1.1em', background: '#334155', animation: 'termBlink 1s step-start infinite', verticalAlign: 'middle' }} />
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -440,16 +660,12 @@ const _GuestFreeEditor = ({ onBack }) => {
     );
 };
 
-// ── Main Landing Page ────────────────────────────────────────────────────────
+// ── Main Landing Page ─────────────────────────────────────────────────────────
 const GuestLandingPage = () => {
     const [active, setActive] = React.useState(null); // null | problem_obj | 'editor'
 
-    if (active === 'editor') {
-        return <_GuestFreeEditor onBack={() => setActive(null)} />;
-    }
-    if (active && typeof active === 'object') {
-        return <_GuestWorkspace problem={active} onBack={() => setActive(null)} />;
-    }
+    if (active === 'editor') return <_GuestFreeEditor onBack={() => setActive(null)} />;
+    if (active && typeof active === 'object') return <_GuestWorkspace problem={active} onBack={() => setActive(null)} />;
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#fdf2f8 0%,#fce7f3 50%,#fbcfe8 100%)', fontFamily: "'Prompt',sans-serif" }}>
@@ -466,124 +682,104 @@ const GuestLandingPage = () => {
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <a href="#/login" style={{ fontSize: 12, color: '#be185d', textDecoration: 'none', fontWeight: 600 }}>เข้าสู่ระบบ</a>
-                        <a href="#/register" style={{
-                            fontSize: 12, fontWeight: 700, color: 'white', textDecoration: 'none',
-                            background: 'linear-gradient(135deg,#ec4899,#be185d)',
-                            padding: '7px 16px', borderRadius: 20,
-                        }}>✨ สมัครฟรี</a>
+                        <a href="#/register" style={{ fontSize: 12, fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#ec4899,#be185d)', padding: '7px 16px', borderRadius: 20 }}>✨ สมัครฟรี</a>
                     </div>
                 </div>
             </div>
 
-            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px 60px' }}>
+            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px 56px' }}>
                 {/* Hero */}
-                <div style={{ textAlign: 'center', marginBottom: 44 }}>
-                    <div style={{ fontSize: 56, marginBottom: 14 }}>💻</div>
-                    <h1 style={{ fontSize: 28, fontWeight: 700, color: '#be185d', margin: '0 0 10px' }}>
-                        ทดลองเขียนโปรแกรม C ได้เลย!
+                <div style={{ textAlign: 'center', marginBottom: 40 }}>
+                    <div style={{ fontSize: 52, marginBottom: 12 }}>💻</div>
+                    <h1 style={{ fontSize: 26, fontWeight: 700, color: '#be185d', margin: '0 0 10px' }}>
+                        ทดลองเขียนโปรแกรมได้เลย!
                     </h1>
-                    <p style={{ fontSize: 14, color: '#6b7280', maxWidth: 500, margin: '0 auto 20px', lineHeight: 1.8 }}>
-                        เลือกโจทย์ตัวอย่าง 1 ใน 4 หน่วย เขียนโค้ด แล้วกด Run ดูผลทันที<br/>
-                        ไม่ต้องสมัครสมาชิก ไม่ต้อง login
+                    <p style={{ fontSize: 13, color: '#6b7280', maxWidth: 520, margin: '0 auto 16px', lineHeight: 1.8 }}>
+                        รองรับหลายภาษา · เลือกโจทย์ตัวอย่าง 4 หน่วย หรือเขียนโค้ดอิสระ<br/>
+                        ไม่ต้องสมัครสมาชิก ไม่ต้อง login · Compile & Run จริงทุกภาษา
                     </p>
-                    <div style={{ display: 'inline-flex', gap: 20, background: 'white', borderRadius: 20, padding: '12px 24px', boxShadow: '0 2px 16px rgba(236,72,153,.1)' }}>
-                        {['⚡ Compile & Run จริง', '🆓 ฟรี 100%', '📱 ใช้ได้ทุกอุปกรณ์', '🎨 CodeMirror Editor'].map(f => (
-                            <span key={f} style={{ fontSize: 12, color: '#be185d', fontWeight: 600 }}>{f}</span>
+                    {/* Language badges */}
+                    <div style={{ display: 'inline-flex', gap: 10, background: 'white', borderRadius: 20, padding: '10px 20px', boxShadow: '0 2px 16px rgba(236,72,153,.1)', marginBottom: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                        {_DEMO_LANGS.map(l => (
+                            <span key={l.value} style={{ fontSize: 12, fontWeight: 700, color: l.color, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: l.color, display: 'inline-block' }} />
+                                {l.label}
+                            </span>
+                        ))}
+                        <span style={{ fontSize: 12, color: '#9ca3af' }}>·</span>
+                        {['⚡ Compile & Run จริง', '🆓 ฟรี 100%', '🎨 CodeMirror Editor'].map(f => (
+                            <span key={f} style={{ fontSize: 11, color: '#be185d', fontWeight: 600 }}>{f}</span>
                         ))}
                     </div>
                 </div>
 
-                {/* Problem cards — 4 columns, single row */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 48 }}>
+                {/* Problem cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 44 }}>
                     {_DEMO_PROBLEMS.map(p => {
                         const c = p.unitColor;
                         return (
-                            <div key={p.id}
-                                onClick={() => setActive(p)}
-                                style={{
-                                    background: c.bg, border: `2px solid ${c.border}`,
-                                    borderRadius: 20, padding: '24px 20px',
-                                    cursor: 'pointer', transition: 'transform .2s, box-shadow .2s',
-                                    boxShadow: '0 2px 12px rgba(0,0,0,.04)',
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,.12)'; }}
+                            <div key={p.id} onClick={() => setActive(p)}
+                                style={{ background: c.bg, border: `2px solid ${c.border}`, borderRadius: 20, padding: '22px 18px', cursor: 'pointer', transition: 'transform .2s, box-shadow .2s', boxShadow: '0 2px 12px rgba(0,0,0,.04)' }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,.12)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,.04)'; }}
                             >
-                                <div style={{ fontSize: 36, marginBottom: 12 }}>{p.icon}</div>
-                                <div style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, color: c.tagText, background: c.tag, padding: '2px 8px', borderRadius: 10, marginBottom: 10 }}>
-                                    {p.unitName}
+                                <div style={{ fontSize: 34, marginBottom: 10 }}>{p.icon}</div>
+                                <div style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, color: c.tagText, background: c.tag, padding: '2px 8px', borderRadius: 10, marginBottom: 8 }}>{p.unitName}</div>
+                                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1f2937', margin: '0 0 6px', lineHeight: 1.3 }}>{p.title}</h3>
+                                <p style={{ fontSize: 11, color: '#6b7280', margin: '0 0 14px', lineHeight: 1.5 }}>{p.description.split('\n')[0]}</p>
+                                {/* Language badges */}
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
+                                    {_DEMO_LANGS.map(l => (
+                                        <span key={l.value} style={{ fontSize: 9, fontWeight: 700, color: l.color, background: l.color + '18', padding: '1px 6px', borderRadius: 6 }}>{l.label}</span>
+                                    ))}
                                 </div>
-                                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1f2937', margin: '0 0 8px', lineHeight: 1.3 }}>{p.title}</h3>
-                                <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>
-                                    {p.description.split('\n')[0]}
-                                </p>
-                                <div style={{
-                                    textAlign: 'center', padding: '9px', borderRadius: 12,
-                                    background: c.btn, color: 'white',
-                                    fontWeight: 700, fontSize: 13,
-                                }}>
-                                    ▶ เริ่มทำโจทย์
-                                </div>
+                                <div style={{ textAlign: 'center', padding: '8px', borderRadius: 10, background: c.btn, color: 'white', fontWeight: 700, fontSize: 12 }}>▶ เริ่มทำโจทย์</div>
                             </div>
                         );
                     })}
                 </div>
 
                 {/* Free Editor banner */}
-                <div
-                    onClick={() => setActive('editor')}
+                <div onClick={() => setActive('editor')}
                     style={{ cursor: 'pointer', borderRadius: 20, marginBottom: 28, overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg,#1e1b4b,#312e81,#1e3a5f)', boxShadow: '0 8px 32px rgba(99,102,241,.25)', transition: 'transform .2s, box-shadow .2s' }}
                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px rgba(99,102,241,.35)'; }}
                     onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(99,102,241,.25)'; }}
                 >
-                    {/* fake code lines decorative */}
-                    <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '45%', padding: '16px 24px', opacity: 0.18, fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: '#a5b4fc', lineHeight: 1.8, overflow: 'hidden', pointerEvents: 'none' }}>
-                        {'#include <stdio.h>\n\nint main() {\n    int n, sum = 0;\n    scanf("%d", &n);\n    for(int i=1;i<=n;i++)\n        sum += i;\n    printf("%d\\n", sum);\n    return 0;\n}'.split('\n').map((ln, i) => <div key={i}>{ln}</div>)}
+                    <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '40%', padding: '16px 24px', opacity: 0.15, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: '#a5b4fc', lineHeight: 1.8, overflow: 'hidden', pointerEvents: 'none' }}>
+                        {'public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello!");\n  }\n}'.split('\n').map((ln, i) => <div key={i}>{ln}</div>)}
                     </div>
-                    <div style={{ position: 'relative', padding: '28px 36px', display: 'flex', alignItems: 'center', gap: 28 }}>
-                        <div style={{ fontSize: 48, flexShrink: 0 }}>✏️</div>
+                    <div style={{ position: 'relative', padding: '24px 32px', display: 'flex', alignItems: 'center', gap: 24 }}>
+                        <div style={{ fontSize: 44, flexShrink: 0 }}>✏️</div>
                         <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 20, fontWeight: 800, color: 'white', marginBottom: 6 }}>Free C Editor — เขียนโค้ดอิสระ</div>
-                            <div style={{ fontSize: 13, color: '#a5b4fc', lineHeight: 1.7 }}>
-                                ไม่มีโจทย์ ไม่มีเกณฑ์ · CodeMirror Editor · Compile & Run ผ่าน Piston API · เลือก Theme & Font ได้
+                            <div style={{ fontSize: 18, fontWeight: 800, color: 'white', marginBottom: 5 }}>Free Code Editor — เขียนโค้ดอิสระ</div>
+                            <div style={{ fontSize: 12, color: '#a5b4fc', lineHeight: 1.7 }}>
+                                รองรับ C · C++ · Python · Java · ไม่มีโจทย์ ไม่มีเกณฑ์ · Compile & Run จริง · Font & Theme เลือกได้
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                                {_DEMO_LANGS.map(l => (
+                                    <span key={l.value} style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: l.color + 'aa', padding: '2px 8px', borderRadius: 8 }}>{l.label}</span>
+                                ))}
                             </div>
                         </div>
-                        <div style={{ flexShrink: 0, background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: 'white', padding: '12px 28px', borderRadius: 14, fontWeight: 700, fontSize: 14, boxShadow: '0 4px 16px rgba(99,102,241,.5)' }}>
-                            เปิด Editor →
-                        </div>
+                        <div style={{ flexShrink: 0, background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: 'white', padding: '11px 24px', borderRadius: 14, fontWeight: 700, fontSize: 13, boxShadow: '0 4px 16px rgba(99,102,241,.5)' }}>เปิด Editor →</div>
                     </div>
                 </div>
 
-                {/* CTA — room code */}
+                {/* CTA */}
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ background: 'white', borderRadius: 24, padding: '32px 40px', display: 'inline-block', boxShadow: '0 4px 24px rgba(236,72,153,.12)', maxWidth: 560, width: '100%' }}>
-                        <p style={{ fontSize: 17, color: '#374151', margin: '0 0 6px', fontWeight: 700 }}>
-                            อยากได้ฟีเจอร์เพิ่มเติม?
-                        </p>
-                        <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 20px', lineHeight: 1.7 }}>
+                    <div style={{ background: 'white', borderRadius: 24, padding: '28px 36px', display: 'inline-block', boxShadow: '0 4px 24px rgba(236,72,153,.12)', maxWidth: 540, width: '100%' }}>
+                        <p style={{ fontSize: 16, color: '#374151', margin: '0 0 6px', fontWeight: 700 }}>อยากได้ฟีเจอร์เพิ่มเติม?</p>
+                        <p style={{ fontSize: 12, color: '#9ca3af', margin: '0 0 18px', lineHeight: 1.7 }}>
                             สมัครสมาชิกแล้วเข้าห้องเรียนเพื่อปลดล็อก XP, อันดับ, เกม, AI Coach และโจทย์ครบทุกหน่วย
                         </p>
-
-                        {/* Room code */}
-                        <div style={{ background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '2px dashed #f9a8d4', borderRadius: 16, padding: '16px 24px', marginBottom: 20 }}>
-                            <div style={{ fontSize: 12, color: '#be185d', fontWeight: 600, marginBottom: 6 }}>🏫 รหัสห้องเรียน</div>
-                            <div style={{ fontSize: 44, fontWeight: 900, color: '#be185d', letterSpacing: '0.18em', fontFamily: "'JetBrains Mono','Consolas',monospace" }}>
-                                FQE28Y
-                            </div>
-                            <div style={{ fontSize: 11, color: '#f472b6', marginTop: 4 }}>ใช้รหัสนี้เมื่อสมัครสมาชิกเพื่อเข้าร่วมชั้นเรียน</div>
+                        <div style={{ background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '2px dashed #f9a8d4', borderRadius: 16, padding: '14px 20px', marginBottom: 16 }}>
+                            <div style={{ fontSize: 11, color: '#be185d', fontWeight: 600, marginBottom: 5 }}>🏫 รหัสห้องเรียน</div>
+                            <div style={{ fontSize: 40, fontWeight: 900, color: '#be185d', letterSpacing: '0.18em', fontFamily: "'JetBrains Mono','Consolas',monospace" }}>FQE28Y</div>
+                            <div style={{ fontSize: 11, color: '#f472b6', marginTop: 3 }}>ใช้รหัสนี้เมื่อสมัครสมาชิกเพื่อเข้าร่วมชั้นเรียน</div>
                         </div>
-
-                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                            <a href="#/login" style={{
-                                padding: '11px 26px', borderRadius: 12,
-                                border: '1.5px solid #f9a8d4', color: '#be185d',
-                                textDecoration: 'none', fontWeight: 600, fontSize: 14,
-                            }}>เข้าสู่ระบบ</a>
-                            <a href="#/register" style={{
-                                padding: '11px 26px', borderRadius: 12,
-                                background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white',
-                                textDecoration: 'none', fontWeight: 700, fontSize: 14,
-                            }}>✨ สมัครสมาชิกฟรี</a>
+                        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                            <a href="#/login" style={{ padding: '10px 22px', borderRadius: 12, border: '1.5px solid #f9a8d4', color: '#be185d', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>เข้าสู่ระบบ</a>
+                            <a href="#/register" style={{ padding: '10px 22px', borderRadius: 12, background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 13 }}>✨ สมัครสมาชิกฟรี</a>
                         </div>
                     </div>
                 </div>
