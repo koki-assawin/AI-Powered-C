@@ -1,4 +1,4 @@
-// js/pages/admin/UsageAnalytics.js — Usage Analytics Dashboard (v1.0)
+// js/pages/admin/UsageAnalytics.js — Usage Analytics Dashboard (v1.1)
 // ข้อมูลจาก usageEvents collection: code_run, sample_test, submission, ai_analyze, ai_hint, ai_chat, demo_run
 
 // ── Chart helper (destroy old → create new) ──────────────────────────────────
@@ -230,7 +230,7 @@ const _CourseTab = ({ events, courses }) => {
     });
 
     const rows = Object.entries(courseCounts)
-        .map(([cid, counts]) => ({ cid, name: courses[cid]?.name || (cid === '_none' ? 'ไม่ระบุ' : cid), ...counts }))
+        .map(([cid, counts]) => ({ cid, name: courses[cid]?.title || courses[cid]?.name || (cid === '_none' ? 'ไม่ระบุ' : cid), ...counts }))
         .sort((a, b) => b.total - a.total)
         .slice(0, 15);
 
