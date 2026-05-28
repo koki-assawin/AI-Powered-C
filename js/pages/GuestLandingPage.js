@@ -1,4 +1,5 @@
-// js/pages/GuestLandingPage.js — Demo/Guest Mode (v3.1)
+// js/pages/GuestLandingPage.js — Demo/Guest Mode (v3.2)
+// AI features: วิเคราะห์โค้ด + คำใบ้ AI + แชทบอท (ทั้ง Workspace และ Free Editor)
 // Multi-language: C · C++ · Python · Java
 // ไม่ต้องการ Firebase Auth — ทำงานอิสระโดยสมบูรณ์
 
@@ -193,6 +194,13 @@ const _GuestWorkspace = ({ problem, onBack }) => {
     const [fontSize,  setFontSize]  = React.useState(14);
     const [fontFamily,setFontFamily]= React.useState('Consolas');
     const [theme,     setTheme]     = React.useState('dracula');
+    const [aiPanel,    setAiPanel]    = React.useState(null); // null|'analyze'|'hint'|'chat'
+    const [aiLoading,  setAiLoading]  = React.useState(false);
+    const [analyzeRes, setAnalyzeRes] = React.useState(null);
+    const [hintLevel,  setHintLevel]  = React.useState(1);
+    const [aiHintText, setAiHintText] = React.useState('');
+    const [chatMsgs,   setChatMsgs]   = React.useState([]);
+    const [chatInput,  setChatInput]  = React.useState('');
 
     const c = problem.unitColor;
     const bg = '#0f172a', panel = '#1e293b', border = '#334155';
@@ -227,6 +235,51 @@ const _GuestWorkspace = ({ problem, onBack }) => {
             setCode(problem.starterCode[language]);
             setOutput(''); setVerdict(null);
         }
+    };
+
+    const doAnalyze = async () => {
+        if (aiLoading) return;
+        setAiLoading(true); setAnalyzeRes(null);
+        try {
+            const res = await analyzeCode(code, language);
+            setAnalyzeRes(res);
+            if (typeof logUsageEvent === 'function')
+                logUsageEvent('demo', 'ai_analyze', { problemId: problem.id, userType: 'demo', lang: language });
+        } catch (_) {
+            setAnalyzeRes({ feedback: 'ไม่สามารถวิเคราะห์โค้ดได้ในขณะนี้ กรุณาลองใหม่' });
+        }
+        setAiLoading(false);
+    };
+
+    const doHint = async (level) => {
+        if (aiLoading) return;
+        setAiLoading(true); setHintLevel(level); setAiHintText('');
+        try {
+            const h = await getScaffoldingHint(code, language, problem.title, problem.description, [], level);
+            setAiHintText(h);
+            if (typeof logUsageEvent === 'function')
+                logUsageEvent('demo', 'ai_hint', { problemId: problem.id, userType: 'demo', lang: language, hintLevel: level });
+        } catch (_) {
+            setAiHintText('ไม่สามารถขอคำใบ้ได้ในขณะนี้');
+        }
+        setAiLoading(false);
+    };
+
+    const doChat = async () => {
+        if (!chatInput.trim() || aiLoading) return;
+        const q = chatInput.trim();
+        setChatMsgs(m => [...m, { role: 'user', text: q }]);
+        setChatInput('');
+        setAiLoading(true);
+        try {
+            const resp = await chatWithAI(q + '\n\n(โจทย์: ' + problem.title + ')', language);
+            setChatMsgs(m => [...m, { role: 'ai', text: resp }]);
+            if (typeof logUsageEvent === 'function')
+                logUsageEvent('demo', 'ai_chat', { problemId: problem.id, userType: 'demo', lang: language });
+        } catch (_) {
+            setChatMsgs(m => [...m, { role: 'ai', text: 'ไม่สามารถตอบได้ในขณะนี้' }]);
+        }
+        setAiLoading(false);
     };
 
     const verdictStyle = {
@@ -349,6 +402,99 @@ const _GuestWorkspace = ({ problem, onBack }) => {
                         ))}
                     </div>
 
+                    {/* AI Section */}
+                    <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 10 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>🤖 AI Assistant</div>
+                        <div style={{ display: 'flex', gap: 4, marginBottom: aiPanel ? 8 : 0, flexWrap: 'wrap' }}>
+                            {[['analyze','#7c3aed','🔍 วิเคราะห์'],['hint','#f59e0b','💡 คำใบ้ AI'],['chat','#3b82f6','💬 แชท']].map(([key,col,label]) => (
+                                <button key={key} onClick={() => setAiPanel(aiPanel === key ? null : key)}
+                                    style={{ padding: '4px 9px', borderRadius: 7, border: `1px solid ${col}44`, fontSize: 11, cursor: 'pointer', fontFamily: "'Prompt',sans-serif", fontWeight: 600,
+                                        background: aiPanel === key ? col : '#f9fafb', color: aiPanel === key ? 'white' : col }}>
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                        {/* Analyze panel */}
+                        {aiPanel === 'analyze' && (
+                            <div>
+                                <button onClick={doAnalyze} disabled={aiLoading}
+                                    style={{ width: '100%', padding: '6px', marginBottom: 6, borderRadius: 8, background: aiLoading ? '#ddd6fe' : '#7c3aed', color: 'white', border: 'none', cursor: aiLoading ? 'wait' : 'pointer', fontSize: 12, fontFamily: "'Prompt',sans-serif", fontWeight: 600 }}>
+                                    {aiLoading ? '⏳ กำลังวิเคราะห์...' : '🔍 วิเคราะห์โค้ดนี้'}
+                                </button>
+                                {analyzeRes && (
+                                    <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 8, padding: '8px 10px', fontSize: 11 }}>
+                                        {analyzeRes.metrics && (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginBottom: 8 }}>
+                                                {Object.entries(analyzeRes.metrics).slice(0,4).map(([k,v]) => (
+                                                    <div key={k} style={{ background: '#ede9fe', borderRadius: 6, padding: '4px 6px', textAlign: 'center' }}>
+                                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>{v}</div>
+                                                        <div style={{ fontSize: 9, color: '#8b5cf6' }}>
+                                                            {k === 'quality' ? 'คุณภาพ' : k === 'correctness' ? 'ถูกต้อง' : k === 'efficiency' ? 'ประสิทธิภาพ' : 'อ่านง่าย'}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <p style={{ margin: '0 0 5px', color: '#374151', lineHeight: 1.5 }}>{analyzeRes.feedback}</p>
+                                        {analyzeRes.suggestion && <p style={{ margin: 0, color: '#6b7280', fontSize: 10, lineHeight: 1.5 }}>💡 {analyzeRes.suggestion}</p>}
+                                    </div>
+                                )}
+                                {!analyzeRes && !aiLoading && (
+                                    <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 11, padding: '10px 0' }}>กดปุ่มเพื่อวิเคราะห์โค้ด</div>
+                                )}
+                            </div>
+                        )}
+                        {/* Hint panel */}
+                        {aiPanel === 'hint' && (
+                            <div>
+                                <div style={{ fontSize: 11, color: '#92400e', marginBottom: 6 }}>เลือกระดับคำใบ้:</div>
+                                <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+                                    {[1,2,3].map(lv => (
+                                        <button key={lv} onClick={() => doHint(lv)} disabled={aiLoading}
+                                            style={{ flex: 1, padding: '5px 4px', borderRadius: 7, background: hintLevel === lv && aiHintText ? '#f59e0b' : '#fef3c7', color: '#92400e', border: '1px solid #fde68a', cursor: aiLoading ? 'wait' : 'pointer', fontSize: 11, fontFamily: "'Prompt',sans-serif", fontWeight: 600 }}>
+                                            {aiLoading && hintLevel === lv ? '⏳' : `ระดับ ${lv}`}
+                                        </button>
+                                    ))}
+                                </div>
+                                {aiHintText && (
+                                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', fontSize: 11, color: '#92400e', lineHeight: 1.6 }}>
+                                        {aiHintText}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {/* Chat panel */}
+                        {aiPanel === 'chat' && (
+                            <div>
+                                <div style={{ maxHeight: 140, minHeight: 40, overflowY: 'auto', marginBottom: 6, display: 'flex', flexDirection: 'column', gap: 5, padding: '2px 0' }}>
+                                    {chatMsgs.length === 0 && (
+                                        <div style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center', padding: '10px 0' }}>ถามเกี่ยวกับโจทย์หรือโค้ดได้เลย</div>
+                                    )}
+                                    {chatMsgs.map((m, i) => (
+                                        <div key={i} style={{ padding: '5px 7px', borderRadius: 7, fontSize: 11, lineHeight: 1.5,
+                                            background: m.role === 'user' ? '#eff6ff' : '#f0fdf4',
+                                            color: m.role === 'user' ? '#1e40af' : '#166534',
+                                            alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                                            border: m.role === 'user' ? '1px solid #bfdbfe' : '1px solid #bbf7d0',
+                                            maxWidth: '88%',
+                                        }}>{m.text}</div>
+                                    ))}
+                                    {aiLoading && aiPanel === 'chat' && <div style={{ fontSize: 11, color: '#9ca3af', alignSelf: 'flex-start' }}>⏳ AI กำลังคิด...</div>}
+                                </div>
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                    <input value={chatInput} onChange={e => setChatInput(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && doChat()}
+                                        placeholder="ถาม AI... (Enter)"
+                                        style={{ flex: 1, padding: '5px 8px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 11, fontFamily: "'Prompt',sans-serif", outline: 'none' }} />
+                                    <button onClick={doChat} disabled={aiLoading || !chatInput.trim()}
+                                        style={{ padding: '5px 9px', background: chatInput.trim() ? '#3b82f6' : '#e5e7eb', color: chatInput.trim() ? 'white' : '#9ca3af', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 11, fontFamily: "'Prompt',sans-serif" }}>
+                                        ส่ง
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* CTA */}
                     <div style={{ marginTop: 'auto', background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', border: '1px dashed #f9a8d4', borderRadius: 12, padding: 12, textAlign: 'center' }}>
                         <div style={{ fontSize: 11, color: '#be185d', fontWeight: 700, marginBottom: 4 }}>ปลดล็อกฟีเจอร์เพิ่มเติม</div>
@@ -421,6 +567,11 @@ const _GuestFreeEditor = ({ onBack }) => {
     const [theme,      setTheme]     = React.useState('dracula');
     const [copied,     setCopied]    = React.useState(false);
     const fileInputRef = React.useRef(null);
+    const [aiPanel,    setAiPanel]    = React.useState(null); // null|'analyze'|'chat'
+    const [aiLoading,  setAiLoading]  = React.useState(false);
+    const [analyzeRes, setAnalyzeRes] = React.useState(null);
+    const [chatMsgs,   setChatMsgs]   = React.useState([]);
+    const [chatInput,  setChatInput]  = React.useState('');
 
     const bg = '#0f172a', panel = '#1e293b', border = '#334155';
     const btnSt = (extra = {}) => ({
@@ -483,6 +634,37 @@ const _GuestFreeEditor = ({ onBack }) => {
         reader.onload = (ev) => { setCode(ev.target.result || ''); setOutput(''); };
         reader.readAsText(file);
         e.target.value = '';
+    };
+
+    const doAnalyzeFE = async () => {
+        if (aiLoading) return;
+        setAiLoading(true); setAnalyzeRes(null);
+        try {
+            const res = await analyzeCode(code, language);
+            setAnalyzeRes(res);
+            if (typeof logUsageEvent === 'function')
+                logUsageEvent('demo', 'ai_analyze', { problemId: 'free_editor', userType: 'demo', lang: language });
+        } catch (_) {
+            setAnalyzeRes({ feedback: 'ไม่สามารถวิเคราะห์โค้ดได้ในขณะนี้' });
+        }
+        setAiLoading(false);
+    };
+
+    const doChatFE = async () => {
+        if (!chatInput.trim() || aiLoading) return;
+        const q = chatInput.trim();
+        setChatMsgs(m => [...m, { role: 'user', text: q }]);
+        setChatInput('');
+        setAiLoading(true);
+        try {
+            const resp = await chatWithAI(q, language);
+            setChatMsgs(m => [...m, { role: 'ai', text: resp }]);
+            if (typeof logUsageEvent === 'function')
+                logUsageEvent('demo', 'ai_chat', { problemId: 'free_editor', userType: 'demo', lang: language });
+        } catch (_) {
+            setChatMsgs(m => [...m, { role: 'ai', text: 'ไม่สามารถตอบได้ในขณะนี้' }]);
+        }
+        setAiLoading(false);
     };
 
     return (
@@ -567,10 +749,15 @@ const _GuestFreeEditor = ({ onBack }) => {
                     💾 ดาวน์โหลด .{langInfo.ext}
                 </button>
 
-                {/* AI teaser */}
-                <a href="#/register" style={{ ...btnSt({ background: '#7c3aed', color: '#fff', textDecoration: 'none' }), whiteSpace: 'nowrap' }}>
-                    🤖 AI (สมัครเพื่อใช้)
-                </a>
+                {/* AI buttons */}
+                <button onClick={() => setAiPanel(aiPanel === 'analyze' ? null : 'analyze')}
+                    style={btnSt({ background: aiPanel === 'analyze' ? '#7c3aed' : bg, color: aiPanel === 'analyze' ? '#fff' : '#a78bfa', border: '1px solid #7c3aed44' })}>
+                    🔍 วิเคราะห์
+                </button>
+                <button onClick={() => setAiPanel(aiPanel === 'chat' ? null : 'chat')}
+                    style={btnSt({ background: aiPanel === 'chat' ? '#3b82f6' : bg, color: aiPanel === 'chat' ? '#fff' : '#60a5fa', border: '1px solid #3b82f644' })}>
+                    💬 แชท AI
+                </button>
 
                 {/* Run */}
                 <button onClick={runCode} disabled={running}
@@ -580,7 +767,7 @@ const _GuestFreeEditor = ({ onBack }) => {
             </div>
 
             {/* Main area */}
-            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: 0 }}>
+            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: aiPanel ? '220px 1fr 300px' : '220px 1fr', minHeight: 0 }}>
                 {/* Left: tips + CTA */}
                 <div style={{ background: '#ffffff', borderRight: '1px solid #f1f5f9', padding: '16px 14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     {/* Info */}
@@ -670,6 +857,94 @@ const _GuestFreeEditor = ({ onBack }) => {
                         </div>
                     </div>
                 </div>
+
+                {/* AI Panel — right column */}
+                {aiPanel && (
+                    <div style={{ background: '#0f172a', borderLeft: `1px solid ${border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        {/* Header */}
+                        <div style={{ padding: '8px 12px', borderBottom: `1px solid ${border}`, display: 'flex', gap: 6, alignItems: 'center', background: panel, flexShrink: 0 }}>
+                            <button onClick={() => setAiPanel('analyze')}
+                                style={{ padding: '4px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: "'Prompt',sans-serif", fontWeight: 600,
+                                    background: aiPanel === 'analyze' ? '#7c3aed' : '#1e293b', color: aiPanel === 'analyze' ? 'white' : '#a78bfa' }}>
+                                🔍 วิเคราะห์
+                            </button>
+                            <button onClick={() => setAiPanel('chat')}
+                                style={{ padding: '4px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: "'Prompt',sans-serif", fontWeight: 600,
+                                    background: aiPanel === 'chat' ? '#3b82f6' : '#1e293b', color: aiPanel === 'chat' ? 'white' : '#60a5fa' }}>
+                                💬 แชท
+                            </button>
+                            <button onClick={() => setAiPanel(null)}
+                                style={{ marginLeft: 'auto', padding: '4px 8px', borderRadius: 6, border: 'none', background: '#334155', color: '#64748b', cursor: 'pointer', fontSize: 12 }}>
+                                ✕
+                            </button>
+                        </div>
+                        {/* Analyze view */}
+                        {aiPanel === 'analyze' && (
+                            <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
+                                <button onClick={doAnalyzeFE} disabled={aiLoading}
+                                    style={{ width: '100%', padding: '8px', marginBottom: 12, borderRadius: 9, background: aiLoading ? '#4c1d95' : '#7c3aed', color: 'white', border: 'none', cursor: aiLoading ? 'wait' : 'pointer', fontSize: 13, fontFamily: "'Prompt',sans-serif", fontWeight: 600 }}>
+                                    {aiLoading ? '⏳ กำลังวิเคราะห์...' : '🔍 วิเคราะห์โค้ดนี้'}
+                                </button>
+                                {analyzeRes && (
+                                    <div style={{ color: '#e2e8f0' }}>
+                                        {analyzeRes.metrics && (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
+                                                {Object.entries(analyzeRes.metrics).slice(0,4).map(([k,v]) => (
+                                                    <div key={k} style={{ background: '#1e1b4b', borderRadius: 8, padding: '8px 6px', textAlign: 'center', border: '1px solid #3730a3' }}>
+                                                        <div style={{ fontSize: 16, fontWeight: 700, color: '#a78bfa' }}>{v}</div>
+                                                        <div style={{ fontSize: 9, color: '#818cf8', marginTop: 2 }}>
+                                                            {k === 'quality' ? 'คุณภาพ' : k === 'correctness' ? 'ถูกต้อง' : k === 'efficiency' ? 'ประสิทธิภาพ' : 'อ่านง่าย'}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <p style={{ fontSize: 12, lineHeight: 1.7, margin: '0 0 8px', color: '#cbd5e1' }}>{analyzeRes.feedback}</p>
+                                        {analyzeRes.suggestion && <p style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>💡 {analyzeRes.suggestion}</p>}
+                                    </div>
+                                )}
+                                {!analyzeRes && !aiLoading && (
+                                    <div style={{ textAlign: 'center', color: '#475569', fontSize: 12, paddingTop: 30, lineHeight: 2 }}>
+                                        <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+                                        กดปุ่มเพื่อวิเคราะห์<br/>โค้ดด้วย AI
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {/* Chat view */}
+                        {aiPanel === 'chat' && (
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {chatMsgs.length === 0 && (
+                                        <div style={{ textAlign: 'center', color: '#475569', fontSize: 12, paddingTop: 30, lineHeight: 2 }}>
+                                            <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
+                                            ถามคำถามเกี่ยวกับ<br/>การเขียนโปรแกรมได้เลย
+                                        </div>
+                                    )}
+                                    {chatMsgs.map((m, i) => (
+                                        <div key={i} style={{ padding: '7px 10px', borderRadius: 9, fontSize: 12, lineHeight: 1.6, maxWidth: '90%',
+                                            background: m.role === 'user' ? '#1e3a5f' : '#172554',
+                                            color: m.role === 'user' ? '#93c5fd' : '#86efac',
+                                            alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                                            border: m.role === 'user' ? '1px solid #1e40af' : '1px solid #166534',
+                                        }}>{m.text}</div>
+                                    ))}
+                                    {aiLoading && <div style={{ fontSize: 12, color: '#64748b', alignSelf: 'flex-start' }}>⏳ AI กำลังคิด...</div>}
+                                </div>
+                                <div style={{ padding: '8px 12px', borderTop: `1px solid ${border}`, display: 'flex', gap: 6, flexShrink: 0 }}>
+                                    <input value={chatInput} onChange={e => setChatInput(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && doChatFE()}
+                                        placeholder="ถาม AI... (Enter)"
+                                        style={{ flex: 1, padding: '6px 10px', background: '#1e293b', border: `1px solid ${border}`, borderRadius: 8, color: '#e2e8f0', fontFamily: "'Consolas',monospace", fontSize: 12, outline: 'none' }} />
+                                    <button onClick={doChatFE} disabled={aiLoading || !chatInput.trim()}
+                                        style={{ padding: '6px 12px', background: chatInput.trim() ? '#3b82f6' : '#334155', color: chatInput.trim() ? 'white' : '#64748b', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontFamily: "'Prompt',sans-serif" }}>
+                                        ส่ง
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
