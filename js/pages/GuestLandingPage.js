@@ -1,4 +1,4 @@
-// js/pages/GuestLandingPage.js — Demo/Guest Mode (v3.0)
+// js/pages/GuestLandingPage.js — Demo/Guest Mode (v3.1)
 // Multi-language: C · C++ · Python · Java
 // ไม่ต้องการ Firebase Auth — ทำงานอิสระโดยสมบูรณ์
 
@@ -150,20 +150,35 @@ const _DEMO_PROBLEMS = [
     },
 ];
 
-// ── Run helper (Piston → Judge0 fallback, correct field names) ────────────────
+// ── Run helper (Wandbox → Piston fallback, correct field names) ───────────────
 const _runCode = async (code, language, input) => {
-    const tryRun = async (fn) => {
-        const res = await fn(code, language, input || '');
-        const out = (res.program_output || '').trim();
-        const err = (res.compiler_error || res.program_error || '').trim();
+    const normalize = (data) => {
+        const out = (data.program_output || '').trim();
+        const err = (data.compiler_error || data.program_error || '').trim();
         if (err && !out) return { output: err, isError: true };
         return { output: out || '(ไม่มีผลลัพธ์)', isError: false };
     };
-    try { return await tryRun(runWithPiston); }
-    catch (_) {
-        try { return await tryRun(runWithJudge0); }
-        catch (e) { return { output: 'เชื่อมต่อ compiler ไม่สำเร็จ: ' + e.message, isError: true }; }
+
+    // 1. Wandbox (C/C++/Python — Java ข้าม เพราะ class name ไม่ตรง filename)
+    if (language !== 'java') {
+        try {
+            const wbBody = { compiler: WANDBOX_COMPILER[language] || 'gcc-head', code, stdin: input || '' };
+            if (WANDBOX_OPTIONS[language]) wbBody.options = WANDBOX_OPTIONS[language];
+            const wbRes = await fetch(WANDBOX_URL, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(wbBody),
+            });
+            if (wbRes.ok) return normalize(await wbRes.json());
+        } catch (_) {}
     }
+
+    // 2. Piston (all languages)
+    try {
+        return normalize(await runWithPiston(code, language, input || ''));
+    } catch (_) {}
+
+    // 3. All APIs unavailable
+    return { output: 'ระบบ compiler ไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง', isError: true };
 };
 
 // ── Problem Workspace ─────────────────────────────────────────────────────────
