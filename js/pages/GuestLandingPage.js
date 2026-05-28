@@ -1,4 +1,4 @@
-// js/pages/GuestLandingPage.js — Demo/Guest Mode (v3.3)
+// js/pages/GuestLandingPage.js — Demo/Guest Mode (v3.4)
 // AI features: วิเคราะห์โค้ด + คำใบ้ AI + แชทบอท (ทั้ง Workspace และ Free Editor)
 // Multi-language: C · C++ · Python · Java
 // ไม่ต้องการ Firebase Auth — ทำงานอิสระโดยสมบูรณ์
@@ -359,7 +359,7 @@ const _GuestWorkspace = ({ problem, onBack }) => {
             {/* Content */}
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
                 {/* Left panel */}
-                <div style={{ width: 270, background: 'white', borderRight: '1px solid #f1f5f9', padding: 16, overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ width: 320, background: 'white', borderRight: '1px solid #f1f5f9', padding: 16, overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {/* Problem description */}
                     <div style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: '12px 14px' }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: c.tagText, marginBottom: 6 }}>📝 โจทย์</div>
