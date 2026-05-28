@@ -74,9 +74,9 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // Config — read by authenticated; write by admin only
+    // Config — read by authenticated; gemini doc also readable without auth (key used client-side for demo AI)
     match /config/{docId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null || docId == 'gemini';
       allow write: if request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }

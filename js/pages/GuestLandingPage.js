@@ -1,4 +1,4 @@
-// js/pages/GuestLandingPage.js — Demo/Guest Mode (v3.2)
+// js/pages/GuestLandingPage.js — Demo/Guest Mode (v3.3)
 // AI features: วิเคราะห์โค้ด + คำใบ้ AI + แชทบอท (ทั้ง Workspace และ Free Editor)
 // Multi-language: C · C++ · Python · Java
 // ไม่ต้องการ Firebase Auth — ทำงานอิสระโดยสมบูรณ์
@@ -241,6 +241,7 @@ const _GuestWorkspace = ({ problem, onBack }) => {
         if (aiLoading) return;
         setAiLoading(true); setAnalyzeRes(null);
         try {
+            if (!GEMINI_KEY || !GEMINI_KEY.trim()) await loadGeminiKey();
             const res = await analyzeCode(code, language);
             setAnalyzeRes(res);
             if (typeof logUsageEvent === 'function')
@@ -255,6 +256,7 @@ const _GuestWorkspace = ({ problem, onBack }) => {
         if (aiLoading) return;
         setAiLoading(true); setHintLevel(level); setAiHintText('');
         try {
+            if (!GEMINI_KEY || !GEMINI_KEY.trim()) await loadGeminiKey();
             const h = await getScaffoldingHint(code, language, problem.title, problem.description, [], level);
             setAiHintText(h);
             if (typeof logUsageEvent === 'function')
@@ -272,6 +274,7 @@ const _GuestWorkspace = ({ problem, onBack }) => {
         setChatInput('');
         setAiLoading(true);
         try {
+            if (!GEMINI_KEY || !GEMINI_KEY.trim()) await loadGeminiKey();
             const resp = await chatWithAI(q + '\n\n(โจทย์: ' + problem.title + ')', language);
             setChatMsgs(m => [...m, { role: 'ai', text: resp }]);
             if (typeof logUsageEvent === 'function')
@@ -640,6 +643,7 @@ const _GuestFreeEditor = ({ onBack }) => {
         if (aiLoading) return;
         setAiLoading(true); setAnalyzeRes(null);
         try {
+            if (!GEMINI_KEY || !GEMINI_KEY.trim()) await loadGeminiKey();
             const res = await analyzeCode(code, language);
             setAnalyzeRes(res);
             if (typeof logUsageEvent === 'function')
@@ -657,6 +661,7 @@ const _GuestFreeEditor = ({ onBack }) => {
         setChatInput('');
         setAiLoading(true);
         try {
+            if (!GEMINI_KEY || !GEMINI_KEY.trim()) await loadGeminiKey();
             const resp = await chatWithAI(q, language);
             setChatMsgs(m => [...m, { role: 'ai', text: resp }]);
             if (typeof logUsageEvent === 'function')
