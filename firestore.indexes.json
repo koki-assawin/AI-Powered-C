@@ -88,6 +88,14 @@
         { "fieldPath": "studentId", "order": "ASCENDING" },
         { "fieldPath": "submittedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "coachInteractions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "triggerEvent", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

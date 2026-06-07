@@ -49,6 +49,34 @@ const ACHIEVEMENT_POOL = {
 // XP sources for ledger entries
 const XP_SOURCES = ['submission_accepted','first_solve','minigame','streak_bonus','achievement'];
 
+// ── Hint Level 3 Seeder Constants ─────────────────────────────────────────────
+// ต้นภาค: 2 มิ.ย. 2568 – 24 ก.ค. 2568  |  ปลายภาค: 26 ก.ค. 2568 – 31 ต.ค. 2568
+// midpoint = 25 ก.ค. 2568 (ตรงกับ default ใน TeacherDashboard Research Panel)
+const HINT_EARLY_START = new Date('2025-06-02T00:00:00+07:00').getTime();
+const HINT_EARLY_END   = new Date('2025-07-24T23:59:59+07:00').getTime();
+const HINT_LATE_START  = new Date('2025-07-26T00:00:00+07:00').getTime();
+const HINT_LATE_END    = new Date('2025-10-31T23:59:59+07:00').getTime();
+
+const HINT_TOPICS_EARLY = [
+    'ตัวแปรและชนิดข้อมูล', 'รับค่าและแสดงผล', 'คำสั่ง if-else',
+    'switch-case', 'ลูป for พื้นฐาน', 'ลูป while', 'ลูปซ้อน', 'การคำนวณทางคณิตศาสตร์',
+];
+const HINT_TOPICS_LATE = [
+    'Array 1 มิติ', 'การค้นหาใน Array', 'Function และการส่งค่า',
+    'String และการจัดการ', 'Pointer พื้นฐาน', 'Array 2 มิติ', 'Recursive Function', 'Struct',
+];
+const HINT_SAMPLE_RESPONSES = [
+    'โครงสร้าง: 1.ประกาศตัวแปร → 2.วนซ้ำ (init, condition, update) → 3.แสดงผล ลองเขียน pseudocode ก่อนโค้ดจริง',
+    'ขั้นตอน: 1) รับ input ด้วย scanf 2) ประมวลผล 3) แสดงด้วย printf ตรวจสอบ format specifier ให้ถูกต้อง',
+    'ลองคิดว่า: กรณีที่ condition เป็น false โปรแกรมจะทำอะไร? เพิ่ม else branch ด้วยหรือไม่?',
+    'แนวทาง: กำหนดค่า i=0 loop จาก 0 ถึง n-1 อัปเดต i++ ทุกรอบ ตรวจว่า loop หยุดเมื่อ i=n',
+    'วิเคราะห์โค้ด: ตัวแปรที่ประกาศไว้ถูก initialize แล้วหรือยัง? ตรวจ off-by-one error ใน loop condition',
+    'แนวคิด: แบ่งปัญหาเป็น 2 ส่วน 1) รับข้อมูล 2) ประมวลผลและแสดงผล — ลองเขียน pseudocode ดูก่อน',
+];
+// Probability of having hint interactions by engagement tier
+const HINT_EARLY_PROB = { 1: 0.83, 2: 0.67, 3: 0.47, 4: 0.27, 5: 0.10 };
+const HINT_LATE_PROB  = { 1: 0.88, 2: 0.73, 3: 0.55, 4: 0.23, 5: 0.08 };
+
 // ── Study period helpers ──────────────────────────────────────────────────────
 const STUDY_START = new Date('2026-02-03T00:00:00+07:00').getTime();
 const STUDY_END   = new Date('2026-04-28T23:59:59+07:00').getTime();
@@ -71,7 +99,14 @@ const ResearchDataSeeder = () => {
     const [courses, setCourses]           = React.useState([]);
     const [selectedCourseId, setSelectedCourseId] = React.useState('');
 
-    const addLog = (msg) => setLogs(p => [...p, msg]);
+    // ── Hint Seeder state ──
+    const [hintPhase,    setHintPhase]    = React.useState('idle');
+    const [hintLogs,     setHintLogs]     = React.useState([]);
+    const [hintProgress, setHintProgress] = React.useState(0);
+    const [hintCourseId, setHintCourseId] = React.useState('');
+
+    const addLog     = (msg) => setLogs(p => [...p, msg]);
+    const addHintLog = (msg) => setHintLogs(p => [...p, msg]);
 
     React.useEffect(() => {
         db.collection('courses').get()
@@ -238,6 +273,123 @@ const ResearchDataSeeder = () => {
         }
 
         return { uid, name: student.displayName, tier, xp, e1Avg, totalGames, selfPractice };
+    };
+
+    // ── Seed Hint Level 3 Interactions ───────────────────────────────────────
+    const runHintSeed = async () => {
+        if (!hintCourseId) { addHintLog('⚠️ กรุณาเลือกรายวิชาก่อน'); return; }
+        setHintPhase('running');
+        setHintLogs([]);
+        setHintProgress(0);
+
+        try {
+            addHintLog('📥 โหลดรายชื่อนักเรียนในวิชา...');
+            const enrollSnap = await db.collection('enrollments').where('courseId', '==', hintCourseId).get();
+            const studentIds = [...new Set(enrollSnap.docs.map(d => d.data().studentId).filter(Boolean))];
+            if (studentIds.length === 0) throw new Error('ไม่พบนักเรียนในรายวิชานี้');
+            addHintLog(`พบนักเรียน ${studentIds.length} คน`);
+
+            // Load user info + sort by number
+            const userSnaps = await Promise.all(studentIds.map(uid => db.collection('users').doc(uid).get()));
+            let students = userSnaps.filter(s => s.exists).map(s => ({ uid: s.id, ...s.data() }));
+            students = students.sort((a, b) => (Number(a.number) || 99) - (Number(b.number) || 99));
+
+            // Load playerStats to get engagementTier
+            const statsMap = {};
+            const chunks = [];
+            for (let i = 0; i < studentIds.length; i += 30) chunks.push(studentIds.slice(i, i + 30));
+            for (const chunk of chunks) {
+                const sn = await db.collection('playerStats')
+                    .where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get();
+                sn.docs.forEach(d => { statsMap[d.id] = d.data(); });
+            }
+
+            // Delete previously seeded hint_level_3 docs — filter seededHint in JS to avoid composite index
+            addHintLog('🗑️ ลบ hint_level_3 เก่าที่เคย Seed ไว้...');
+            let deletedCount = 0;
+            for (const chunk of chunks) {
+                const oldSnap = await db.collection('coachInteractions')
+                    .where('uid', 'in', chunk)
+                    .where('triggerEvent', '==', 'hint_level_3')
+                    .get();
+                const toDelete = oldSnap.docs.filter(d => d.data().seededHint === true);
+                if (toDelete.length > 0) {
+                    const delBatch = db.batch();
+                    toDelete.forEach(d => delBatch.delete(d.ref));
+                    await delBatch.commit();
+                    deletedCount += toDelete.length;
+                }
+            }
+            if (deletedCount > 0) addHintLog(`  ลบ ${deletedCount} รายการเก่า`);
+
+            let totalCreated = 0;
+            let earlyStudents = 0;
+            let lateStudents = 0;
+
+            for (let idx = 0; idx < students.length; idx++) {
+                const student = students[idx];
+                const uid = student.uid;
+                const tier = statsMap[uid]?.engagementTier || TIER_BY_POS[idx] || 3;
+                const rng = _prng(idx * 61 + 23); // different seed from main seeder
+
+                const earlyProb = HINT_EARLY_PROB[tier] ?? 0.47;
+                const lateProb  = HINT_LATE_PROB[tier]  ?? 0.55;
+                const maxEarly  = tier <= 2 ? 3 : 2;
+                const maxLate   = tier <= 2 ? 4 : 2;
+                const earlyCount = rng.next() < earlyProb ? rng.int(1, maxEarly) : 0;
+                const lateCount  = rng.next() < lateProb  ? rng.int(1, maxLate)  : 0;
+
+                if (earlyCount > 0 || lateCount > 0) {
+                    const batch = db.batch();
+                    for (let k = 0; k < earlyCount; k++) {
+                        const ts    = new Date(HINT_EARLY_START + rng.next() * (HINT_EARLY_END - HINT_EARLY_START));
+                        const topic = rng.pick(HINT_TOPICS_EARLY);
+                        batch.set(db.collection('coachInteractions').doc(), {
+                            uid, coachRole: 'socratic', triggerEvent: 'hint_level_3',
+                            relatedId: topic,
+                            prompt:   `นักเรียนขอ Hint level 3 สำหรับโจทย์: ${topic}`,
+                            response: rng.pick(HINT_SAMPLE_RESPONSES),
+                            seededHint: true,
+                            createdAt: firebase.firestore.Timestamp.fromDate(ts),
+                        });
+                        totalCreated++;
+                    }
+                    if (earlyCount > 0) earlyStudents++;
+
+                    for (let k = 0; k < lateCount; k++) {
+                        const ts    = new Date(HINT_LATE_START + rng.next() * (HINT_LATE_END - HINT_LATE_START));
+                        const topic = rng.pick(HINT_TOPICS_LATE);
+                        batch.set(db.collection('coachInteractions').doc(), {
+                            uid, coachRole: 'socratic', triggerEvent: 'hint_level_3',
+                            relatedId: topic,
+                            prompt:   `นักเรียนขอ Hint level 3 สำหรับโจทย์: ${topic}`,
+                            response: rng.pick(HINT_SAMPLE_RESPONSES),
+                            seededHint: true,
+                            createdAt: firebase.firestore.Timestamp.fromDate(ts),
+                        });
+                        totalCreated++;
+                    }
+                    if (lateCount > 0) lateStudents++;
+                    await batch.commit();
+                }
+
+                setHintProgress(Math.round((idx + 1) / students.length * 100));
+                if (earlyCount > 0 || lateCount > 0) {
+                    addHintLog(`✅ ${student.displayName || uid} T${tier}: ต้นภาค +${earlyCount} | ปลายภาค +${lateCount}`);
+                }
+            }
+
+            addHintLog('');
+            addHintLog(`🎉 เสร็จสิ้น! สร้าง ${totalCreated} รายการใน coachInteractions`);
+            addHintLog(`📊 ต้นภาค: ${earlyStudents}/${students.length} คน = ${Math.round(earlyStudents/students.length*100)}%`);
+            addHintLog(`📊 ปลายภาค: ${lateStudents}/${students.length} คน = ${Math.round(lateStudents/students.length*100)}%`);
+            setHintPhase('done');
+
+        } catch (err) {
+            console.error('[HintSeed]', err);
+            addHintLog(`❌ Error: ${err.message}`);
+            setHintPhase('error');
+        }
     };
 
     // ── Run all ───────────────────────────────────────────────────────────────
@@ -572,6 +724,93 @@ const ResearchDataSeeder = () => {
                     </div>
                 </div>
             </>)}
+
+            {/* ── Hint Level 3 Seeder ── */}
+            {card(<>
+                <div style={{ fontWeight:700, fontSize:16, color:'#1e293b', marginBottom:4 }}>
+                    💡 Seed Hint Level 3 (coachInteractions)
+                </div>
+                <p style={{ color:'#64748b', fontSize:13, marginBottom:16, lineHeight:1.7 }}>
+                    สร้างข้อมูล <code>coachInteractions</code> (triggerEvent: <b>hint_level_3</b>) ตามช่วงต้นภาค/ปลายภาค<br/>
+                    เพื่อให้ตัวชี้วัดวิจัย <b>"ขอ Hint Lv.3"</b> ในหน้า Teacher Dashboard แสดงผลที่สมเหตุสมผล<br/>
+                    <span style={{ fontSize:12, color:'#94a3b8' }}>
+                        ต้นภาค: 2 มิ.ย. 2568 – 24 ก.ค. 2568 &nbsp;|&nbsp; ปลายภาค: 26 ก.ค. 2568 – 31 ต.ค. 2568
+                    </span>
+                </p>
+
+                <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'center', marginBottom:12 }}>
+                    <select
+                        value={hintCourseId}
+                        onChange={e => setHintCourseId(e.target.value)}
+                        style={{ border:'1.5px solid #e2e8f0', borderRadius:8, padding:'9px 12px', fontFamily:"'Prompt',sans-serif", fontSize:13, outline:'none', cursor:'pointer', minWidth:280 }}
+                    >
+                        <option value="">— เลือกรายวิชา —</option>
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                    </select>
+
+                    <button
+                        onClick={runHintSeed}
+                        disabled={hintPhase === 'running' || !hintCourseId}
+                        style={{
+                            padding:'10px 24px', borderRadius:10, border:'none',
+                            cursor: (hintPhase === 'running' || !hintCourseId) ? 'not-allowed' : 'pointer',
+                            background: (hintPhase === 'running' || !hintCourseId)
+                                ? '#9ca3af'
+                                : 'linear-gradient(135deg,#f59e0b,#d97706)',
+                            color:'white', fontWeight:600, fontSize:14, fontFamily:"'Prompt',sans-serif",
+                        }}
+                    >
+                        {hintPhase === 'running' ? '⏳ กำลัง Seed...' : '💡 Seed Hint Data'}
+                    </button>
+                </div>
+
+                {/* Tier probability display */}
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:12 }}>
+                    {[1,2,3,4,5].map(t => (
+                        <div key={t} style={{ background: tierColors[t]+'15', borderRadius:8, padding:'6px 12px', borderLeft:`3px solid ${tierColors[t]}`, fontSize:12 }}>
+                            <span style={{ fontWeight:700, color: tierColors[t] }}>T{t}</span>
+                            <span style={{ color:'#6b7280', marginLeft:6 }}>
+                                ต้นภาค {Math.round((HINT_EARLY_PROB[t]||0)*100)}% | ปลายภาค {Math.round((HINT_LATE_PROB[t]||0)*100)}%
+                            </span>
+                        </div>
+                    ))}
+                </div>
+
+                {hintPhase === 'running' && (
+                    <div style={{ marginBottom:12 }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4, fontSize:13, color:'#6b7280' }}>
+                            <span>ความคืบหน้า</span><span>{hintProgress}%</span>
+                        </div>
+                        <div style={{ background:'#f1f5f9', borderRadius:8, height:8 }}>
+                            <div style={{
+                                width:`${hintProgress}%`, height:8, borderRadius:8,
+                                background:'linear-gradient(90deg,#f59e0b,#10b981)',
+                                transition:'width .3s',
+                            }} />
+                        </div>
+                    </div>
+                )}
+
+                {hintLogs.length > 0 && (
+                    <div style={{ background:'#0f172a', borderRadius:10, padding:14, maxHeight:220, overflowY:'auto', fontFamily:'monospace', fontSize:12 }}>
+                        {hintLogs.map((l, i) => (
+                            <div key={i} style={{
+                                color: l.startsWith('❌') ? '#f87171'
+                                     : l.startsWith('🎉') ? '#34d399'
+                                     : l.startsWith('📊') ? '#60a5fa'
+                                     : '#cbd5e1',
+                                lineHeight: 1.6,
+                            }}>{l}</div>
+                        ))}
+                    </div>
+                )}
+
+                {hintPhase === 'done' && (
+                    <div style={{ marginTop:12, padding:12, background:'#f0fdf4', borderRadius:10, border:'1px solid #bbf7d0', fontSize:13, color:'#15803d' }}>
+                        ✅ Seed เสร็จสิ้น — กลับไปหน้า Teacher Dashboard แล้วกด <b>"วิเคราะห์"</b> เพื่อดูผล
+                    </div>
+                )}
+            </>, { marginTop:20 })}
         </div>
     );
 };
