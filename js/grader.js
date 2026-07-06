@@ -68,39 +68,53 @@ const normalizeOutput = (str) =>
         .replace(/\r\n/g, '\n')
         .trim();
 
-// Run code against a single test case input (Wandbox → Piston → Judge0)
+// Fetch with automatic timeout
+const fetchWithTimeout = (url, options, ms = 8000) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    return fetch(url, { ...options, signal: ctrl.signal })
+        .finally(() => clearTimeout(timer));
+};
+
+// Run via Piston with timeout
+const runWithPistonTimed = async (code, language, stdin) => {
+    const p = PISTON_LANG[language] || PISTON_LANG.c;
+    const res = await fetchWithTimeout(PISTON_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            language: p.language, version: p.version,
+            files: [{ name: p.filename, content: code }],
+            stdin: stdin || '',
+        }),
+    }, 8000);
+    if (!res.ok) throw new Error(`Piston HTTP ${res.status}`);
+    const data = await res.json();
+    return {
+        program_output: data.run?.stdout || '',
+        program_error:  data.run?.stderr || '',
+        compiler_error: data.compile?.stderr || '',
+    };
+};
+
+// Run code against a single test case input (Piston → Judge0)
 const runSingleTest = async (code, language, testCase) => {
     const startTime = Date.now();
     let data;
 
     try {
-        const body = {
-            compiler: WANDBOX_COMPILER[language] || 'gcc-head',
-            code, stdin: testCase.input || '',
-        };
-        if (WANDBOX_OPTIONS[language]) body.options = WANDBOX_OPTIONS[language];
-        const res = await fetch(WANDBOX_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-        if (!res.ok) throw new Error(`Wandbox HTTP ${res.status}`);
-        data = await res.json();
-    } catch (_wandboxErr) {
+        data = await runWithPistonTimed(code, language, testCase.input || '');
+    } catch (_pistonErr) {
         try {
-            data = await runWithPiston(code, language, testCase.input || '');
-        } catch (_pistonErr) {
-            try {
-                data = await runWithJudge0(code, language, testCase.input || '');
-            } catch (judge0Err) {
-                return {
-                    testCaseId: testCase.id, passed: false,
-                    actualOutput: '', expectedOutput: normalizeOutput(testCase.expectedOutput || testCase.expected || ''),
-                    executionTime: Date.now() - startTime,
-                    errorLog: `Compile service unavailable: ${judge0Err.message}`,
-                    isCompileError: false,
-                };
-            }
+            data = await runWithJudge0(code, language, testCase.input || '');
+        } catch (judge0Err) {
+            return {
+                testCaseId: testCase.id, passed: false,
+                actualOutput: '', expectedOutput: normalizeOutput(testCase.expectedOutput || testCase.expected || ''),
+                executionTime: Date.now() - startTime,
+                errorLog: `Compile service unavailable: ${judge0Err.message}`,
+                isCompileError: false,
+            };
         }
     }
 
@@ -125,14 +139,7 @@ const runSampleTests = async (code, language, assignmentId) => {
         .get();
 
     const testCases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const results = [];
-
-    for (const tc of testCases) {
-        const result = await runSingleTest(code, language, tc);
-        results.push(result);
-    }
-
-    return results;
+    return Promise.all(testCases.map(tc => runSingleTest(code, language, tc)));
 };
 
 // Submission cooldown check (30 seconds between submissions)
@@ -165,15 +172,8 @@ const gradeSubmission = async (studentId, assignmentId, courseId, code, language
         throw new Error('ไม่พบ Test Cases สำหรับโจทย์นี้ กรุณาติดต่อครูผู้สอน');
     }
 
-    // Run all tests sequentially to avoid rate limiting
-    const testResults = [];
-    let maxTime = 0;
-
-    for (const tc of testCases) {
-        const result = await runSingleTest(code, language, tc);
-        testResults.push(result);
-        if (result.executionTime > maxTime) maxTime = result.executionTime;
-    }
+    const testResults = await Promise.all(testCases.map(tc => runSingleTest(code, language, tc)));
+    const maxTime = testResults.reduce((m, r) => Math.max(m, r.executionTime), 0);
 
     // Tally results
     const passedTests = testResults.filter(r => r.passed).length;
@@ -246,12 +246,7 @@ const gradeForGuest = async (assignmentId, code, language) => {
     const testCases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (testCases.length === 0) throw new Error('ไม่พบ Test Cases สำหรับโจทย์นี้');
 
-    const testResults = [];
-    for (const tc of testCases) {
-        const result = await runSingleTest(code, language, tc);
-        testResults.push(result);
-    }
-
+    const testResults = await Promise.all(testCases.map(tc => runSingleTest(code, language, tc)));
     const passedTests = testResults.filter(r => r.passed).length;
     const totalTests  = testCases.length;
     const pointsEarned = testCases.reduce((s, tc, i) => s + (testResults[i].passed ? (tc.points || 1) : 0), 0);
