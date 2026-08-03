@@ -60,16 +60,17 @@ const callGeminiApi = async (prompt, schema = null) => {
             const msg    = data.error?.message || '';
             const status = data.error?.status  || '';
 
-            // Hard stop: truly invalid/revoked key (401 or explicit key-invalid messages)
-            if (code === 401 ||
+            // Hard stop: truly invalid/revoked key
+            if (code === 401 || status === 'UNAUTHENTICATED' ||
                 msg.includes('API key not valid') ||
                 msg.includes('API_KEY_INVALID') ||
-                status === 'UNAUTHENTICATED') {
+                msg.includes('invalid authentication') ||
+                msg.includes('INVALID_API_KEY')) {
                 throw new Error('KEY_INVALID');
             }
 
-            // 400 only stops if it's explicitly about the key, not about the model
-            if (code === 400 && (msg.includes('API key') || msg.includes('invalid key'))) {
+            // 400 stops only for explicit key errors (not model errors)
+            if (code === 400 && (msg.toLowerCase().includes('api key') || msg.includes('invalid key'))) {
                 throw new Error('KEY_INVALID');
             }
 

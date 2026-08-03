@@ -54,7 +54,7 @@ const SystemSettings = () => {
 
     const testGeminiKey = async () => {
         if (!geminiKey.trim()) { setMsg('❌ กรุณากรอก API Key ก่อนทดสอบ'); return; }
-        if (!geminiKey.trim().startsWith('AIza')) { setMsg('❌ รูปแบบ API Key ไม่ถูกต้อง — ต้องขึ้นต้นด้วย "AIza"'); return; }
+        if (geminiKey.trim().length < 20) { setMsg('❌ API Key สั้นเกินไป'); return; }
         setSaving(true);
         setMsg('⏳ กำลังทดสอบ (ลอง gemini-1.5-flash → 2.0-flash → 2.5-flash)...');
         try {
@@ -128,7 +128,7 @@ const SystemSettings = () => {
                         <ol className="space-y-2 text-blue-700 list-decimal list-inside">
                             <li>ไปที่ <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline font-semibold">aistudio.google.com/apikey</a></li>
                             <li>กด <strong>Create API key</strong> → เลือก project หรือสร้าง project ใหม่</li>
-                            <li>คัดลอก Key ที่ขึ้นต้นด้วย <code className="font-mono bg-blue-100 px-1 rounded">AIza...</code></li>
+                            <li>คัดลอก Key (รูปแบบ <code className="font-mono bg-blue-100 px-1 rounded">AIza...</code> หรือ <code className="font-mono bg-blue-100 px-1 rounded">AQ.Ab...</code>)</li>
                             <li>วางใน field ด้านบน แล้วกด <strong>บันทึก API Key</strong> ก่อน แล้วค่อย <strong>ทดสอบ</strong></li>
                         </ol>
                         <div className="mt-3 p-3 bg-white rounded-lg border border-blue-100 text-xs text-blue-600 space-y-1">
