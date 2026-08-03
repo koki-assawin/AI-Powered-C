@@ -37,19 +37,20 @@ const callGeminiApi = async (prompt, schema = null) => {
 
     const _isAQKey = GEMINI_KEY.startsWith('AQ.');
 
-    // Build attempt list: for AQ keys try all 3 auth methods × all models
+    // Build attempt list. AQ.Ab keys are standard API keys (not OAuth) — use ?key= / x-goog-api-key first.
+    // Bearer is last resort; a 401 on Bearer just means wrong auth method, not invalid key.
     const _authMethods = _isAQKey
         ? [
-            // Method 1: Bearer token (OAuth2 style — most likely for AQ keys)
-            (key) => ({ headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, param: '' }),
+            // Method 1: query param (most compatible for AQ keys)
+            (key) => ({ headers: { 'Content-Type': 'application/json' }, param: `?key=${key}`, isApiKeyAuth: true }),
             // Method 2: x-goog-api-key header
-            (key) => ({ headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, param: '' }),
-            // Method 3: query param fallback
-            (key) => ({ headers: { 'Content-Type': 'application/json' }, param: `?key=${key}` }),
+            (key) => ({ headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, param: '', isApiKeyAuth: true }),
+            // Method 3: Bearer token (last resort — 401 here ≠ invalid key)
+            (key) => ({ headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, param: '', isApiKeyAuth: false }),
           ]
         : [
             // AIza keys: query param + header (traditional)
-            (key) => ({ headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, param: `?key=${key}` }),
+            (key) => ({ headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, param: `?key=${key}`, isApiKeyAuth: true }),
           ];
 
     const _attempts = [];
@@ -60,7 +61,7 @@ const callGeminiApi = async (prompt, schema = null) => {
     }
 
     for (const { endpoint, model, authFn } of _attempts) {
-        const { headers, param } = authFn(GEMINI_KEY);
+        const { headers, param, isApiKeyAuth } = authFn(GEMINI_KEY);
         const url = `https://generativelanguage.googleapis.com/${endpoint}/models/${model}:generateContent${param}`;
         try {
             const response = await fetch(url, {
@@ -85,13 +86,18 @@ const callGeminiApi = async (prompt, schema = null) => {
             const msg    = data.error?.message || '';
             const status = data.error?.status  || '';
 
-            // Hard stop: truly invalid/revoked key
-            if (code === 401 || status === 'UNAUTHENTICATED' ||
+            // Hard stop: truly invalid/revoked key — but only when using API key auth.
+            // A 401 from Bearer method just means wrong auth method, not an invalid key.
+            if (isApiKeyAuth && (code === 401 || status === 'UNAUTHENTICATED' ||
                 msg.includes('API key not valid') ||
                 msg.includes('API_KEY_INVALID') ||
                 msg.includes('invalid authentication') ||
-                msg.includes('INVALID_API_KEY')) {
+                msg.includes('INVALID_API_KEY'))) {
                 throw new Error('KEY_INVALID');
+            }
+            // Bearer 401: wrong auth type → try next combo
+            if (!isApiKeyAuth && (code === 401 || status === 'UNAUTHENTICATED')) {
+                errTypes.add('other'); lastError = new Error('Bearer not applicable'); continue;
             }
 
             // 400 stops only for explicit key errors (not model errors)
