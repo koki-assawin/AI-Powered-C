@@ -410,9 +410,9 @@ const getScaffoldingHint = async (code, language, assignmentTitle, assignmentDes
     const langInfo = LANGUAGES[language];
 
     const levelInstructions = {
-        1: `ระดับ 1 (ชี้จุดที่ผิด): บอกเพียงว่า "ส่วนไหน" หรือ "บรรทัดที่เท่าไหร่" ที่น่าจะมีปัญหา อย่าบอกวิธีแก้ เขียน 2-3 ประโยค`,
-        2: `ระดับ 2 (แนวคิด): อธิบายแนวคิดหรือ Algorithm ที่ควรใช้แก้ปัญหานี้ โดยไม่ยกโค้ดตัวอย่าง เขียน 3-4 ประโยค`,
-        3: `ระดับ 3 (ตัวอย่างโค้ด): ยกตัวอย่างโค้ดสั้นๆ ที่แสดงเทคนิคที่ต้องใช้ (แต่ไม่ใช่คำตอบของโจทย์นี้โดยตรง) พร้อมคำอธิบายสั้น`,
+        1: `ระดับ 1: ชี้จุดที่น่าจะผิด 1-2 ประโยคสั้นๆ (ระบุบรรทัดถ้าได้) ห้ามบอกวิธีแก้`,
+        2: `ระดับ 2: บอกแนวคิด/algorithm ที่ต้องใช้ 2-3 ประโยคสั้นๆ ไม่ยกโค้ด`,
+        3: `ระดับ 3: ยกโค้ดตัวอย่าง ≤6 บรรทัด + คำอธิบาย 1-2 ประโยค`,
     };
 
     const failedSummary = failedTests.length > 0
@@ -420,8 +420,7 @@ const getScaffoldingHint = async (code, language, assignmentTitle, assignmentDes
             `  Test ${i+1}: ได้รับ "${t.actualOutput || '(ไม่มี output)'}" แต่คาดหวัง "${t.expectedOutput}"`).join('\n')}`
         : 'ยังไม่มีผลตรวจ';
 
-    const prompt = `คุณเป็นครู AI ที่ช่วยสอนการเขียนโปรแกรมภาษา ${langInfo.name}
-ตอบเป็นภาษาไทย สั้น กระชับ เหมาะสำหรับนักเรียนระดับมัธยมปลาย
+    const prompt = `คุณเป็นครู AI สอนโปรแกรม ${langInfo.name} ตอบไทย สั้น กระชับ ไม่เกิน 60 คำ
 
 โจทย์: "${assignmentTitle}"
 คำอธิบาย: ${assignmentDesc || '(ไม่มี)'}

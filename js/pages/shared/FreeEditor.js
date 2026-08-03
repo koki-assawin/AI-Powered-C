@@ -105,6 +105,11 @@ const FreeEditor = () => {
     const panelDragRef    = React.useRef({ active: false, ox: 0, oy: 0 });
     drawSettingsRef.current = { tool: drawTool, color: drawColor, penSize, eraserSize, opacity: penOpacity };
 
+    // Resizable split panels
+    const [editorWidth,    setEditorWidth]    = React.useState(50);
+    const [aiHeight,       setAiHeight]       = React.useState(240);
+    const splitContainerRef = React.useRef(null);
+
     // ── Load Google Font ────────────────────────────────────────────────────
     React.useEffect(() => {
         const info = CODING_FONTS.find(f => f.value === fontFamily);
@@ -229,7 +234,9 @@ const FreeEditor = () => {
                 body: JSON.stringify(body),
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            data = await res.json();
+            const _wd = await res.json();
+            if ((_wd.program_error || '').includes('OCI runtime error') || (_wd.program_error || '').includes('temporarily unavailable')) throw new Error('OCI');
+            data = _wd;
         } catch (_wandboxErr) {
             try {
                 data = await runWithPistonEditor(stdinStr);
@@ -291,8 +298,8 @@ const FreeEditor = () => {
         if (analyzing || !code.trim()) return;
         if (!GEMINI_KEY) { alert('ไม่พบ Gemini API Key — กรุณาตั้งค่าใน Admin'); return; }
         setAnalyzing(true); setShowAI(true); setAiText('');
-        const outputSection = output ? `\nผลลัพธ์:\n\`\`\`\n${output}\n\`\`\`` : '';
-        const prompt = `วิเคราะห์โค้ด ${LANG_LABELS[language]} ต่อไปนี้อย่างละเอียด (ตอบเป็นภาษาไทย):\n\n\`\`\`${language}\n${code}\n\`\`\`${outputSection}\n\nวิเคราะห์ใน 4 หัวข้อ:\n1. 📋 สรุปสิ่งที่โค้ดทำ\n2. 🐛 จุดที่อาจเป็นปัญหาหรือ bug\n3. ✨ คำแนะนำการปรับปรุงโค้ด\n4. ⭐ ประเมินคุณภาพโค้ด (1-10)`;
+        const outputSection = output ? `\nผล: ${output.slice(0, 150)}` : '';
+        const prompt = `วิเคราะห์โค้ด ${LANG_LABELS[language]} ต่อไปนี้ สั้น กระชับ ตอบไทย รวมไม่เกิน 80 คำ:\n\`\`\`${language}\n${code.slice(0, 600)}\n\`\`\`${outputSection}\n\n1. 📋 ทำอะไร (1 ประโยค)\n2. 🐛 bug/ปัญหา (ถ้ามี ระบุบรรทัด)\n3. ✨ แนะนำ (≤2 ข้อ)\n4. ⭐ คะแนน /10`;
         try {
             const text = await callGeminiApi(prompt);
             setAiText(text);
@@ -446,6 +453,27 @@ const FreeEditor = () => {
         };
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
+    };
+
+    // ── Split panel drag handlers ─────────────────────────────────────────────
+    const startHDrag = (e) => {
+        e.preventDefault();
+        const container = splitContainerRef.current;
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        const onMove = (me) => setEditorWidth(Math.round(Math.min(80, Math.max(20, (me.clientX - rect.left) / rect.width * 100))));
+        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+    };
+
+    const startVDrag = (e) => {
+        e.preventDefault();
+        const sy = e.clientY, sh = aiHeight;
+        const onMove = (me) => setAiHeight(Math.max(100, Math.min(520, sh + (sy - me.clientY))));
+        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
     };
 
     // ── Dynamic cursor for draw canvas ──────────────────────────────────────
@@ -812,9 +840,10 @@ const FreeEditor = () => {
 
             {/* ── Main area ── */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 16, gap: 12, minHeight: 0 }}>
-                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, minHeight: 420 }}>
+                {/* Editor + Terminal — resizable split */}
+                <div ref={splitContainerRef} style={{ flex: 1, display: 'flex', gap: 0, minHeight: 420 }}>
                     {/* Editor */}
-                    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    <div style={{ width: `${editorWidth}%`, display: 'flex', flexDirection: 'column', minWidth: 160, minHeight: 0, overflow: 'hidden' }}>
                         <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
                             <span>📝 Editor — {LANG_LABELS[language]}</span>
                             <span style={{ color: '#334155' }}>Shift+Alt+F: Format · Ctrl+/: Comment</span>
@@ -826,8 +855,15 @@ const FreeEditor = () => {
                         </div>
                     </div>
 
+                    {/* Horizontal drag divider */}
+                    <div onMouseDown={startHDrag}
+                        style={{ width: 10, flexShrink: 0, cursor: 'col-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none' }}
+                        title="ลากซ้าย/ขวา เพื่อปรับขนาด Editor / Terminal">
+                        <div style={{ width: 3, height: 40, borderRadius: 3, background: '#334155' }} />
+                    </div>
+
                     {/* Terminal */}
-                    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 160, minHeight: 0, overflow: 'hidden' }}>
                         <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>📟 Terminal</span>
                             {collecting && <span style={{ color: '#fbbf24', fontWeight: 600, fontSize: 11 }}>⌨️ รอรับ Input</span>}
@@ -837,20 +873,27 @@ const FreeEditor = () => {
                     </div>
                 </div>
 
-                {/* AI Analysis panel */}
+                {/* AI Analysis panel — vertically resizable */}
                 {showAI && (
-                    <div style={{ background: '#1e1b4b', borderRadius: 12, border: '1px solid #7c3aed55', overflow: 'hidden' }}>
-                        <div style={{ padding: '10px 16px', borderBottom: '1px solid #312e8188', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>🤖 AI วิเคราะห์โค้ด — {LANG_LABELS[language]}</span>
-                            <button onClick={() => setShowAI(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 15 }}>✕</button>
+                    <React.Fragment>
+                        <div onMouseDown={startVDrag}
+                            style={{ height: 10, cursor: 'row-resize', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none' }}
+                            title="ลากขึ้น/ลง เพื่อปรับขนาด AI Panel">
+                            <div style={{ width: 48, height: 3, borderRadius: 3, background: '#334155' }} />
                         </div>
-                        <div style={{ padding: '14px 18px', maxHeight: 320, overflowY: 'auto' }}>
-                            {analyzing
-                                ? <div style={{ color: '#7c3aed', fontSize: 13 }}>⏳ Gemini กำลังวิเคราะห์...</div>
-                                : <div style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>{aiText}</div>
-                            }
+                        <div style={{ height: aiHeight, flexShrink: 0, background: '#1e1b4b', borderRadius: 12, border: '1px solid #7c3aed55', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ padding: '10px 16px', borderBottom: '1px solid #312e8188', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>🤖 AI วิเคราะห์โค้ด — {LANG_LABELS[language]}</span>
+                                <button onClick={() => setShowAI(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 15 }}>✕</button>
+                            </div>
+                            <div style={{ flex: 1, padding: '14px 18px', overflowY: 'auto' }}>
+                                {analyzing
+                                    ? <div style={{ color: '#7c3aed', fontSize: 13 }}>⏳ Gemini กำลังวิเคราะห์...</div>
+                                    : <div style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{aiText}</div>
+                                }
+                            </div>
                         </div>
-                    </div>
+                    </React.Fragment>
                 )}
 
                 {/* Shortcuts bar */}
