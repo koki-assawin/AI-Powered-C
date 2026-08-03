@@ -53,7 +53,10 @@ async function compile(code, language, stdin) {
             if (!res.ok) throw new Error(`Wandbox HTTP ${res.status}`);
 
             const d = await res.json();
-            if (isOci(d.program_error)) throw new Error('OCI in Wandbox response');
+            // Wandbox may return OCI in program_output (stdout) not just program_error (stderr)
+            if (isOci(d.program_error) || isOci(d.program_output) || isOci(d.compiler_error)) {
+                throw new Error('OCI in Wandbox response');
+            }
 
             return {
                 compiler_error: d.compiler_error  || '',

@@ -337,11 +337,12 @@ const FreeEditor = () => {
         const progOut = (data.program_output || '').trimEnd();
         const progErr = (data.program_error  || '').trim();
 
-        if (compErr) { setOutput(compErr); setRunStatus('error'); }
-        else if (_isOci(progErr)) {
-            // Piston OCI error leaked through — hide it, show retry prompt
+        // OCI may appear in ANY field (Piston→program_error, Wandbox→program_output)
+        if (_isOci(compErr) || _isOci(progOut) || _isOci(progErr)) {
             setOutput('⚠️ เซิร์ฟเวอร์รันโค้ดชั่วคราวไม่ว่าง กรุณากด ↺ รันใหม่');
             setRunStatus('error');
+        } else if (compErr) {
+            setOutput(compErr); setRunStatus('error');
         } else {
             setOutput([progOut, progErr].filter(Boolean).join('\n') || '(ไม่มี Output)');
             setRunStatus(progErr ? 'error' : 'ok');

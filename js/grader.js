@@ -53,6 +53,11 @@ const runWithWorker = async (code, language, stdin) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data.error) throw new Error(data.error);
+        // OCI may appear in any field (Wandbox returns it in program_output)
+        const _isOciStr = (s) => (s||'').includes('OCI runtime error') || (s||'').includes('temporarily unavailable');
+        if (_isOciStr(data.program_output) || _isOciStr(data.program_error) || _isOciStr(data.compiler_error)) {
+            throw new Error('OCI runtime error — server busy');
+        }
         return {
             program_output: data.program_output || '',
             program_error:  data.program_error  || '',
