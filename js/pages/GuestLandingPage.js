@@ -151,35 +151,54 @@ const _DEMO_PROBLEMS = [
     },
 ];
 
-// ── Run helper (Wandbox → Piston fallback, correct field names) ───────────────
+// ── Run helper (Worker → Judge0 fallback, OCI-safe) ───────────────────────────
 const _runCode = async (code, language, input) => {
+    const _isOci = (s) => (s||'').includes('OCI runtime error') || (s||'').includes('temporarily unavailable');
     const normalize = (data) => {
         const out = (data.program_output || '').trim();
         const err = (data.compiler_error || data.program_error || '').trim();
+        if (_isOci(out) || _isOci(err)) return { output: '⚠️ เซิร์ฟเวอร์รันโค้ดชั่วคราวไม่ว่าง กรุณาลองใหม่อีกครั้ง', isError: true };
         if (err && !out) return { output: err, isError: true };
         return { output: out || '(ไม่มีผลลัพธ์)', isError: false };
     };
 
-    // 1. Wandbox (C/C++/Python — Java ข้าม เพราะ class name ไม่ตรง filename)
-    if (language !== 'java') {
+    // Load Worker URL (window.RUNNER_URL set by firebase.js on startup)
+    let _workerUrl = window.RUNNER_URL || '';
+    if (!_workerUrl) {
         try {
-            const wbBody = { compiler: WANDBOX_COMPILER[language] || 'gcc-head', code, stdin: input || '' };
-            if (WANDBOX_OPTIONS[language]) wbBody.options = WANDBOX_OPTIONS[language];
-            const wbRes = await fetch(WANDBOX_URL, {
+            const _snap = await db.collection('config').doc('runner').get();
+            if (_snap.exists && _snap.data().workerUrl) {
+                _workerUrl = (_snap.data().workerUrl || '').replace(/\/$/, '');
+                window.RUNNER_URL = _workerUrl;
+            }
+        } catch (_e) {}
+    }
+
+    // 1. Cloudflare Worker (primary — server-to-server, no CORS/OCI issues)
+    if (_workerUrl) {
+        try {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 20000);
+            const res = await fetch(`${_workerUrl}/compile`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(wbBody),
+                body: JSON.stringify({ code, language, stdin: input || '' }),
+                signal: ctrl.signal,
             });
-            if (wbRes.ok) return normalize(await wbRes.json());
+            clearTimeout(timer);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const d = await res.json();
+            if (d.error) throw new Error(d.error);
+            if (_isOci(d.program_output) || _isOci(d.program_error) || _isOci(d.compiler_error)) throw new Error('OCI');
+            return normalize(d);
         } catch (_) {}
     }
 
-    // 2. Piston (all languages)
+    // 2. Judge0 CE fallback
     try {
-        return normalize(await runWithPiston(code, language, input || ''));
+        return normalize(await runWithJudge0(code, language, input || ''));
     } catch (_) {}
 
-    // 3. All APIs unavailable
-    return { output: 'ระบบ compiler ไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง', isError: true };
+    return { output: '⚠️ เซิร์ฟเวอร์รันโค้ดชั่วคราวไม่ว่าง กรุณาลองใหม่อีกครั้ง', isError: true };
 };
 
 // ── Problem Workspace ─────────────────────────────────────────────────────────
