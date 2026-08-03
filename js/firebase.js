@@ -70,14 +70,15 @@ let GEMINI_KEY = '';
 
 // ── Cloudflare Worker URL for code execution (loaded from Firestore) ──
 // Stored at config/runner → workerUrl  e.g. https://apcc-runner.NAME.workers.dev
-let RUNNER_URL = '';
+// Use window.RUNNER_URL so it's truly global across all Babel-compiled script files
+window.RUNNER_URL = '';
 
 const loadRunnerUrl = async () => {
     try {
         const snap = await db.collection('config').doc('runner').get();
         if (snap.exists && snap.data().workerUrl) {
-            RUNNER_URL = (snap.data().workerUrl || '').replace(/\/$/, '');
-            console.log('✅ Code Runner URL loaded:', RUNNER_URL);
+            window.RUNNER_URL = (snap.data().workerUrl || '').replace(/\/$/, '');
+            console.log('✅ Code Runner URL loaded:', window.RUNNER_URL);
         }
     } catch (err) {
         console.warn('⚠️ Could not load Runner URL:', err.message);

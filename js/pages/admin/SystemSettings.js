@@ -25,7 +25,7 @@ const SystemSettings = () => {
         try {
             const url = runnerUrl.trim().replace(/\/$/, '');
             await db.collection('config').doc('runner').set({ workerUrl: url });
-            RUNNER_URL = url;
+            window.RUNNER_URL = url;
             setRunnerMsg('✅ บันทึก Runner URL สำเร็จ!');
         } catch (err) {
             setRunnerMsg('❌ บันทึกไม่สำเร็จ: ' + err.message);

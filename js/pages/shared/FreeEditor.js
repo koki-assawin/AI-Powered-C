@@ -237,9 +237,10 @@ const FreeEditor = () => {
         let log = '';
 
         // 0. Cloudflare Worker — server-to-server proxy, no CORS/OCI issues
-        if (typeof RUNNER_URL !== 'undefined' && RUNNER_URL) {
+        const _workerUrl = window.RUNNER_URL || '';
+        if (_workerUrl) {
             try {
-                const res = await _fetchT(`${RUNNER_URL}/compile`, {
+                const res = await _fetchT(`${_workerUrl}/compile`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code, language, stdin: stdinStr || '' }),
                 }, 20000);

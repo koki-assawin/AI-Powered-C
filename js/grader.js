@@ -28,11 +28,11 @@ const JUDGE0_LANG = { c: 50, cpp: 54, python: 71, java: 62 };
 
 // Run via Cloudflare Worker proxy (primary — no CORS/OCI issues)
 const runWithWorker = async (code, language, stdin) => {
-    if (typeof RUNNER_URL === 'undefined' || !RUNNER_URL) throw new Error('No worker URL configured');
+    if (!window.RUNNER_URL) throw new Error('No worker URL configured');
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 20000);
     try {
-        const res = await fetch(`${RUNNER_URL}/compile`, {
+        const res = await fetch(`${window.RUNNER_URL}/compile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code, language, stdin: stdin || '' }),
