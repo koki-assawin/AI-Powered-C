@@ -2,15 +2,16 @@
 // js/gemini.js - Google Gemini API wrapper
 // ============================================================
 
+// Free-tier safe first, then newer models
 const _GEMINI_ENDPOINTS = [
-    { endpoint: 'v1beta', model: 'gemini-2.5-flash' },
-    { endpoint: 'v1beta', model: 'gemini-2.5-flash-preview-04-17' },
-    { endpoint: 'v1beta', model: 'gemini-2.0-flash' },
-    { endpoint: 'v1beta', model: 'gemini-2.0-flash-001' },
-    { endpoint: 'v1',     model: 'gemini-2.5-flash' },
-    { endpoint: 'v1',     model: 'gemini-2.0-flash' },
-    { endpoint: 'v1',     model: 'gemini-1.5-flash' },
     { endpoint: 'v1beta', model: 'gemini-1.5-flash' },
+    { endpoint: 'v1',     model: 'gemini-1.5-flash' },
+    { endpoint: 'v1beta', model: 'gemini-2.0-flash' },
+    { endpoint: 'v1',     model: 'gemini-2.0-flash' },
+    { endpoint: 'v1beta', model: 'gemini-2.0-flash-001' },
+    { endpoint: 'v1beta', model: 'gemini-2.5-flash' },
+    { endpoint: 'v1',     model: 'gemini-2.5-flash' },
+    { endpoint: 'v1beta', model: 'gemini-2.5-flash-preview-04-17' },
 ];
 
 const _extractJSON = (text) =>
@@ -32,6 +33,7 @@ const callGeminiApi = async (prompt, schema = null) => {
     }
 
     let lastError = null;
+    const errTypes = new Set(); // 'quota' | 'not_found' | 'permission' | 'other'
 
     for (const { endpoint, model } of _GEMINI_ENDPOINTS) {
         const url = `https://generativelanguage.googleapis.com/${endpoint}/models/${model}:generateContent?key=${GEMINI_KEY}`;
@@ -54,34 +56,71 @@ const callGeminiApi = async (prompt, schema = null) => {
                 return text;
             }
 
-            const code = data.error?.code || response.status;
-            const msg  = data.error?.message || '';
+            const code   = data.error?.code || response.status;
+            const msg    = data.error?.message || '';
+            const status = data.error?.status  || '';
 
-            // Key invalid — stop immediately, no point trying other models
-            if (code === 400 || code === 401 || code === 403 ||
-                msg.includes('API key not valid') || msg.includes('API_KEY_INVALID')) {
-                throw new Error('API Key ไม่ถูกต้อง กรุณาตรวจสอบ API Key และ Billing Account ใน Google Cloud Console');
+            // Hard stop: truly invalid/revoked key (401 or explicit key-invalid messages)
+            if (code === 401 ||
+                msg.includes('API key not valid') ||
+                msg.includes('API_KEY_INVALID') ||
+                status === 'UNAUTHENTICATED') {
+                throw new Error('KEY_INVALID');
             }
 
-            // 429 / 503 / 404 → try next combo
+            // 400 only stops if it's explicitly about the key, not about the model
+            if (code === 400 && (msg.includes('API key') || msg.includes('invalid key'))) {
+                throw new Error('KEY_INVALID');
+            }
+
+            // 403 = model-level permission or API not enabled → try next model
+            if (code === 403) { errTypes.add('permission'); lastError = new Error(msg || 'PERMISSION_DENIED'); continue; }
+            // 429 = quota exhausted for this model → try next
+            if (code === 429) { errTypes.add('quota');      lastError = new Error(msg || 'RESOURCE_EXHAUSTED'); continue; }
+            // 404 = model not found / not available → try next
+            if (code === 404) { errTypes.add('not_found');  lastError = new Error(msg || 'NOT_FOUND'); continue; }
+
+            errTypes.add('other');
             lastError = new Error(msg || `HTTP ${code}`);
             continue;
 
         } catch (err) {
-            // Re-throw hard errors (invalid key)
-            if (err.message.startsWith('API Key ไม่ถูกต้อง') ||
-                err.message.startsWith('ไม่พบ Gemini') ||
+            if (err.message === 'KEY_INVALID') throw new Error(
+                'API Key ไม่ถูกต้องหรือถูกเพิกถอนแล้ว\n' +
+                'สร้าง Key ใหม่ได้ที่ aistudio.google.com/apikey'
+            );
+            if (err.message.startsWith('ไม่พบ Gemini') ||
                 err.message.startsWith('ได้รับการตอบกลับ')) throw err;
+            errTypes.add('other');
             lastError = err;
-            // Network error — try next combo
         }
     }
 
-    // All combos exhausted
+    // All combos exhausted — give specific actionable message
+    if (errTypes.has('quota') && !errTypes.has('permission') && !errTypes.has('not_found')) {
+        throw new Error(
+            'โควต้า API Key เต็ม (Rate Limit)\n' +
+            'Free tier จำกัด 15 req/นาที และ 1,500 req/วัน\n' +
+            'กรุณารอสักครู่แล้วลองใหม่'
+        );
+    }
+    if (errTypes.has('permission')) {
+        throw new Error(
+            'API ไม่ได้รับอนุญาต — Generative Language API อาจยังไม่ได้เปิดใช้งาน\n' +
+            'วิธีแก้: สร้าง API Key ใหม่จาก aistudio.google.com/apikey\n' +
+            '(AI Studio จะ enable API ให้อัตโนมัติ)'
+        );
+    }
+    if (errTypes.has('not_found') && !errTypes.has('other')) {
+        throw new Error(
+            'ไม่พบโมเดล Gemini — API Key อาจไม่ได้สร้างจาก Google AI Studio\n' +
+            'วิธีแก้: ไปที่ aistudio.google.com/apikey → Create API Key → เลือก project'
+        );
+    }
     throw new Error(
-        'API Key ถูกใช้งานเกินขีดจำกัด หรือ model ไม่พร้อมใช้งาน\n' +
-        'แนวทางแก้ไข: ตรวจสอบ Billing Account ใน console.cloud.google.com/billing/projects ' +
-        'หรือรอสักครู่แล้วลองใหม่'
+        'เชื่อมต่อ Gemini API ไม่สำเร็จ\n' +
+        (lastError?.message || 'unknown error') + '\n' +
+        'ลองสร้าง API Key ใหม่ที่ aistudio.google.com/apikey'
     );
 };
 

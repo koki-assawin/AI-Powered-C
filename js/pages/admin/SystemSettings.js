@@ -54,16 +54,17 @@ const SystemSettings = () => {
 
     const testGeminiKey = async () => {
         if (!geminiKey.trim()) { setMsg('❌ กรุณากรอก API Key ก่อนทดสอบ'); return; }
+        if (!geminiKey.trim().startsWith('AIza')) { setMsg('❌ รูปแบบ API Key ไม่ถูกต้อง — ต้องขึ้นต้นด้วย "AIza"'); return; }
         setSaving(true);
-        setMsg('กำลังทดสอบ...');
+        setMsg('⏳ กำลังทดสอบ (ลอง gemini-1.5-flash → 2.0-flash → 2.5-flash)...');
         try {
             const oldKey = GEMINI_KEY;
             GEMINI_KEY = geminiKey.trim();
             const result = await callGeminiApi('ตอบว่า "ทดสอบสำเร็จ" เท่านั้น');
             GEMINI_KEY = oldKey;
-            setMsg(`✅ API Key ใช้งานได้! ตอบกลับ: "${result.slice(0, 50)}"`);
+            setMsg(`✅ API Key ใช้งานได้! ตอบกลับ: "${result.slice(0, 60)}"`);
         } catch (err) {
-            setMsg('❌ API Key ไม่ถูกต้องหรือไม่สามารถเชื่อมต่อได้: ' + err.message);
+            setMsg('❌ ' + err.message);
         } finally {
             setSaving(false);
         }
@@ -118,6 +119,24 @@ const SystemSettings = () => {
                                 className="px-5 py-2 bg-orange-100 text-orange-700 rounded-lg text-sm hover:bg-orange-200">
                                 รับ API Key ฟรี →
                             </a>
+                        </div>
+                    </div>
+
+                    {/* Free Tier Guide */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm">
+                        <h3 className="font-bold text-blue-800 mb-3">📖 วิธีสร้าง Gemini API Key ฟรี (Free Tier)</h3>
+                        <ol className="space-y-2 text-blue-700 list-decimal list-inside">
+                            <li>ไปที่ <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline font-semibold">aistudio.google.com/apikey</a></li>
+                            <li>กด <strong>Create API key</strong> → เลือก project หรือสร้าง project ใหม่</li>
+                            <li>คัดลอก Key ที่ขึ้นต้นด้วย <code className="font-mono bg-blue-100 px-1 rounded">AIza...</code></li>
+                            <li>วางใน field ด้านบน แล้วกด <strong>บันทึก API Key</strong> ก่อน แล้วค่อย <strong>ทดสอบ</strong></li>
+                        </ol>
+                        <div className="mt-3 p-3 bg-white rounded-lg border border-blue-100 text-xs text-blue-600 space-y-1">
+                            <p><strong>ขีดจำกัด Free Tier (ไม่ต้องใส่บัตร):</strong></p>
+                            <p>• gemini-1.5-flash: 15 req/นาที · 1,500 req/วัน · 1M token/วัน</p>
+                            <p>• gemini-2.0-flash: 15 req/นาที · 1,500 req/วัน</p>
+                            <p className="text-orange-600 mt-1">⚠️ หาก error ว่า "PERMISSION_DENIED" → Key ยังไม่ enabled หรือสร้างผิด project</p>
+                            <p className="text-red-600">⚠️ ห้าม commit API Key เข้า GitHub — ระบบนี้เก็บใน Firestore เท่านั้น</p>
                         </div>
                     </div>
 
