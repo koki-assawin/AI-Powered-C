@@ -287,35 +287,18 @@ const FreeEditor = () => {
     };
 
     // ── AI Analysis ──────────────────────────────────────────────────────────
-    const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
-
     const analyzeCode = async () => {
         if (analyzing || !code.trim()) return;
         if (!GEMINI_KEY) { alert('ไม่พบ Gemini API Key — กรุณาตั้งค่าใน Admin'); return; }
         setAnalyzing(true); setShowAI(true); setAiText('');
         const outputSection = output ? `\nผลลัพธ์:\n\`\`\`\n${output}\n\`\`\`` : '';
         const prompt = `วิเคราะห์โค้ด ${LANG_LABELS[language]} ต่อไปนี้อย่างละเอียด (ตอบเป็นภาษาไทย):\n\n\`\`\`${language}\n${code}\n\`\`\`${outputSection}\n\nวิเคราะห์ใน 4 หัวข้อ:\n1. 📋 สรุปสิ่งที่โค้ดทำ\n2. 🐛 จุดที่อาจเป็นปัญหาหรือ bug\n3. ✨ คำแนะนำการปรับปรุงโค้ด\n4. ⭐ ประเมินคุณภาพโค้ด (1-10)`;
-        const body = JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] });
-        let lastError = '';
-        for (const model of GEMINI_MODELS) {
-            try {
-                const res = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
-                    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
-                );
-                const data = await res.json();
-                if (data.error) { lastError = `[${model}] ${data.error.code}: ${data.error.message}`; continue; }
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!text) {
-                    const why = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason || 'no text';
-                    lastError = `[${model}] ไม่ได้รับคำตอบ (${why})`; continue;
-                }
-                setAiText(text);
-                setAnalyzing(false);
-                return;
-            } catch (err) { lastError = `[${model}] ${err.message}`; }
+        try {
+            const text = await callGeminiApi(prompt);
+            setAiText(text);
+        } catch (err) {
+            setAiText('❌ วิเคราะห์ไม่ได้: ' + err.message);
         }
-        setAiText('❌ วิเคราะห์ไม่ได้: ' + lastError);
         setAnalyzing(false);
     };
 
