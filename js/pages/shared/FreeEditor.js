@@ -260,7 +260,19 @@ const FreeEditor = () => {
         let log = '';
 
         // 0. Cloudflare Worker — server-to-server proxy, no CORS/OCI issues
-        const _workerUrl = runnerUrlRef.current || window.RUNNER_URL || '';
+        // Fetch URL from Firestore inline if not cached yet (race condition safety)
+        let _workerUrl = runnerUrlRef.current || window.RUNNER_URL || '';
+        if (!_workerUrl) {
+            try {
+                const _snap = await db.collection('config').doc('runner').get();
+                if (_snap.exists && _snap.data().workerUrl) {
+                    _workerUrl = (_snap.data().workerUrl || '').replace(/\/$/, '');
+                    window.RUNNER_URL = _workerUrl;
+                    runnerUrlRef.current = _workerUrl;
+                }
+            } catch (_e) {}
+        }
+        console.log('[APCC] runner:', _workerUrl || 'none');
         if (_workerUrl) {
             try {
                 const res = await _fetchT(`${_workerUrl}/compile`, {
@@ -270,8 +282,12 @@ const FreeEditor = () => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const d = await res.json();
                 if (d.error) throw new Error(d.error);
+                console.log('[APCC] Worker OK, source:', d.source);
                 data = d;
-            } catch (e) { log += `Worker:${e.message} `; }
+            } catch (e) {
+                console.warn('[APCC] Worker failed:', e.message);
+                log += `Worker:${e.message} `;
+            }
         }
 
         // 1. Wandbox — CORS-safe, no key needed, retry once on failure
