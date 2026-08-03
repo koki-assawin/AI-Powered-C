@@ -7,8 +7,52 @@ const SystemSettings = () => {
     const [pistonStatus, setPistonStatus] = React.useState(null);
     const [pistonLoading, setPistonLoading] = React.useState(false);
     const [msg, setMsg] = React.useState('');
+    const [runnerUrl, setRunnerUrl] = React.useState('');
+    const [runnerSaving, setRunnerSaving] = React.useState(false);
+    const [runnerMsg, setRunnerMsg] = React.useState('');
 
-    React.useEffect(() => { loadCurrentKey(); checkPistonStatus(); }, []);
+    React.useEffect(() => { loadCurrentKey(); loadCurrentRunnerUrl(); checkPistonStatus(); }, []);
+
+    const loadCurrentRunnerUrl = async () => {
+        try {
+            const snap = await db.collection('config').doc('runner').get();
+            if (snap.exists && snap.data().workerUrl) setRunnerUrl(snap.data().workerUrl);
+        } catch (err) { console.error('Could not load runner URL:', err); }
+    };
+
+    const saveRunnerUrl = async () => {
+        setRunnerSaving(true); setRunnerMsg('');
+        try {
+            const url = runnerUrl.trim().replace(/\/$/, '');
+            await db.collection('config').doc('runner').set({ workerUrl: url });
+            RUNNER_URL = url;
+            setRunnerMsg('✅ บันทึก Runner URL สำเร็จ!');
+        } catch (err) {
+            setRunnerMsg('❌ บันทึกไม่สำเร็จ: ' + err.message);
+        } finally { setRunnerSaving(false); }
+    };
+
+    const testRunnerUrl = async () => {
+        const url = runnerUrl.trim().replace(/\/$/, '');
+        if (!url) { setRunnerMsg('❌ กรุณากรอก URL ก่อน'); return; }
+        setRunnerSaving(true);
+        setRunnerMsg('⏳ กำลังทดสอบ...');
+        try {
+            const res = await fetch(`${url}/compile`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: '#include<stdio.h>\nint main(){printf("OK");return 0;}', language: 'c', stdin: '' }),
+                signal: AbortSignal.timeout(15000),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const d = await res.json();
+            if (d.error) throw new Error(d.error);
+            const out = (d.program_output || '').trim();
+            setRunnerMsg(`✅ Worker ทำงานปกติ! Output: "${out}" (source: ${d.source || '?'})`);
+        } catch (err) {
+            setRunnerMsg('❌ ทดสอบไม่สำเร็จ: ' + err.message);
+        } finally { setRunnerSaving(false); }
+    };
 
     const loadCurrentKey = async () => {
         try {
@@ -142,6 +186,49 @@ const SystemSettings = () => {
                             <p>• gemini-2.0-flash: 15 req/นาที · 1,500 req/วัน</p>
                             <p className="text-orange-600 mt-1">⚠️ หาก error ว่า "PERMISSION_DENIED" → ต้อง enable "Generative Language API" ใน Google Cloud Console ก่อน</p>
                             <p className="text-red-600">⚠️ ห้าม commit API Key เข้า GitHub — ระบบนี้เก็บใน Firestore เท่านั้น</p>
+                        </div>
+                    </div>
+
+                    {/* Cloudflare Worker Runner URL */}
+                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                        <h3 className="font-bold text-gray-800 text-lg mb-1">☁️ Cloudflare Worker — Code Runner URL</h3>
+                        <p className="text-sm text-gray-500 mb-3">
+                            Worker ทำหน้าที่รับโค้ดแล้วส่งต่อไป Wandbox/Judge0 แบบ server-to-server (ไม่มีปัญหา CORS/OCI)
+                        </p>
+
+                        {runnerMsg && (
+                            <div className={`p-3 rounded-lg mb-3 text-sm font-medium ${runnerMsg.includes('❌') ? 'bg-red-50 text-red-700 border border-red-200' : runnerMsg.includes('⏳') ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+                                {runnerMsg}
+                            </div>
+                        )}
+
+                        <input
+                            type="text"
+                            value={runnerUrl}
+                            onChange={e => setRunnerUrl(e.target.value)}
+                            placeholder="https://apcc-runner.YOUR-NAME.workers.dev"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm mb-3"
+                        />
+                        <div className="flex space-x-3">
+                            <button onClick={saveRunnerUrl} disabled={runnerSaving}
+                                className="px-5 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50 flex items-center">
+                                {runnerSaving ? <SpinIcon className="w-4 h-4 mr-2" /> : null}
+                                บันทึก URL
+                            </button>
+                            <button onClick={testRunnerUrl} disabled={runnerSaving}
+                                className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50">
+                                ทดสอบ
+                            </button>
+                        </div>
+
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 space-y-1">
+                            <p><strong>วิธี deploy (5 นาที):</strong></p>
+                            <p>1. ไปที่ <strong>dash.cloudflare.com</strong> → Workers &amp; Pages → Create</p>
+                            <p>2. เลือก <strong>Create Worker</strong> → ตั้งชื่อ เช่น <code className="font-mono bg-blue-100 px-1 rounded">apcc-runner</code></p>
+                            <p>3. กด <strong>Edit code</strong> → วางโค้ดจากไฟล์ <code className="font-mono bg-blue-100 px-1 rounded">cloudflare-worker/apcc-runner.js</code></p>
+                            <p>4. กด <strong>Deploy</strong> → คัดลอก URL เช่น <code className="font-mono bg-blue-100 px-1 rounded">https://apcc-runner.NAME.workers.dev</code></p>
+                            <p>5. วาง URL ด้านบน → บันทึก → ทดสอบ</p>
+                            <p className="text-green-700 mt-1">✅ ฟรี 100,000 req/วัน ไม่ต้องใส่บัตรเครดิต</p>
                         </div>
                     </div>
 

@@ -68,6 +68,22 @@ const LANGUAGES = {
 // Stored at the module level; populated by loadGeminiKey() on app start
 let GEMINI_KEY = '';
 
+// ── Cloudflare Worker URL for code execution (loaded from Firestore) ──
+// Stored at config/runner → workerUrl  e.g. https://apcc-runner.NAME.workers.dev
+let RUNNER_URL = '';
+
+const loadRunnerUrl = async () => {
+    try {
+        const snap = await db.collection('config').doc('runner').get();
+        if (snap.exists && snap.data().workerUrl) {
+            RUNNER_URL = (snap.data().workerUrl || '').replace(/\/$/, '');
+            console.log('✅ Code Runner URL loaded:', RUNNER_URL);
+        }
+    } catch (err) {
+        console.warn('⚠️ Could not load Runner URL:', err.message);
+    }
+};
+
 const loadGeminiKey = async () => {
     try {
         const snap = await db.collection('config').doc('gemini').get();

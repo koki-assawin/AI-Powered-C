@@ -225,38 +225,84 @@ const FreeEditor = () => {
         setOutput(''); setRunStatus(null); setExecTime(null);
         setEchoedLines(echo || []);
         const t0 = Date.now();
-        let data;
-        try {
-            const body = { compiler: WANDBOX_COMPILER[language] || 'gcc-head', code, stdin: stdinStr || '' };
-            if (WANDBOX_OPTIONS[language]) body.options = WANDBOX_OPTIONS[language];
-            const res = await fetch('https://wandbox.org/api/compile.json', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const _wd = await res.json();
-            if ((_wd.program_error || '').includes('OCI runtime error') || (_wd.program_error || '').includes('temporarily unavailable')) throw new Error('OCI');
-            data = _wd;
-        } catch (_wandboxErr) {
-            // Judge0 CE before Piston — Piston (emkc.org) is sunset/deprecated
+
+        const _isOci = (s) => (s || '').includes('OCI runtime error') || (s || '').includes('temporarily unavailable');
+        const _fetchT = (url, opts, ms) => {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), ms);
+            return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+        };
+
+        let data = null;
+        let log = '';
+
+        // 0. Cloudflare Worker — server-to-server proxy, no CORS/OCI issues
+        if (typeof RUNNER_URL !== 'undefined' && RUNNER_URL) {
             try {
-                data = await runWithJudge0Editor(stdinStr);
-            } catch (_judge0Err) {
-                try {
-                    data = await runWithPistonEditor(stdinStr);
-                } catch (pistonErr) {
-                    setOutput(`⚠️ ไม่สามารถเชื่อมต่อ compiler ได้ (Wandbox + Judge0 + Piston ล้มเหลว)\n${pistonErr.message}`);
-                    setRunStatus('error'); setExecTime(Date.now() - t0);
-                    setRunning(false); return;
-                }
-            }
+                const res = await _fetchT(`${RUNNER_URL}/compile`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, language, stdin: stdinStr || '' }),
+                }, 20000);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const d = await res.json();
+                if (d.error) throw new Error(d.error);
+                data = d;
+            } catch (e) { log += `Worker:${e.message} `; }
         }
+
+        // 1. Wandbox — CORS-safe, no key needed, retry once on failure
+        for (let i = 0; i < 2 && !data; i++) {
+            try {
+                const body = { compiler: WANDBOX_COMPILER[language] || 'gcc-head', code, stdin: stdinStr || '' };
+                if (WANDBOX_OPTIONS[language]) body.options = WANDBOX_OPTIONS[language];
+                const res = await _fetchT('https://wandbox.org/api/compile.json', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                }, 12000);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const d = await res.json();
+                if (_isOci(d.program_error)) throw new Error('OCI in response');
+                data = d;
+            } catch (e) { log += `Wandbox[${i}]:${e.message} `; }
+        }
+
+        // 2. Judge0 CE — fallback (may have CORS/rate-limit issues from browser)
+        if (!data) {
+            try {
+                const langId = JUDGE0_LANG_MAP[language] || 50;
+                const res = await _fetchT('https://ce.judge0.com/submissions?base64_encoded=false&wait=true', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source_code: code, language_id: langId, stdin: stdinStr || '' }),
+                }, 14000);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const d = await res.json();
+                data = { compiler_error: d.compile_output || '', program_output: d.stdout || '', program_error: d.stderr || '' };
+            } catch (e) { log += `Judge0:${e.message} `; }
+        }
+
+        // 3. Piston — last resort (sunset but still partially responding)
+        if (!data) {
+            try { data = await runWithPistonEditor(stdinStr); }
+            catch (e) { log += `Piston:${e.message}`; }
+        }
+
         setExecTime(Date.now() - t0);
+
+        if (!data) {
+            setOutput('⚠️ เซิร์ฟเวอร์รันโค้ดไม่ว่างชั่วคราว กรุณากด ↺ รันใหม่');
+            setRunStatus('error'); setRunning(false); return;
+        }
+
         const compErr = (data.compiler_error || '').trim();
         const progOut = (data.program_output || '').trimEnd();
         const progErr = (data.program_error  || '').trim();
+
         if (compErr) { setOutput(compErr); setRunStatus('error'); }
-        else {
+        else if (_isOci(progErr)) {
+            // Piston OCI error leaked through — hide it, show retry prompt
+            setOutput('⚠️ เซิร์ฟเวอร์รันโค้ดชั่วคราวไม่ว่าง กรุณากด ↺ รันใหม่');
+            setRunStatus('error');
+        } else {
             setOutput([progOut, progErr].filter(Boolean).join('\n') || '(ไม่มี Output)');
             setRunStatus(progErr ? 'error' : 'ok');
         }

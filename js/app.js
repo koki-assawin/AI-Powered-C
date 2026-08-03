@@ -127,9 +127,10 @@ const App = () => {
         }
     }, []);
 
-    // Load Gemini API key on startup
+    // Load Gemini API key + Code Runner URL on startup
     React.useEffect(() => {
         loadGeminiKey();
+        loadRunnerUrl();
     }, []);
 
     // Redirect authenticated users away from login/register (skip for guests)

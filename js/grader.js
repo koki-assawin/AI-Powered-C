@@ -26,6 +26,31 @@ const PISTON_LANG = {
 // Judge0 CE language IDs
 const JUDGE0_LANG = { c: 50, cpp: 54, python: 71, java: 62 };
 
+// Run via Cloudflare Worker proxy (primary — no CORS/OCI issues)
+const runWithWorker = async (code, language, stdin) => {
+    if (typeof RUNNER_URL === 'undefined' || !RUNNER_URL) throw new Error('No worker URL configured');
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    try {
+        const res = await fetch(`${RUNNER_URL}/compile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, language, stdin: stdin || '' }),
+            signal: ctrl.signal,
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        return {
+            program_output: data.program_output || '',
+            program_error:  data.program_error  || '',
+            compiler_error: data.compiler_error || '',
+        };
+    } finally {
+        clearTimeout(timer);
+    }
+};
+
 // Run via Piston (fallback 1)
 const runWithPiston = async (code, language, stdin) => {
     const p = PISTON_LANG[language] || PISTON_LANG.c;
@@ -104,25 +129,32 @@ const runWithPistonTimed = async (code, language, stdin) => {
     };
 };
 
-// Run code against a single test case input (Judge0 CE primary → Piston fallback)
+// Run code against a single test case input
+// Chain: Cloudflare Worker → Judge0 CE → Piston
 const runSingleTest = async (code, language, testCase) => {
     const startTime = Date.now();
     let data;
 
-    // Judge0 CE first — more reliable than Piston (emkc.org is sunset)
+    // 1. Cloudflare Worker (if configured) — most reliable
     try {
-        data = await runWithJudge0(code, language, testCase.input || '');
-    } catch (_judge0Err) {
+        data = await runWithWorker(code, language, testCase.input || '');
+    } catch (_workerErr) {
+        // 2. Judge0 CE fallback
         try {
-            data = await runWithPistonTimed(code, language, testCase.input || '');
-        } catch (pistonErr) {
-            return {
-                testCaseId: testCase.id, passed: false,
-                actualOutput: '', expectedOutput: normalizeOutput(testCase.expectedOutput || testCase.expected || ''),
-                executionTime: Date.now() - startTime,
-                errorLog: `Compile service unavailable: ${pistonErr.message}`,
-                isCompileError: false,
-            };
+            data = await runWithJudge0(code, language, testCase.input || '');
+        } catch (_judge0Err) {
+            // 3. Piston last resort
+            try {
+                data = await runWithPistonTimed(code, language, testCase.input || '');
+            } catch (pistonErr) {
+                return {
+                    testCaseId: testCase.id, passed: false,
+                    actualOutput: '', expectedOutput: normalizeOutput(testCase.expectedOutput || testCase.expected || ''),
+                    executionTime: Date.now() - startTime,
+                    errorLog: `Compile service unavailable: ${pistonErr.message}`,
+                    isCompileError: false,
+                };
+            }
         }
     }
 
