@@ -95,9 +95,9 @@ const callGeminiApi = async (prompt, schema = null) => {
                 msg.includes('INVALID_API_KEY'))) {
                 throw new Error('KEY_INVALID');
             }
-            // Bearer 401: wrong auth type → try next combo
+            // Bearer 401: wrong auth type → try next combo (don't overwrite lastError)
             if (!isApiKeyAuth && (code === 401 || status === 'UNAUTHENTICATED')) {
-                errTypes.add('other'); lastError = new Error('Bearer not applicable'); continue;
+                continue;
             }
 
             // 400 stops only for explicit key errors (not model errors)
@@ -143,7 +143,15 @@ const callGeminiApi = async (prompt, schema = null) => {
             '(AI Studio จะ enable API ให้อัตโนมัติ)'
         );
     }
-    if (errTypes.has('not_found') && !errTypes.has('other')) {
+    if (errTypes.has('not_found') && !errTypes.has('quota') && !errTypes.has('permission')) {
+        if (_isAQKey) {
+            throw new Error(
+                'Key รูปแบบ AQ.Ab... ไม่รองรับการเรียก API โดยตรง\n' +
+                'วิธีแก้: สร้าง API Key แบบ AIzaSy... จาก Google Cloud Console\n' +
+                '→ console.cloud.google.com/apis/credentials\n' +
+                '→ Create Credentials → API Key → คัดลอกมาใส่'
+            );
+        }
         throw new Error(
             'ไม่พบโมเดล Gemini — API Key อาจไม่ได้สร้างจาก Google AI Studio\n' +
             'วิธีแก้: ไปที่ aistudio.google.com/apikey → Create API Key → เลือก project'
@@ -151,7 +159,7 @@ const callGeminiApi = async (prompt, schema = null) => {
     }
     throw new Error(
         'เชื่อมต่อ Gemini API ไม่สำเร็จ\n' +
-        (lastError?.message || 'unknown error') + '\n' +
+        (lastError?.message && !lastError.message.includes('applicable') ? lastError.message + '\n' : '') +
         'ลองสร้าง API Key ใหม่ที่ aistudio.google.com/apikey'
     );
 };

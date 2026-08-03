@@ -125,17 +125,22 @@ const SystemSettings = () => {
                     {/* Free Tier Guide */}
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm">
                         <h3 className="font-bold text-blue-800 mb-3">📖 วิธีสร้าง Gemini API Key ฟรี (Free Tier)</h3>
+                        <div className="mb-3 p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-xs text-yellow-800">
+                            <strong>⚠️ ต้องใช้ Key รูปแบบ <code className="font-mono bg-yellow-100 px-1 rounded">AIzaSy...</code> เท่านั้น</strong><br/>
+                            Key รูปแบบ <code className="font-mono bg-yellow-100 px-1 rounded">AQ.Ab...</code> ไม่รองรับ REST API โดยตรง
+                        </div>
                         <ol className="space-y-2 text-blue-700 list-decimal list-inside">
-                            <li>ไปที่ <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline font-semibold">aistudio.google.com/apikey</a></li>
-                            <li>กด <strong>Create API key</strong> → เลือก project หรือสร้าง project ใหม่</li>
-                            <li>คัดลอก Key (รูปแบบ <code className="font-mono bg-blue-100 px-1 rounded">AIza...</code> หรือ <code className="font-mono bg-blue-100 px-1 rounded">AQ.Ab...</code>)</li>
+                            <li>ไปที่ <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline font-semibold">console.cloud.google.com/apis/credentials</a></li>
+                            <li>เลือก project (หรือ project ที่สร้างใน AI Studio เช่น <code className="font-mono text-xs bg-blue-100 px-1 rounded">gen-lang-client-...</code>)</li>
+                            <li>กด <strong>Create Credentials</strong> → <strong>API Key</strong></li>
+                            <li>คัดลอก Key (จะเป็นรูปแบบ <code className="font-mono bg-blue-100 px-1 rounded">AIzaSy...</code>)</li>
                             <li>วางใน field ด้านบน แล้วกด <strong>บันทึก API Key</strong> ก่อน แล้วค่อย <strong>ทดสอบ</strong></li>
                         </ol>
                         <div className="mt-3 p-3 bg-white rounded-lg border border-blue-100 text-xs text-blue-600 space-y-1">
                             <p><strong>ขีดจำกัด Free Tier (ไม่ต้องใส่บัตร):</strong></p>
                             <p>• gemini-1.5-flash: 15 req/นาที · 1,500 req/วัน · 1M token/วัน</p>
                             <p>• gemini-2.0-flash: 15 req/นาที · 1,500 req/วัน</p>
-                            <p className="text-orange-600 mt-1">⚠️ หาก error ว่า "PERMISSION_DENIED" → Key ยังไม่ enabled หรือสร้างผิด project</p>
+                            <p className="text-orange-600 mt-1">⚠️ หาก error ว่า "PERMISSION_DENIED" → ต้อง enable "Generative Language API" ใน Google Cloud Console ก่อน</p>
                             <p className="text-red-600">⚠️ ห้าม commit API Key เข้า GitHub — ระบบนี้เก็บใน Firestore เท่านั้น</p>
                         </div>
                     </div>
