@@ -35,20 +35,37 @@ const callGeminiApi = async (prompt, schema = null) => {
     let lastError = null;
     const errTypes = new Set(); // 'quota' | 'not_found' | 'permission' | 'other'
 
-    // AQ.Ab... keys use x-goog-api-key header; AIza... keys use ?key= param
-    // Send both so either format works
     const _isAQKey = GEMINI_KEY.startsWith('AQ.');
 
-    for (const { endpoint, model } of _GEMINI_ENDPOINTS) {
-        const param = _isAQKey ? '' : `?key=${GEMINI_KEY}`;
+    // Build attempt list: for AQ keys try all 3 auth methods × all models
+    const _authMethods = _isAQKey
+        ? [
+            // Method 1: Bearer token (OAuth2 style — most likely for AQ keys)
+            (key) => ({ headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, param: '' }),
+            // Method 2: x-goog-api-key header
+            (key) => ({ headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, param: '' }),
+            // Method 3: query param fallback
+            (key) => ({ headers: { 'Content-Type': 'application/json' }, param: `?key=${key}` }),
+          ]
+        : [
+            // AIza keys: query param + header (traditional)
+            (key) => ({ headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, param: `?key=${key}` }),
+          ];
+
+    const _attempts = [];
+    for (const authFn of _authMethods) {
+        for (const ep of _GEMINI_ENDPOINTS) {
+            _attempts.push({ ...ep, authFn });
+        }
+    }
+
+    for (const { endpoint, model, authFn } of _attempts) {
+        const { headers, param } = authFn(GEMINI_KEY);
         const url = `https://generativelanguage.googleapis.com/${endpoint}/models/${model}:generateContent${param}`;
         try {
             const response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': GEMINI_KEY,
-                },
+                headers,
                 body: JSON.stringify(payload),
             });
 
