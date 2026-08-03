@@ -110,6 +110,29 @@ const FreeEditor = () => {
     const [aiHeight,       setAiHeight]       = React.useState(240);
     const splitContainerRef = React.useRef(null);
 
+    // Runner URL ref — updated from Firestore on mount; used in runCodeCore
+    const runnerUrlRef = React.useRef(window.RUNNER_URL || '');
+
+    // ── Load runner URL from Firestore on mount (self-sufficient) ──────────
+    React.useEffect(() => {
+        const loadUrl = async () => {
+            // Use cached global if already loaded
+            if (window.RUNNER_URL) { runnerUrlRef.current = window.RUNNER_URL; return; }
+            try {
+                const snap = await db.collection('config').doc('runner').get();
+                if (snap.exists && snap.data().workerUrl) {
+                    const url = (snap.data().workerUrl || '').replace(/\/$/, '');
+                    window.RUNNER_URL = url;
+                    runnerUrlRef.current = url;
+                }
+            } catch (e) {}
+        };
+        loadUrl();
+        // Re-sync after global may have loaded (app.js useEffect is async too)
+        const t = setTimeout(() => { if (window.RUNNER_URL) runnerUrlRef.current = window.RUNNER_URL; }, 3000);
+        return () => clearTimeout(t);
+    }, []);
+
     // ── Load Google Font ────────────────────────────────────────────────────
     React.useEffect(() => {
         const info = CODING_FONTS.find(f => f.value === fontFamily);
@@ -237,7 +260,7 @@ const FreeEditor = () => {
         let log = '';
 
         // 0. Cloudflare Worker — server-to-server proxy, no CORS/OCI issues
-        const _workerUrl = window.RUNNER_URL || '';
+        const _workerUrl = runnerUrlRef.current || window.RUNNER_URL || '';
         if (_workerUrl) {
             try {
                 const res = await _fetchT(`${_workerUrl}/compile`, {

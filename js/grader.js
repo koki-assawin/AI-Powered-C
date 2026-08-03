@@ -26,8 +26,20 @@ const PISTON_LANG = {
 // Judge0 CE language IDs
 const JUDGE0_LANG = { c: 50, cpp: 54, python: 71, java: 62 };
 
+// Ensure window.RUNNER_URL is loaded from Firestore if not already set
+const _ensureRunnerUrl = async () => {
+    if (window.RUNNER_URL) return;
+    try {
+        const snap = await db.collection('config').doc('runner').get();
+        if (snap.exists && snap.data().workerUrl) {
+            window.RUNNER_URL = (snap.data().workerUrl || '').replace(/\/$/, '');
+        }
+    } catch (e) {}
+};
+
 // Run via Cloudflare Worker proxy (primary — no CORS/OCI issues)
 const runWithWorker = async (code, language, stdin) => {
+    await _ensureRunnerUrl();
     if (!window.RUNNER_URL) throw new Error('No worker URL configured');
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 20000);
