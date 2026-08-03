@@ -35,12 +35,20 @@ const callGeminiApi = async (prompt, schema = null) => {
     let lastError = null;
     const errTypes = new Set(); // 'quota' | 'not_found' | 'permission' | 'other'
 
+    // AQ.Ab... keys use x-goog-api-key header; AIza... keys use ?key= param
+    // Send both so either format works
+    const _isAQKey = GEMINI_KEY.startsWith('AQ.');
+
     for (const { endpoint, model } of _GEMINI_ENDPOINTS) {
-        const url = `https://generativelanguage.googleapis.com/${endpoint}/models/${model}:generateContent?key=${GEMINI_KEY}`;
+        const param = _isAQKey ? '' : `?key=${GEMINI_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/${endpoint}/models/${model}:generateContent${param}`;
         try {
             const response = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': GEMINI_KEY,
+                },
                 body: JSON.stringify(payload),
             });
 
