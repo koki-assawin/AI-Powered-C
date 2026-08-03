@@ -506,27 +506,61 @@ const CodingWorkspace = () => {
         setFrEchoedLines(echo || []);
         const t0 = Date.now();
         let data;
-        try {
-            const body = { compiler: WB_COMPILER[selectedLanguage] || 'gcc-head', code, stdin: stdinStr || '' };
-            if (WB_OPTIONS[selectedLanguage]) body.options = WB_OPTIONS[selectedLanguage];
-            const res = await fetch('https://wandbox.org/api/compile.json', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-            });
-            if (!res.ok) throw new Error(`Wandbox ${res.status}`);
-            data = await res.json();
-        } catch (_) {
-            try { data = await runWithPiston(code, selectedLanguage, stdinStr); }
-            catch (_) {
-                try { data = await runWithJudge0(code, selectedLanguage, stdinStr); }
-                catch (e) { setFreeRunOutput(`⚠️ compiler ไม่ว่าง: ${e.message}`); setFreeRunning(false); return; }
-            }
+        const _frIsOci = (s) => (s||'').includes('OCI runtime error') || (s||'').includes('temporarily unavailable');
+
+        // Load Worker URL (inline Firestore fetch for race-condition safety)
+        let _workerUrl = window.RUNNER_URL || '';
+        if (!_workerUrl) {
+            try {
+                const _snap = await db.collection('config').doc('runner').get();
+                if (_snap.exists && _snap.data().workerUrl) {
+                    _workerUrl = (_snap.data().workerUrl || '').replace(/\/$/, '');
+                    window.RUNNER_URL = _workerUrl;
+                }
+            } catch (_e) {}
         }
+
+        // 1. Cloudflare Worker (primary — server-to-server, no CORS/OCI issues)
+        if (_workerUrl) {
+            try {
+                const ctrl = new AbortController();
+                const timer = setTimeout(() => ctrl.abort(), 20000);
+                const res = await fetch(`${_workerUrl}/compile`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, language: selectedLanguage, stdin: stdinStr || '' }),
+                    signal: ctrl.signal,
+                });
+                clearTimeout(timer);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const d = await res.json();
+                if (d.error) throw new Error(d.error);
+                if (_frIsOci(d.program_output) || _frIsOci(d.program_error) || _frIsOci(d.compiler_error)) throw new Error('OCI');
+                data = d;
+            } catch (_) {}
+        }
+
+        // 2. Judge0 CE fallback
+        if (!data) {
+            try { data = await runWithJudge0(code, selectedLanguage, stdinStr); } catch (_) {}
+        }
+
         const elapsed = Date.now() - t0;
+        if (!data) {
+            setFreeRunOutput('⚠️ เซิร์ฟเวอร์รันโค้ดชั่วคราวไม่ว่าง กรุณากด ↺ รันใหม่');
+            setFreeRunning(false); return;
+        }
+
         const compErr = (data.compiler_error || '').trim();
         const progOut = (data.program_output || '').trimEnd();
         const progErr = (data.program_error  || '').trim();
-        if (compErr) setFreeRunOutput(`❌ Compile Error:\n${compErr}`);
-        else setFreeRunOutput((progOut || '(ไม่มี output)') + (progErr ? `\n⚠️ stderr:\n${progErr}` : '') + `\n\n── เวลา ${elapsed} ms ──`);
+
+        if (_frIsOci(compErr) || _frIsOci(progOut) || _frIsOci(progErr)) {
+            setFreeRunOutput('⚠️ เซิร์ฟเวอร์รันโค้ดชั่วคราวไม่ว่าง กรุณากด ↺ รันใหม่');
+        } else if (compErr) {
+            setFreeRunOutput(`❌ Compile Error:\n${compErr}`);
+        } else {
+            setFreeRunOutput((progOut || '(ไม่มี output)') + (progErr ? `\n⚠️ stderr:\n${progErr}` : '') + `\n\n── เวลา ${elapsed} ms ──`);
+        }
         setFreeRunning(false);
     };
 
