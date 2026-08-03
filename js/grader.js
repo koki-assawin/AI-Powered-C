@@ -90,9 +90,14 @@ const runWithPistonTimed = async (code, language, stdin) => {
     }, 8000);
     if (!res.ok) throw new Error(`Piston HTTP ${res.status}`);
     const data = await res.json();
+    const stderr = data.run?.stderr || '';
+    // OCI/crun errors = Piston server overloaded → trigger fallback to Judge0
+    if (stderr.includes('OCI runtime error') || stderr.includes('temporarily unavailable')) {
+        throw new Error(`Piston overloaded (${stderr.slice(0, 80)})`);
+    }
     return {
         program_output: data.run?.stdout || '',
-        program_error:  data.run?.stderr || '',
+        program_error:  stderr,
         compiler_error: data.compile?.stderr || '',
     };
 };
