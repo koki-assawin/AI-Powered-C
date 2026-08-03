@@ -238,13 +238,14 @@ const FreeEditor = () => {
             if ((_wd.program_error || '').includes('OCI runtime error') || (_wd.program_error || '').includes('temporarily unavailable')) throw new Error('OCI');
             data = _wd;
         } catch (_wandboxErr) {
+            // Judge0 CE before Piston — Piston (emkc.org) is sunset/deprecated
             try {
-                data = await runWithPistonEditor(stdinStr);
-            } catch (_pistonErr) {
+                data = await runWithJudge0Editor(stdinStr);
+            } catch (_judge0Err) {
                 try {
-                    data = await runWithJudge0Editor(stdinStr);
-                } catch (judge0Err) {
-                    setOutput(`⚠️ ไม่สามารถเชื่อมต่อ compiler ได้ (Wandbox + Piston + Judge0 ล้มเหลว)\n${judge0Err.message}`);
+                    data = await runWithPistonEditor(stdinStr);
+                } catch (pistonErr) {
+                    setOutput(`⚠️ ไม่สามารถเชื่อมต่อ compiler ได้ (Wandbox + Judge0 + Piston ล้มเหลว)\n${pistonErr.message}`);
                     setRunStatus('error'); setExecTime(Date.now() - t0);
                     setRunning(false); return;
                 }

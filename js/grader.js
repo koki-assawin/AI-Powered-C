@@ -1,5 +1,7 @@
 // ============================================================
-// js/grader.js - Auto-Grader via Wandbox → Piston → Judge0
+// js/grader.js - Auto-Grader via Piston → Judge0 CE
+// NOTE: Wandbox skipped for grading (no reliable stdin support per test case)
+// Piston (emkc.org) is sunset/deprecated — Judge0 CE is the reliable fallback
 // ============================================================
 
 const WANDBOX_URL = 'https://wandbox.org/api/compile.json';
@@ -102,22 +104,23 @@ const runWithPistonTimed = async (code, language, stdin) => {
     };
 };
 
-// Run code against a single test case input (Piston → Judge0)
+// Run code against a single test case input (Judge0 CE primary → Piston fallback)
 const runSingleTest = async (code, language, testCase) => {
     const startTime = Date.now();
     let data;
 
+    // Judge0 CE first — more reliable than Piston (emkc.org is sunset)
     try {
-        data = await runWithPistonTimed(code, language, testCase.input || '');
-    } catch (_pistonErr) {
+        data = await runWithJudge0(code, language, testCase.input || '');
+    } catch (_judge0Err) {
         try {
-            data = await runWithJudge0(code, language, testCase.input || '');
-        } catch (judge0Err) {
+            data = await runWithPistonTimed(code, language, testCase.input || '');
+        } catch (pistonErr) {
             return {
                 testCaseId: testCase.id, passed: false,
                 actualOutput: '', expectedOutput: normalizeOutput(testCase.expectedOutput || testCase.expected || ''),
                 executionTime: Date.now() - startTime,
-                errorLog: `Compile service unavailable: ${judge0Err.message}`,
+                errorLog: `Compile service unavailable: ${pistonErr.message}`,
                 isCompileError: false,
             };
         }
