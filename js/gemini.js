@@ -15,6 +15,9 @@ const _GEMINI_ENDPOINTS = [
 const _extractJSON = (text) =>
     text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
 
+// Cache key: store last working endpoint:model so next call skips failed models
+const _GEMINI_EP_CACHE = 'apcc_gemini_ep';
+
 const callGeminiApi = async (prompt, schema = null) => {
     if (!GEMINI_KEY || GEMINI_KEY.trim() === '') {
         throw new Error('ไม่พบ Gemini API Key กรุณาติดต่อผู้ดูแลระบบ');
@@ -35,28 +38,32 @@ const callGeminiApi = async (prompt, schema = null) => {
 
     const _isAQKey = GEMINI_KEY.startsWith('AQ.');
 
-    // Build attempt list. AQ.Ab keys are standard API keys (not OAuth) — use ?key= / x-goog-api-key first.
-    // Bearer is last resort; a 401 on Bearer just means wrong auth method, not invalid key.
     const _authMethods = _isAQKey
         ? [
-            // Method 1: query param (most compatible for AQ keys)
             (key) => ({ headers: { 'Content-Type': 'application/json' }, param: `?key=${key}`, isApiKeyAuth: true }),
-            // Method 2: x-goog-api-key header
             (key) => ({ headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, param: '', isApiKeyAuth: true }),
-            // Method 3: Bearer token (last resort — 401 here ≠ invalid key)
             (key) => ({ headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, param: '', isApiKeyAuth: false }),
           ]
         : [
-            // AIza keys: query param + header (traditional)
             (key) => ({ headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, param: `?key=${key}`, isApiKeyAuth: true }),
           ];
 
-    const _attempts = [];
+    // Build full attempt list
+    const _fullAttempts = [];
     for (const authFn of _authMethods) {
         for (const ep of _GEMINI_ENDPOINTS) {
-            _attempts.push({ ...ep, authFn });
+            _fullAttempts.push({ ...ep, authFn });
         }
     }
+
+    // Try cached working endpoint first to minimize wasted API calls (rate limit)
+    const _cachedEp = localStorage.getItem(_GEMINI_EP_CACHE);
+    const _attempts = _cachedEp
+        ? [
+            ..._fullAttempts.filter(a => `${a.endpoint}:${a.model}` === _cachedEp),
+            ..._fullAttempts.filter(a => `${a.endpoint}:${a.model}` !== _cachedEp),
+          ]
+        : _fullAttempts;
 
     for (const { endpoint, model, authFn } of _attempts) {
         const { headers, param, isApiKeyAuth } = authFn(GEMINI_KEY);
@@ -73,6 +80,8 @@ const callGeminiApi = async (prompt, schema = null) => {
             if (response.ok) {
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (!text) throw new Error('ได้รับการตอบกลับที่ไม่ถูกต้องจาก API');
+                // Cache this working endpoint for future calls
+                try { localStorage.setItem(_GEMINI_EP_CACHE, `${endpoint}:${model}`); } catch (_) {}
                 if (schema) {
                     try { return JSON.parse(_extractJSON(text)); }
                     catch { throw new Error('ได้รับการตอบกลับที่ไม่ถูกต้องจาก API'); }
@@ -84,8 +93,6 @@ const callGeminiApi = async (prompt, schema = null) => {
             const msg    = data.error?.message || '';
             const status = data.error?.status  || '';
 
-            // Hard stop: truly invalid/revoked key — but only when using API key auth.
-            // A 401 from Bearer method just means wrong auth method, not an invalid key.
             if (isApiKeyAuth && (code === 401 || status === 'UNAUTHENTICATED' ||
                 msg.includes('API key not valid') ||
                 msg.includes('API_KEY_INVALID') ||
@@ -93,21 +100,20 @@ const callGeminiApi = async (prompt, schema = null) => {
                 msg.includes('INVALID_API_KEY'))) {
                 throw new Error('KEY_INVALID');
             }
-            // Bearer 401: wrong auth type → try next combo (don't overwrite lastError)
-            if (!isApiKeyAuth && (code === 401 || status === 'UNAUTHENTICATED')) {
-                continue;
-            }
+            if (!isApiKeyAuth && (code === 401 || status === 'UNAUTHENTICATED')) continue;
 
-            // 400 stops only for explicit key errors (not model errors)
             if (code === 400 && (msg.toLowerCase().includes('api key') || msg.includes('invalid key'))) {
                 throw new Error('KEY_INVALID');
             }
 
-            // 403 = model-level permission or API not enabled → try next model
             if (code === 403) { errTypes.add('permission'); lastError = new Error(msg || 'PERMISSION_DENIED'); continue; }
-            // 429 = quota exhausted for this model → try next
-            if (code === 429) { errTypes.add('quota');      lastError = new Error(msg || 'RESOURCE_EXHAUSTED'); continue; }
-            // 404 = model not found / not available → try next
+            if (code === 429) {
+                // Clear cached endpoint if it's rate-limited, so next call tries another
+                if (_cachedEp === `${endpoint}:${model}`) {
+                    try { localStorage.removeItem(_GEMINI_EP_CACHE); } catch (_) {}
+                }
+                errTypes.add('quota'); lastError = new Error(msg || 'RESOURCE_EXHAUSTED'); continue;
+            }
             if (code === 404) { errTypes.add('not_found');  lastError = new Error(msg || 'NOT_FOUND'); continue; }
 
             errTypes.add('other');
@@ -129,9 +135,10 @@ const callGeminiApi = async (prompt, schema = null) => {
     // All combos exhausted — give specific actionable message
     if (errTypes.has('quota')) {
         throw new Error(
-            'โควต้า API Key เต็ม (Rate Limit)\n' +
-            'Free tier จำกัด 15 req/นาที และ 1,500 req/วัน\n' +
-            'กรุณารอสักครู่แล้วลองใหม่'
+            'ถึงขีดจำกัด Rate Limit ของ API Key\n' +
+            '• รอ 1 นาทีแล้วลองใหม่ (จำกัด 15 req/นาที)\n' +
+            '• ถ้ายังไม่ได้: รอถึงพรุ่งนี้ (จำกัด 1,500 req/วัน)\n' +
+            '• หรือสร้าง API Key ใหม่ที่ aistudio.google.com/apikey'
         );
     }
     if (errTypes.has('permission')) {
