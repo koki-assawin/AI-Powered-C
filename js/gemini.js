@@ -2,16 +2,14 @@
 // js/gemini.js - Google Gemini API wrapper
 // ============================================================
 
-// Free-tier safe first, then newer models
+// Current GA models only — preview/deprecated models removed (gemini-1.5-flash sunset, 2.5-flash-preview-04-17 removed)
 const _GEMINI_ENDPOINTS = [
-    { endpoint: 'v1beta', model: 'gemini-1.5-flash' },
-    { endpoint: 'v1',     model: 'gemini-1.5-flash' },
     { endpoint: 'v1beta', model: 'gemini-2.0-flash' },
     { endpoint: 'v1',     model: 'gemini-2.0-flash' },
-    { endpoint: 'v1beta', model: 'gemini-2.0-flash-001' },
     { endpoint: 'v1beta', model: 'gemini-2.5-flash' },
     { endpoint: 'v1',     model: 'gemini-2.5-flash' },
-    { endpoint: 'v1beta', model: 'gemini-2.5-flash-preview-04-17' },
+    { endpoint: 'v1beta', model: 'gemini-2.5-flash-lite' },
+    { endpoint: 'v1',     model: 'gemini-2.5-flash-lite' },
 ];
 
 const _extractJSON = (text) =>
@@ -129,7 +127,7 @@ const callGeminiApi = async (prompt, schema = null) => {
     }
 
     // All combos exhausted — give specific actionable message
-    if (errTypes.has('quota') && !errTypes.has('permission') && !errTypes.has('not_found')) {
+    if (errTypes.has('quota')) {
         throw new Error(
             'โควต้า API Key เต็ม (Rate Limit)\n' +
             'Free tier จำกัด 15 req/นาที และ 1,500 req/วัน\n' +
