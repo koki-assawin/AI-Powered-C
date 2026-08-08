@@ -5,8 +5,8 @@
 **รหัสวิชา:** ว31281 การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น  
 **กลุ่มเป้าหมาย:** นักเรียน ม.4/6 จำนวน 32 คน  
 **URL ระบบ:** https://koki-assawin.github.io/AI-Powered-C/  
-**วันที่จัดทำเอกสาร:** 3 มิถุนายน 2569  
-**เวอร์ชันระบบ:** v5.4 (Gamification + AI Coaching + Mini-Games)
+**วันที่จัดทำเอกสาร:** 8 สิงหาคม 2569  
+**เวอร์ชันระบบ:** v5.5 (+ Learning Hub + Content CMS + Gradebook E1-style)
 
 ---
 
@@ -43,9 +43,9 @@
 
 | Role | จำนวน | หน้าที่ |
 |---|---|---|
-| **student** | 32 คน | เรียน, ส่งงาน, เล่นเกม, ดู Leaderboard |
-| **teacher** | 1-3 คน | สร้างวิชา, ออกโจทย์, ดูผล, จัดการ Gamification |
-| **admin** | 1 คน | จัดการผู้ใช้, ตั้งค่าระบบ, Seed ข้อมูลวิจัย |
+| **student** |  เรียน, ส่งงาน, เล่นเกม, ดู Leaderboard |
+| **teacher** | สร้างวิชา, ออกโจทย์, ดูผล, จัดการ Gamification |
+| **admin** | จัดการผู้ใช้, ตั้งค่าระบบ, Seed ข้อมูลวิจัย |
 
 ### 1.3 การแมปกับกรอบ 5Es
 
@@ -71,7 +71,7 @@
 | **Auth** | Firebase Authentication | Email/Password |
 | **Hosting** | Firebase Hosting + GitHub Pages | Deploy ด้วย `firebase deploy` |
 | **AI** | Google Gemini API (gemini-2.0-flash) | Coaching, Mini-game generation, Analytics |
-| **Code Runner** | Wandbox → Piston API → Judge0 | Fallback chain สำหรับ execute C code |
+| **Code Runner** | Piston API → Judge0 (parallel) | Execute C code; 8s timeout/test; Wandbox ถูกตัดออก |
 | **UI** | Tailwind CSS + Bootstrap 5.3 | Utility-first + K-Minimal pink theme |
 | **Editor** | CodeMirror 5 | Syntax highlight สำหรับ C + หลาย Theme |
 | **Charts** | Chart.js | กราฟวิเคราะห์ผลการเรียน |
@@ -106,7 +106,7 @@
 
 ## 3. โครงสร้างฐานข้อมูล Firestore
 
-### 3.1 Collections ทั้งหมด (23 Collections)
+### 3.1 Collections ทั้งหมด (24 Collections)
 
 #### กลุ่ม: ผู้ใช้และ Auth
 
@@ -143,6 +143,7 @@ updatedAt      : timestamp
 ```
 title          : string   — ชื่อวิชา
 description    : string   — คำอธิบาย
+language       : string   — 'c' | 'python' | 'java' | 'cpp' ฯลฯ
 teacherId      : string   — uid ของครูเจ้าของวิชา
 coTeacherIds   : array    — uid ของครูร่วม
 isPublished    : boolean  — เปิดให้นักเรียนเห็น
@@ -184,6 +185,22 @@ title          : string
 order          : number
 content        : string   — เนื้อหา (Markdown/HTML)
 videoUrl       : string   — ลิงก์วิดีโอ (optional)
+```
+
+**`learningTopics/{docId}`** ← Learning Hub CMS (v5.5)
+```
+courseId       : string   — วิชาที่สังกัด (Scope per-course)
+unitId         : number   — หน่วยการเรียนรู้ (1-5, null สำหรับไม่แบ่งหน่วย)
+parentTopicId  : string   — id ของ built-in topic ที่ attach อยู่ (optional)
+title          : string   — ชื่อหัวข้อ
+icon           : string   — emoji icon
+content        : string   — เนื้อหา (HTML/Markdown)
+resources      : array    — [{type:'video'|'pdf'|'image'|'link', url, label}]
+isPublished    : boolean  — เผยแพร่ให้นักเรียนเห็น
+order          : number   — ลำดับการแสดงผล
+createdAt      : timestamp
+updatedAt      : timestamp
+createdBy      : string   — uid ของครูผู้สร้าง
 ```
 
 #### กลุ่ม: การลงทะเบียนและการส่งงาน
@@ -628,15 +645,41 @@ firebase deploy --only firestore:rules
 
 **การสร้างวิชาใหม่:**
 1. กด "+ สร้างรายวิชาใหม่"
-2. กรอก: ชื่อวิชา, คำอธิบาย
+2. กรอก: ชื่อวิชา, คำอธิบาย, ภาษาโปรแกรม (C/Python/Java/C++)
 3. กด "สร้างวิชา"
 4. ระบบสร้าง `classCode` อัตโนมัติ (ใช้ให้นักเรียนลงทะเบียน)
 
+**ปุ่มบน Course Card (Row 1 — 5 ปุ่ม):**
+
+| ปุ่ม | หน้าที่ |
+|---|---|
+| ✏️ แก้ไข | แก้ไขข้อมูลวิชา |
+| 📝 โจทย์ | จัดการ Assignment |
+| 🎯 กิจกรรม | ActivityBuilder |
+| 📊 สถิติ | Analytics |
+| 📖 เนื้อหา | Content Manager (เปิดตาม courseId) |
+
 **การจัดการโจทย์ (Assignment):**
-1. เข้าวิชา → กด "จัดการโจทย์"
+1. เข้าวิชา → กด "📝 โจทย์"
 2. สร้าง Assignment: ชื่อ, คำอธิบาย (Markdown), ระดับ, วันส่ง
 3. เพิ่ม Test Cases: Input + Expected Output
 4. Publish เมื่อพร้อมให้นักเรียนทำ
+
+### 9.10 จัดการเนื้อหา Learning Hub (`#/teacher/content`)
+
+**Course Picker** (URL ไม่มี `?course=` param):
+- แสดงการ์ดรายวิชาทั้งหมดของครู
+- คลิกการ์ด → เข้า Per-Course View
+
+**Per-Course Content View** (`#/teacher/content?course=COURSEID`):
+- ส่วนหัว: ชื่อวิชา + ปุ่ม "← กลับ"
+- **วิชาภาษา C:** แสดงแท็บหน่วย 1-5 ตาม ว31281
+- **วิชาภาษาอื่น:** หัวข้อแบบ Flat ไม่แบ่งหน่วย
+- สร้าง/แก้ไข/ลบหัวข้อ (title, icon, content, resources)
+- Toggle Publish/Unpublish
+- หัวข้อที่ Publish จะปรากฏใน Learning Hub ของนักเรียน
+
+**Firestore:** บันทึกใน `learningTopics` พร้อม `courseId` — นักเรียนเห็นเฉพาะหัวข้อของวิชาตนเอง
 
 ### 9.4 วิเคราะห์นักเรียน (`#/teacher/analytics`)
 
@@ -779,6 +822,25 @@ firebase deploy --only firestore:rules
 - ฝึกโจทย์นอกเหนือจาก Assignment
 - ไม่มีผลต่อเกรด แต่ได้ XP
 - ข้อมูลบันทึกใน `selfPracticeSubmissions`
+
+### 10.8 Learning Hub / ศูนย์การเรียนรู้ (`#/student/tools?course=COURSEID`)
+
+เข้าถึงผ่านปุ่ม **"🧪 Learning Tools"** บน Course Card ของนักเรียน (ส่งผ่าน `?course=` อัตโนมัติ)
+
+**วิชาภาษา C:**
+- แสดง 25 หัวข้อ Built-in ใน 5 หน่วย (ว31281)
+- แต่ละหัวข้อ: คำอธิบาย, ตัวอย่างโค้ดแบบ Step-through, Tips, คำเตือน
+- ฝัง Interactive Tools ใน Topic ที่เกี่ยวข้อง:
+  - 📊 Data Type Visualizer (หน่วย 1 · แผน 3)
+  - 📐 Flowchart → C Code (หน่วย 1 · แผน 1)
+  - 🌳 Decision Tree (หน่วย 2 · แผน 10)
+  - 🎨 Pattern Sandbox (หน่วย 3 · แผน 24)
+  - 🗂️ Memory Map (หน่วย 4 · แผน 29)
+- หัวข้อเพิ่มเติมจากครู (Firestore `learningTopics` scoped ตาม courseId) แสดงร่วมในแต่ละหน่วย
+
+**วิชาภาษาอื่น (Python/Java/C++ ฯลฯ):**
+- ซ่อน Built-in C content
+- แสดงเฉพาะหัวข้อที่ครูสร้างใน ContentManager สำหรับวิชานั้นๆ
 
 ### 10.9 FreeEditor (`#/student/editor`)
 
@@ -938,15 +1000,17 @@ AI-Powered-C/
 │   │   │
 │   │   ├── student/
 │   │   │   ├── StudentDashboard.js     ← Dashboard: XP, Rank, วิชา, Shortcuts
-│   │   │   ├── CourseViewer.js         ← รายการวิชา + โจทย์
+│   │   │   ├── CourseViewer.js v5.0    ← รายการวิชา + โจทย์ (Learning Tools ส่ง ?course=)
 │   │   │   ├── CodingWorkspace.js      ← โค้ดเอดิเตอร์ + Grader + AI Coach
-│   │   │   ├── Gradebook.js            ← คะแนนทุกโจทย์
+│   │   │   ├── Gradebook.js v5.2       ← E1-style scorecard, unit groups, filter 3 แบบ
 │   │   │   ├── SubmissionHistory.js    ← ประวัติการส่ง + โค้ดและ Feedback
 │   │   │   ├── SelfPractice.js         ← ฝึกโค้ดเอง (ได้ XP)
 │   │   │   ├── StudentProfile.js       ← โปรไฟล์ + Game Stats + Achievement
 │   │   │   ├── Leaderboard.js          ← อันดับตามวิชา (Daily/Weekly/Alltime)
 │   │   │   ├── AchievementsPage.js     ← Badge Gallery (13 Achievement)
 │   │   │   ├── MiniGameHub.js          ← หน้าเลือกเกม + สถานะวันนี้
+│   │   │   ├── LearningTools.js        ← (legacy — ยังโหลดอยู่เพื่อ export tool components)
+│   │   │   ├── LearningHub.js v1.1     ← ศูนย์การเรียนรู้ per-course (25 built-in + Firestore)
 │   │   │   ├── StudentActivityView.js  ← Activity timeline
 │   │   │   └── games/
 │   │   │       ├── QuizBlitz.js        ← เกม MCQ 5 ข้อ จับเวลา 30 วินาที
@@ -955,7 +1019,7 @@ AI-Powered-C/
 │   │   │
 │   │   ├── teacher/
 │   │   │   ├── TeacherDashboard.js     ← Dashboard ครู
-│   │   │   ├── CourseBuilder.js        ← สร้าง/จัดการวิชา + co-teacher
+│   │   │   ├── CourseBuilder.js v5.1   ← สร้าง/จัดการวิชา + ปุ่ม "📖 เนื้อหา"
 │   │   │   ├── AssignmentManager.js    ← สร้าง/จัดการโจทย์
 │   │   │   ├── TestCaseEditor.js       ← ออก Test Cases (visible + hidden)
 │   │   │   ├── StudentAnalytics.js     ← วิเคราะห์นักเรียน (7 แท็บ)
@@ -963,6 +1027,7 @@ AI-Powered-C/
 │   │   │   ├── StudentManagement.js    ← จัดการนักเรียน + อนุมัติ
 │   │   │   ├── ActivityBuilder.js      ← สร้าง Activity + Test Cases รวดเร็ว
 │   │   │   ├── RealtimeDashboard.js    ← Real-time submission monitoring
+│   │   │   ├── ContentManager.js v1.1  ← CMS เนื้อหา Learning Hub แบบ per-course
 │   │   │   └── ClassManager.js         ← (deprecated — ไม่ใช้แล้ว)
 │   │   │
 │   │   └── admin/
@@ -981,16 +1046,17 @@ AI-Powered-C/
 
 | รายการ | จำนวน |
 |---|---|
-| ไฟล์ JS ทั้งหมด | ~50 ไฟล์ |
-| Firestore Collections | 23 Collections |
-| Student Routes | 15 Routes |
-| Teacher Routes | 10 Routes |
+| ไฟล์ JS ทั้งหมด | ~52 ไฟล์ |
+| Firestore Collections | 24 Collections |
+| Student Routes | 16 Routes |
+| Teacher Routes | 11 Routes |
 | Admin Routes | 5 Routes |
 | Rank Tiers | 10 ระดับ (0–20,000 XP) |
 | AI Coach Roles | 5 บทบาท + 1 Predictive Risk |
 | Hint Levels (Socratic) | 4 ระดับ |
 | Mini-game ประเภท | 3 ประเภท |
 | Achievement | 13 รายการ |
+| Built-in Learning Topics | 25 หัวข้อ (5 หน่วย ว31281) |
 | Engagement Tiers (วิจัย) | 5 ระดับ |
 
 ### B. ติดต่อและ Repository
@@ -1014,3 +1080,8 @@ AI-Powered-C/
 | v5.3 | + ActivityBuilder, RealtimeDashboard, UsageAnalytics, FreeEditor |
 | v5.3 | + StudentAnalytics แท็บที่ 7 (กลุ่มผู้เรียน), Bulk AI Analysis |
 | v5.4 | + Socratic Hint Level 4, Bug fixes: Leaderboard permission, Course-enrollment isolation |
+| v5.5 | + LearningHub v1.1 (25 built-in topics, 5 interactive tools, Firestore per-course) |
+| v5.5 | + ContentManager v1.1 (per-course CMS, course picker, unit tabs สำหรับ C) |
+| v5.5 | + CourseBuilder v5.1 (ปุ่ม "📖 เนื้อหา" บน course card) |
+| v5.5 | + Gradebook v5.2 (E1-style scorecard, unit groups, filter ทุกข้อ/ทำแล้ว/ยังไม่ทำ) |
+| v5.5 | + Grader: parallel test execution, Wandbox ถูกตัดออก, 8s timeout/test |
