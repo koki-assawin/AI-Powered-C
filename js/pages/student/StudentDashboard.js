@@ -237,6 +237,15 @@ const StudentDashboard = () => {
                                 }}>
                                     👥 TeamSync
                                 </a>
+                                <a href="#/student/tools" style={{
+                                    flex: '1 1 auto', textAlign: 'center',
+                                    background: 'linear-gradient(135deg,#0a2a1a,#064e3b)', color: '#6ee7b7',
+                                    borderRadius: 12, padding: '10px 16px',
+                                    textDecoration: 'none', fontSize: 13, fontWeight: 600,
+                                    border: '1px solid #065f46',
+                                }}>
+                                    🧪 Learning Tools
+                                </a>
                             </div>
                         )}
                     </div>

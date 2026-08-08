@@ -58,6 +58,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(AvatarShop));
         if (route === '#/student/team')
             return guard(React.createElement(TeamSync));
+        if (route.startsWith('#/student/tools'))
+            return guard(React.createElement(LearningTools));
         if (route === '#/student/editor')
             return guard(React.createElement(FreeEditor));
         if (route.startsWith('#/student/activity'))
