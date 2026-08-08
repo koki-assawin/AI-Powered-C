@@ -203,7 +203,7 @@ const CourseViewer = () => {
                                         </button>
 
                                         <a
-                                            href={`#/student/tools`}
+                                            href={`#/student/tools?course=${course.id}`}
                                             className="block w-full py-2 rounded-lg font-medium text-sm text-center mb-2"
                                             style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', textDecoration: 'none' }}>
                                             🧪 Learning Tools

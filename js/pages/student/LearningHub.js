@@ -924,100 +924,171 @@ function _LH_TopicView({ topic, extraItems }) {
 // ── Main LearningHub component ─────────────────────────────
 const LearningHub = () => {
     _lh_injectCss();
+
+    // Read courseId from URL
+    const getCourseId = () => {
+        const p = new URLSearchParams(window.location.hash.split('?')[1] || '');
+        return p.get('course') || null;
+    };
+    const [courseId] = React.useState(getCourseId);
+    const [courseLanguage, setCourseLanguage] = React.useState('c'); // default C
+    const [courseTitle, setCourseTitle] = React.useState('');
+
     const [activeUnit, setActiveUnit] = React.useState(1);
     const [activeTopic, setActiveTopic] = React.useState(_LH_TOPICS[0]);
-    const [extraMap, setExtraMap] = React.useState({}); // topicId → array of extra items
-    const [fsTopics, setFsTopics] = React.useState([]); // extra teacher topics from Firestore
-    const [sideOpen, setSideOpen] = React.useState(false); // mobile sidebar toggle
-    const { userDoc } = useAuth();
+    const [extraMap, setExtraMap] = React.useState({});  // builtinTopicId → extra items
+    const [fsTopics, setFsTopics] = React.useState([]);  // standalone teacher topics
 
-    // Load teacher Firestore content
+    // Load course info
     React.useEffect(() => {
-        const unsub = db.collection('learningTopics')
-            .where('isPublished', '==', true)
-            .orderBy('unitId').orderBy('order')
-            .onSnapshot(snap => {
-                const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                // Group extra items by topicId (for built-in topics)
-                const map = {};
-                const extras = [];
-                items.forEach(item => {
-                    if (item.parentTopicId) {
-                        if (!map[item.parentTopicId]) map[item.parentTopicId] = [];
-                        map[item.parentTopicId].push(item);
-                    } else {
-                        extras.push(item);
-                    }
-                });
-                setExtraMap(map);
-                setFsTopics(extras);
-            }, () => {});
+        if (!courseId) return;
+        db.collection('courses').doc(courseId).get().then(snap => {
+            if (snap.exists) {
+                const d = snap.data();
+                setCourseLanguage(d.language || 'c');
+                setCourseTitle(d.title || '');
+            }
+        }).catch(() => {});
+    }, [courseId]);
+
+    // Load teacher Firestore content (scoped to course)
+    React.useEffect(() => {
+        let q = db.collection('learningTopics').where('isPublished', '==', true);
+        if (courseId) q = q.where('courseId', '==', courseId);
+        // Sort client-side to avoid composite index requirement
+        const unsub = q.onSnapshot(snap => {
+            const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            items.sort((a, b) => (a.unitId||0) - (b.unitId||0) || (a.order||0) - (b.order||0));
+            const map = {};
+            const extras = [];
+            items.forEach(item => {
+                if (item.parentTopicId) {
+                    if (!map[item.parentTopicId]) map[item.parentTopicId] = [];
+                    map[item.parentTopicId].push(item);
+                } else {
+                    extras.push(item);
+                }
+            });
+            setExtraMap(map);
+            setFsTopics(extras);
+        }, () => {});
         return () => unsub();
-    }, []);
+    }, [courseId]);
 
-    const unitTopics = _LH_TOPICS.filter(t => t.unitId === activeUnit);
-    // Also add teacher-created standalone topics for this unit
-    const teacherStandaloneTopics = fsTopics.filter(t => t.unitId === activeUnit && !t.parentTopicId);
-    const allUnitTopics = [...unitTopics, ...teacherStandaloneTopics.map(t => ({ ...t, isTeacher: true }))];
+    const isC = courseLanguage === 'c';
+    const showBuiltIn = isC; // built-in C topics only shown for C courses
 
-    const unit = _LH_UNITS.find(u => u.id === activeUnit);
+    // Topics in sidebar for the current unit
+    const builtInForUnit = showBuiltIn ? _LH_TOPICS.filter(t => t.unitId === activeUnit) : [];
+    const teacherStandalone = fsTopics.filter(t => (t.unitId || 1) === activeUnit);
+    const allUnitTopics = [...builtInForUnit, ...teacherStandalone.map(t => ({...t, isTeacher:true}))];
+
+    // For non-C courses: show all teacher topics grouped (or flat if no unitId)
+    const allFsFlat = fsTopics; // for non-C display
+
+    const unit = _LH_UNITS.find(u => u.id === activeUnit) || _LH_UNITS[0];
 
     return (
         <div className="min-h-screen" style={{background:'#f8fafc'}}>
-            <Navbar title="AI-Powered Coding Coach" subtitle="ศูนย์การเรียนรู้" />
+            <Navbar title="AI-Powered Coding Coach" subtitle={courseTitle ? `ศูนย์การเรียนรู้ · ${courseTitle}` : 'ศูนย์การเรียนรู้'} />
 
             <div className="max-w-6xl mx-auto px-4 py-6">
-                {/* Unit tabs */}
-                <div style={{display:'flex',gap:8,marginBottom:20,overflowX:'auto',paddingBottom:4}}>
-                    {_LH_UNITS.map(u => (
-                        <button key={u.id}
-                            onClick={() => { setActiveUnit(u.id); setActiveTopic(_LH_TOPICS.find(t => t.unitId === u.id)); }}
-                            style={{whiteSpace:'nowrap',padding:'8px 16px',borderRadius:20,border:'2px solid',
-                                borderColor: activeUnit === u.id ? u.color : '#e2e8f0',
-                                background: activeUnit === u.id ? u.color : 'white',
-                                color: activeUnit === u.id ? 'white' : '#374151',
-                                fontWeight:600,fontSize:13,cursor:'pointer',transition:'all .15s',fontFamily:'inherit'}}>
-                            {u.icon} {u.title}
-                        </button>
-                    ))}
-                </div>
 
-                {/* Unit header */}
-                <div style={{background: `linear-gradient(135deg, ${unit.color}15, ${unit.color}08)`,
-                    border:`1px solid ${unit.color}30`, borderRadius:14, padding:'14px 20px', marginBottom:20}}>
-                    <div style={{fontWeight:700,fontSize:20,color:unit.color}}>{unit.icon} {unit.title}: {unit.name}</div>
-                    <div style={{fontSize:12,color:'#64748b',marginTop:3}}>{unit.plans}</div>
-                </div>
+                {/* Non-C banner */}
+                {!isC && (
+                    <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'#92400e'}}>
+                        📚 รายวิชานี้ใช้ภาษา <b>{courseLanguage}</b> — เนื้อหาด้านล่างสร้างโดยครูสำหรับวิชานี้โดยเฉพาะ
+                    </div>
+                )}
 
-                <div style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:20}}>
-                    {/* Sidebar */}
-                    <div style={{background:'white',borderRadius:14,padding:12,border:'1px solid #e2e8f0',height:'fit-content',position:'sticky',top:80}}>
-                        <div style={{fontWeight:700,fontSize:13,color:'#374151',marginBottom:10,paddingLeft:4}}>📚 หัวข้อ</div>
-                        {allUnitTopics.map(t => (
-                            <button key={t.id} className={`lh-sidebar-btn${activeTopic?.id === t.id ? ' active' : ''}`}
-                                onClick={() => setActiveTopic(t)}>
-                                {t.icon || '📖'} {t.title}
-                                {t.isTeacher && <span style={{fontSize:10,marginLeft:4,color:'#6b7280'}}>[ครู]</span>}
+                {/* Unit tabs (show for C or if teacher created unit-grouped content) */}
+                {isC && (
+                    <div style={{display:'flex',gap:8,marginBottom:20,overflowX:'auto',paddingBottom:4}}>
+                        {_LH_UNITS.map(u => (
+                            <button key={u.id}
+                                onClick={() => { setActiveUnit(u.id); setActiveTopic(showBuiltIn ? _LH_TOPICS.find(t => t.unitId === u.id) : null); }}
+                                style={{whiteSpace:'nowrap',padding:'8px 16px',borderRadius:20,border:'2px solid',
+                                    borderColor: activeUnit === u.id ? u.color : '#e2e8f0',
+                                    background: activeUnit === u.id ? u.color : 'white',
+                                    color: activeUnit === u.id ? 'white' : '#374151',
+                                    fontWeight:600,fontSize:13,cursor:'pointer',transition:'all .15s',fontFamily:'inherit'}}>
+                                {u.icon} {u.title}
                             </button>
                         ))}
                     </div>
+                )}
 
-                    {/* Content */}
-                    <div style={{background:'white',borderRadius:14,padding:24,border:'1px solid #e2e8f0',minHeight:400}}>
-                        {activeTopic ? (
-                            <_LH_TopicView
-                                key={activeTopic.id}
-                                topic={activeTopic}
-                                extraItems={extraMap[activeTopic.id] || []}
-                            />
+                {/* Unit header (C only) */}
+                {isC && (
+                    <div style={{background:`linear-gradient(135deg,${unit.color}15,${unit.color}08)`,
+                        border:`1px solid ${unit.color}30`,borderRadius:14,padding:'14px 20px',marginBottom:20}}>
+                        <div style={{fontWeight:700,fontSize:20,color:unit.color}}>{unit.icon} {unit.title}: {unit.name}</div>
+                        <div style={{fontSize:12,color:'#64748b',marginTop:3}}>{unit.plans}</div>
+                    </div>
+                )}
+
+                {/* Layout */}
+                {isC ? (
+                    <div style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:20}}>
+                        {/* Sidebar */}
+                        <div style={{background:'white',borderRadius:14,padding:12,border:'1px solid #e2e8f0',height:'fit-content',position:'sticky',top:80}}>
+                            <div style={{fontWeight:700,fontSize:13,color:'#374151',marginBottom:10,paddingLeft:4}}>📚 หัวข้อ</div>
+                            {allUnitTopics.length === 0 && (
+                                <div style={{fontSize:12,color:'#9ca3af',padding:'8px 4px'}}>ยังไม่มีหัวข้อ</div>
+                            )}
+                            {allUnitTopics.map(t => (
+                                <button key={t.id} className={`lh-sidebar-btn${activeTopic?.id === t.id ? ' active' : ''}`}
+                                    onClick={() => setActiveTopic(t)}>
+                                    {t.icon || '📖'} {t.title}
+                                    {t.isTeacher && <span style={{fontSize:10,marginLeft:4,color:'#6b7280'}}>[ครู]</span>}
+                                </button>
+                            ))}
+                        </div>
+                        {/* Content */}
+                        <div style={{background:'white',borderRadius:14,padding:24,border:'1px solid #e2e8f0',minHeight:400}}>
+                            {activeTopic ? (
+                                <_LH_TopicView key={activeTopic.id} topic={activeTopic} extraItems={extraMap[activeTopic.id] || []} />
+                            ) : (
+                                <div style={{textAlign:'center',paddingTop:60,color:'#9ca3af'}}>
+                                    <div style={{fontSize:40,marginBottom:12}}>👆</div>
+                                    <p>เลือกหัวข้อจากแถบด้านซ้าย</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    /* Non-C: flat list of teacher topics */
+                    <div>
+                        {allFsFlat.length === 0 ? (
+                            <div style={{textAlign:'center',padding:'60px 0',color:'#9ca3af',background:'white',borderRadius:14,border:'1px solid #e2e8f0'}}>
+                                <div style={{fontSize:40,marginBottom:12}}>📭</div>
+                                <p>ครูยังไม่ได้เพิ่มเนื้อหาสำหรับวิชานี้</p>
+                            </div>
                         ) : (
-                            <div style={{textAlign:'center',paddingTop:60,color:'#9ca3af'}}>
-                                <div style={{fontSize:40,marginBottom:12}}>👆</div>
-                                <p>เลือกหัวข้อจากแถบด้านซ้าย</p>
+                            <div style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:20}}>
+                                <div style={{background:'white',borderRadius:14,padding:12,border:'1px solid #e2e8f0',height:'fit-content',position:'sticky',top:80}}>
+                                    <div style={{fontWeight:700,fontSize:13,color:'#374151',marginBottom:10,paddingLeft:4}}>📚 หัวข้อ</div>
+                                    {allFsFlat.map(t => (
+                                        <button key={t.id} className={`lh-sidebar-btn${activeTopic?.id === t.id ? ' active' : ''}`}
+                                            onClick={() => setActiveTopic(t)}>
+                                            {t.icon || '📖'} {t.title}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div style={{background:'white',borderRadius:14,padding:24,border:'1px solid #e2e8f0',minHeight:400}}>
+                                    {activeTopic ? (
+                                        <_LH_TopicView key={activeTopic.id} topic={activeTopic} extraItems={[]} />
+                                    ) : (
+                                        <div style={{textAlign:'center',paddingTop:60,color:'#9ca3af'}}>
+                                            <div style={{fontSize:40,marginBottom:12}}>👆</div>
+                                            <p>เลือกหัวข้อจากแถบด้านซ้าย</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

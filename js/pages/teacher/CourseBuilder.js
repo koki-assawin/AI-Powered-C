@@ -355,6 +355,11 @@ const CourseBuilder = () => {
                             style={{ background:'#FFF7ED', color:'#C2410C', border:'1px solid #FED7AA', textDecoration:'none' }}>
                             📊 สถิติ
                         </a>
+                        <a href={`#/teacher/content?course=${c.id}`}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-medium text-center"
+                            style={{ background:'#F0FDF4', color:'#166534', border:'1px solid #BBF7D0', textDecoration:'none' }}>
+                            📖 เนื้อหา
+                        </a>
                     </div>
 
                     {/* Row 2: invite + owner-only actions */}

@@ -1,4 +1,4 @@
-// js/pages/teacher/ContentManager.js - CMS สำหรับครู v1.0
+// js/pages/teacher/ContentManager.js - CMS สำหรับครู v1.1 (per-course)
 
 const _CM_UNITS = [
     { id:1, title:'หน่วยที่ 1', name:'โครงสร้างโปรแกรม C + I/O',  icon:'🏗️', color:'#3b82f6' },
@@ -8,7 +8,6 @@ const _CM_UNITS = [
     { id:5, title:'หน่วยที่ 5', name:'Mini Project + AI Ethics',  icon:'🚀', color:'#ef4444' },
 ];
 
-// Built-in topic IDs per unit (for linking)
 const _CM_BUILTIN_TOPICS = {
     1: [{id:'u1t1',title:'โครงสร้างโปรแกรม Hello World'},{id:'u1t2',title:'ชนิดข้อมูลและตัวแปร'},
         {id:'u1t3',title:'ตัวดำเนินการ (Operators)'},{id:'u1t4',title:'printf และ Format Specifier'},
@@ -29,6 +28,80 @@ const _CM_RESOURCE_TYPES = [
     { value:'link',  label:'🔗 ลิงก์เว็บ',           placeholder:'https://...' },
     { value:'image', label:'🖼️ รูปภาพ (URL)',          placeholder:'https://...jpg' },
 ];
+
+// ── Course Picker ──────────────────────────────────────────
+function _CM_CoursePicker({ uid }) {
+    const [courses, setCourses] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        if (!uid) return;
+        // Load courses where teacher is owner or co-teacher
+        const unsub = db.collection('courses')
+            .where('teacherId', '==', uid)
+            .onSnapshot(snap => {
+                setCourses(snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                    .filter(c => c.status !== 'archived'));
+                setLoading(false);
+            }, () => setLoading(false));
+        return () => unsub();
+    }, [uid]);
+
+    const langMeta = {
+        c:      { icon: '🔵', label: 'C' },
+        cpp:    { icon: '🟣', label: 'C++' },
+        python: { icon: '🟡', label: 'Python' },
+        java:   { icon: '🔴', label: 'Java' },
+    };
+
+    return (
+        <div>
+            <div style={{textAlign:'center',marginBottom:32}}>
+                <div style={{fontSize:40,marginBottom:8}}>📖</div>
+                <h2 style={{margin:'0 0 6px',fontSize:22,fontWeight:700,color:'#1e293b'}}>จัดการเนื้อหา Learning Hub</h2>
+                <p style={{margin:0,fontSize:14,color:'#64748b'}}>เลือกรายวิชาที่ต้องการจัดการเนื้อหาการเรียนรู้</p>
+            </div>
+
+            {loading ? (
+                <div style={{textAlign:'center',padding:'40px 0',color:'#9ca3af'}}>กำลังโหลดรายวิชา...</div>
+            ) : courses.length === 0 ? (
+                <div style={{textAlign:'center',padding:'40px 0',color:'#9ca3af'}}>
+                    <div style={{fontSize:36,marginBottom:10}}>📭</div>
+                    <p>ไม่พบรายวิชา กรุณาสร้างรายวิชาก่อน</p>
+                    <a href="#/teacher/courses" style={{color:'#2563eb',fontWeight:600}}>→ ไปสร้างรายวิชา</a>
+                </div>
+            ) : (
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:16}}>
+                    {courses.map(c => {
+                        const lm = langMeta[c.language] || { icon: '💻', label: c.language || 'C' };
+                        return (
+                            <div key={c.id}
+                                onClick={() => { window.location.hash = `#/teacher/content?course=${c.id}`; }}
+                                style={{background:'white',borderRadius:14,padding:20,border:'1px solid #e2e8f0',
+                                    cursor:'pointer',transition:'all .15s',boxShadow:'0 1px 4px rgba(0,0,0,.04)'}}
+                                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.1)'; e.currentTarget.style.borderColor = '#bfdbfe'; }}
+                                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,.04)'; e.currentTarget.style.borderColor = '#e2e8f0'; }}>
+                                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                                    <span style={{fontSize:28}}>{lm.icon}</span>
+                                    <div>
+                                        <div style={{fontWeight:700,fontSize:14,color:'#1e293b',lineHeight:1.3}}>{c.title}</div>
+                                        <div style={{fontSize:11,color:'#64748b'}}>{lm.label} · {c.grade || ''} ห้อง {c.room || ''}</div>
+                                    </div>
+                                </div>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                    <span style={{fontSize:11,background:'#eff6ff',color:'#1d4ed8',borderRadius:6,padding:'2px 8px'}}>
+                                        เทอม {c.semester}/{c.academicYear || ''}
+                                    </span>
+                                    <span style={{fontSize:13,color:'#2563eb',fontWeight:600}}>จัดการเนื้อหา →</span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
 
 // ── Resource row in form ───────────────────────────────────
 function _CM_ResourceRow({ res, onChange, onDelete }) {
@@ -54,12 +127,13 @@ function _CM_ResourceRow({ res, onChange, onDelete }) {
 }
 
 // ── Topic form modal ───────────────────────────────────────
-function _CM_TopicForm({ topic, unitId, onSave, onClose }) {
+function _CM_TopicForm({ topic, courseId, isC, unitId: defaultUnitId, onSave, onClose }) {
     const isNew = !topic?.id;
     const [form, setForm] = React.useState({
         title:          topic?.title || '',
         icon:           topic?.icon || '📖',
         content:        topic?.content || '',
+        unitId:         topic?.unitId || defaultUnitId || (isC ? 1 : null),
         parentTopicId:  topic?.parentTopicId || '',
         resources:      topic?.resources || [],
         isPublished:    topic?.isPublished ?? true,
@@ -76,7 +150,8 @@ function _CM_TopicForm({ topic, unitId, onSave, onClose }) {
         setSaving(true);
         try {
             const data = {
-                unitId,
+                courseId,
+                unitId:        form.unitId || null,
                 title:         form.title.trim(),
                 icon:          form.icon.trim() || '📖',
                 content:       form.content.trim(),
@@ -87,10 +162,9 @@ function _CM_TopicForm({ topic, unitId, onSave, onClose }) {
                 createdBy:     userDoc?.id || '',
             };
             if (isNew) {
-                // Get max order for this unit
-                const snap = await db.collection('learningTopics').where('unitId','==',unitId).orderBy('order','desc').limit(1).get();
-                const maxOrder = snap.empty ? 0 : (snap.docs[0].data().order || 0);
-                data.order = maxOrder + 1;
+                const snap = await db.collection('learningTopics')
+                    .where('courseId','==',courseId).orderBy('order','desc').limit(1).get();
+                data.order = snap.empty ? 1 : (snap.docs[0].data().order || 0) + 1;
                 data.createdAt = serverTimestamp();
                 await db.collection('learningTopics').add(data);
             } else {
@@ -104,7 +178,7 @@ function _CM_TopicForm({ topic, unitId, onSave, onClose }) {
         }
     };
 
-    const builtins = _CM_BUILTIN_TOPICS[unitId] || [];
+    const builtins = isC ? (_CM_BUILTIN_TOPICS[form.unitId] || []) : [];
 
     return (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -128,7 +202,20 @@ function _CM_TopicForm({ topic, unitId, onSave, onClose }) {
                     </div>
                 </div>
 
-                {builtins.length > 0 && (
+                {/* Unit selector — C courses only */}
+                {isC && (
+                    <div style={{marginBottom:14}}>
+                        <label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:4}}>หน่วยการเรียน</label>
+                        <select value={form.unitId || ''} onChange={e => setForm(f => ({...f, unitId: parseInt(e.target.value)||null, parentTopicId:''}))}
+                            style={{width:'100%',padding:'8px 12px',borderRadius:8,border:'1px solid #d1d5db',fontSize:13,fontFamily:'inherit',background:'white'}}>
+                            <option value="">— ไม่ระบุหน่วย —</option>
+                            {_CM_UNITS.map(u => <option key={u.id} value={u.id}>{u.icon} {u.title}: {u.name}</option>)}
+                        </select>
+                    </div>
+                )}
+
+                {/* Parent topic linking — C courses only, when unit selected */}
+                {isC && builtins.length > 0 && (
                     <div style={{marginBottom:14}}>
                         <label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:4}}>
                             📎 แนบกับหัวข้อพื้นฐาน (ถ้าต้องการ)
@@ -190,15 +277,15 @@ function _CM_TopicForm({ topic, unitId, onSave, onClose }) {
     );
 }
 
-// ── Topic card in list ─────────────────────────────────────
-function _CM_TopicCard({ topic, onEdit, onDelete, onMoveUp, onMoveDown, isFirst, isLast }) {
+// ── Topic card ─────────────────────────────────────────────
+function _CM_TopicCard({ topic, onEdit, onDelete, onMoveUp, onMoveDown, isFirst, isLast, isC }) {
     const [confirmDel, setConfirmDel] = React.useState(false);
+    const unit = isC ? _CM_UNITS.find(u => u.id === topic.unitId) : null;
 
     return (
         <div style={{background:'white',borderRadius:10,padding:'12px 16px',marginBottom:8,
             border:'1px solid #e2e8f0',display:'flex',alignItems:'center',gap:12,
             boxShadow:'0 1px 3px rgba(0,0,0,.04)'}}>
-            {/* Reorder */}
             <div style={{display:'flex',flexDirection:'column',gap:2}}>
                 <button onClick={onMoveUp} disabled={isFirst}
                     style={{background:'none',border:'none',cursor:'pointer',fontSize:14,opacity:isFirst?.3:1,padding:'1px 4px'}}>▲</button>
@@ -209,9 +296,10 @@ function _CM_TopicCard({ topic, onEdit, onDelete, onMoveUp, onMoveDown, isFirst,
             <span style={{fontSize:20}}>{topic.icon || '📖'}</span>
 
             <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:600,fontSize:14,color:'#1e293b',display:'flex',alignItems:'center',gap:8}}>
+                <div style={{fontWeight:600,fontSize:14,color:'#1e293b',display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
                     {topic.title}
                     {!topic.isPublished && <span style={{fontSize:10,background:'#fef3c7',color:'#92400e',borderRadius:4,padding:'1px 6px'}}>Draft</span>}
+                    {unit && <span style={{fontSize:10,background:unit.color+'18',color:unit.color,borderRadius:4,padding:'1px 6px'}}>{unit.title}</span>}
                     {topic.parentTopicId && <span style={{fontSize:10,background:'#eff6ff',color:'#1d4ed8',borderRadius:4,padding:'1px 6px'}}>แนบกับหัวข้อพื้นฐาน</span>}
                 </div>
                 {topic.content && (
@@ -231,7 +319,6 @@ function _CM_TopicCard({ topic, onEdit, onDelete, onMoveUp, onMoveDown, isFirst,
                 )}
             </div>
 
-            {/* Actions */}
             {confirmDel ? (
                 <div style={{display:'flex',gap:6,alignItems:'center'}}>
                     <span style={{fontSize:12,color:'#dc2626',fontWeight:600}}>ลบ?</span>
@@ -260,189 +347,220 @@ function _CM_TopicCard({ topic, onEdit, onDelete, onMoveUp, onMoveDown, isFirst,
     );
 }
 
-// ── Main ContentManager component ─────────────────────────
-const ContentManager = () => {
-    const [activeUnit, setActiveUnit] = React.useState(1);
+// ── Per-course Content Manager ─────────────────────────────
+function _CM_CourseView({ courseId }) {
+    const [course, setCourse] = React.useState(null);
     const [topics, setTopics] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [showForm, setShowForm] = React.useState(false);
     const [editTopic, setEditTopic] = React.useState(null);
-    const { userDoc } = useAuth();
+    const [activeUnit, setActiveUnit] = React.useState(null); // null = all (non-C), or unitId
 
     React.useEffect(() => {
+        // Load course info
+        db.collection('courses').doc(courseId).get().then(snap => {
+            if (snap.exists) setCourse({ id: snap.id, ...snap.data() });
+        }).catch(() => {});
+
+        // Load topics for this course
         setLoading(true);
         const unsub = db.collection('learningTopics')
-            .where('unitId', '==', activeUnit)
-            .orderBy('order')
+            .where('courseId', '==', courseId)
             .onSnapshot(snap => {
-                setTopics(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Sort client-side to avoid composite index requirement
+                items.sort((a, b) => (a.order || 0) - (b.order || 0));
+                setTopics(items);
                 setLoading(false);
             }, err => {
-                console.error(err);
+                console.error('learningTopics load error:', err);
                 setLoading(false);
             });
         return () => unsub();
-    }, [activeUnit]);
+    }, [courseId]);
+
+    const isC = (course?.language || 'c') === 'c';
+
+    // Set default activeUnit when course loads
+    React.useEffect(() => {
+        if (isC && activeUnit === null) setActiveUnit(1);
+    }, [isC]);
 
     const handleDelete = async (id) => {
-        try {
-            await db.collection('learningTopics').doc(id).delete();
-        } catch (err) {
-            alert('ลบไม่สำเร็จ: ' + err.message);
-        }
+        try { await db.collection('learningTopics').doc(id).delete(); }
+        catch (err) { alert('ลบไม่สำเร็จ: ' + err.message); }
     };
 
-    const swapOrder = async (idx, dir) => {
+    const swapOrder = async (idx, dir, list) => {
         const other = idx + dir;
-        if (other < 0 || other >= topics.length) return;
-        const a = topics[idx], b = topics[other];
+        if (other < 0 || other >= list.length) return;
+        const a = list[idx], b = list[other];
         const batch = db.batch();
-        batch.update(db.collection('learningTopics').doc(a.id), { order: b.order });
-        batch.update(db.collection('learningTopics').doc(b.id), { order: a.order });
+        batch.update(db.collection('learningTopics').doc(a.id), { order: b.order || 0 });
+        batch.update(db.collection('learningTopics').doc(b.id), { order: a.order || 0 });
         await batch.commit();
     };
 
-    const togglePublish = async (topic) => {
-        await db.collection('learningTopics').doc(topic.id).update({
-            isPublished: !topic.isPublished,
-            updatedAt: serverTimestamp(),
-        });
-    };
-
-    const unit = _CM_UNITS.find(u => u.id === activeUnit);
+    const langMeta = { c:'C (ภาษาซี)', cpp:'C++', python:'Python', java:'Java' };
+    const visibleTopics = isC
+        ? topics.filter(t => (t.unitId || 1) === (activeUnit || 1))
+        : topics;
 
     return (
-        <div className="min-h-screen" style={{background:'#f8fafc'}}>
-            <Navbar title="AI-Powered Coding Coach" subtitle="จัดการเนื้อหาการเรียนรู้" />
-
-            <div className="max-w-5xl mx-auto px-4 py-6">
-                {/* Header */}
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:24}}>
-                    <div>
-                        <h2 style={{margin:'0 0 4px',fontSize:22,fontWeight:700,color:'#1e293b'}}>
-                            📚 จัดการเนื้อหา Learning Hub
-                        </h2>
+        <div>
+            {/* Header */}
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20}}>
+                <div>
+                    <a href="#/teacher/content" style={{fontSize:13,color:'#2563eb',textDecoration:'none',fontWeight:600,display:'inline-flex',alignItems:'center',gap:4,marginBottom:8}}>
+                        ← รายวิชาทั้งหมด
+                    </a>
+                    <h2 style={{margin:'0 0 4px',fontSize:20,fontWeight:700,color:'#1e293b'}}>
+                        📖 {course ? course.title : 'กำลังโหลด...'}
+                    </h2>
+                    {course && (
                         <p style={{margin:0,fontSize:13,color:'#64748b'}}>
-                            เพิ่ม แก้ไข และจัดลำดับเนื้อหาสำหรับนักเรียน •
-                            <a href="#/student/tools" target="_blank" style={{color:'#2563eb',marginLeft:4}}>ดูหน้านักเรียน ↗</a>
+                            {langMeta[course.language] || course.language} · {course.grade} ห้อง {course.room} ·
+                            <a href={`#/student/tools?course=${courseId}`} target="_blank" style={{color:'#2563eb',marginLeft:6}}>ดูหน้านักเรียน ↗</a>
                         </p>
-                    </div>
-                    <button onClick={() => { setEditTopic(null); setShowForm(true); }}
-                        style={{background:'#2563eb',color:'white',border:'none',borderRadius:10,
-                            padding:'10px 20px',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:'inherit'}}>
-                        ➕ เพิ่มหัวข้อใหม่
-                    </button>
+                    )}
                 </div>
+                <button onClick={() => { setEditTopic(null); setShowForm(true); }}
+                    style={{background:'#2563eb',color:'white',border:'none',borderRadius:10,
+                        padding:'10px 20px',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:'inherit'}}>
+                    ➕ เพิ่มหัวข้อใหม่
+                </button>
+            </div>
 
-                {/* Unit tabs */}
+            {/* Unit tabs (C only) */}
+            {isC && (
                 <div style={{display:'flex',gap:8,marginBottom:20,overflowX:'auto',paddingBottom:4}}>
                     {_CM_UNITS.map(u => (
                         <button key={u.id} onClick={() => setActiveUnit(u.id)}
-                            style={{whiteSpace:'nowrap',padding:'8px 16px',borderRadius:20,border:'2px solid',
+                            style={{whiteSpace:'nowrap',padding:'7px 14px',borderRadius:20,border:'2px solid',
                                 borderColor: activeUnit === u.id ? u.color : '#e2e8f0',
                                 background: activeUnit === u.id ? u.color : 'white',
                                 color: activeUnit === u.id ? 'white' : '#374151',
-                                fontWeight:600,fontSize:13,cursor:'pointer',transition:'all .15s',fontFamily:'inherit'}}>
+                                fontWeight:600,fontSize:12,cursor:'pointer',transition:'all .15s',fontFamily:'inherit'}}>
                             {u.icon} {u.title}
+                            <span style={{marginLeft:6,opacity:.7,fontSize:10}}>
+                                ({topics.filter(t=>(t.unitId||1)===u.id).length})
+                            </span>
                         </button>
                     ))}
                 </div>
+            )}
 
-                {/* Info card */}
-                <div style={{background:`${unit.color}10`,border:`1px solid ${unit.color}30`,borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div>
-                        <span style={{fontWeight:700,color:unit.color}}>{unit.icon} {unit.title}: {unit.name}</span>
-                        <span style={{fontSize:12,color:'#64748b',marginLeft:12}}>
-                            หัวข้อพื้นฐาน {(_CM_BUILTIN_TOPICS[activeUnit]||[]).length} หัวข้อ +
-                            เพิ่มเติมจากครู {topics.length} หัวข้อ
-                        </span>
-                    </div>
-                    <button onClick={() => { setEditTopic(null); setShowForm(true); }}
-                        style={{background:'white',color:unit.color,border:`1px solid ${unit.color}`,
-                            borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit'}}>
-                        + เพิ่มในหน่วยนี้
-                    </button>
-                </div>
-
-                {/* Built-in topics reference */}
+            {/* Built-in topics reference (C only) */}
+            {isC && activeUnit && (
                 <details style={{marginBottom:16}}>
                     <summary style={{cursor:'pointer',fontSize:13,fontWeight:600,color:'#475569',padding:'8px 12px',
-                        background:'white',borderRadius:8,border:'1px solid #e2e8f0'}}>
-                        📖 หัวข้อพื้นฐาน (Built-in) — คลิกเพื่อดู
+                        background:'white',borderRadius:8,border:'1px solid #e2e8f0',userSelect:'none'}}>
+                        📖 หัวข้อพื้นฐาน Built-in ใน{_CM_UNITS.find(u=>u.id===activeUnit)?.title} — คลิกเพื่อดู
                     </summary>
                     <div style={{background:'white',border:'1px solid #e2e8f0',borderRadius:8,padding:12,marginTop:6}}>
                         {(_CM_BUILTIN_TOPICS[activeUnit]||[]).map(b => (
                             <div key={b.id} style={{fontSize:13,padding:'4px 8px',color:'#374151',borderBottom:'1px solid #f1f5f9'}}>
                                 📌 {b.title}
-                                <span style={{fontSize:11,color:'#9ca3af',marginLeft:8}}>id: {b.id}</span>
                             </div>
                         ))}
                     </div>
                 </details>
+            )}
 
-                {/* Topic list */}
-                <div style={{background:'white',borderRadius:14,padding:20,border:'1px solid #e2e8f0'}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                        <h3 style={{margin:0,fontSize:16,fontWeight:700,color:'#1e293b'}}>
-                            เนื้อหาที่สร้างไว้ ({topics.length} หัวข้อ)
-                        </h3>
-                    </div>
-
-                    {loading ? (
-                        <div style={{textAlign:'center',padding:'40px 0',color:'#9ca3af'}}>กำลังโหลด...</div>
-                    ) : topics.length === 0 ? (
-                        <div style={{textAlign:'center',padding:'40px 0',color:'#9ca3af'}}>
-                            <div style={{fontSize:40,marginBottom:12}}>📭</div>
-                            <p style={{marginBottom:16}}>ยังไม่มีเนื้อหาในหน่วยนี้</p>
-                            <button onClick={() => { setEditTopic(null); setShowForm(true); }}
-                                style={{background:'#2563eb',color:'white',border:'none',borderRadius:8,
-                                    padding:'10px 24px',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:'inherit'}}>
-                                ➕ เพิ่มหัวข้อแรก
-                            </button>
-                        </div>
-                    ) : (
-                        topics.map((t, idx) => (
-                            <_CM_TopicCard key={t.id} topic={t}
-                                isFirst={idx === 0} isLast={idx === topics.length - 1}
-                                onEdit={() => { setEditTopic(t); setShowForm(true); }}
-                                onDelete={() => handleDelete(t.id)}
-                                onMoveUp={() => swapOrder(idx, -1)}
-                                onMoveDown={() => swapOrder(idx, 1)}
-                            />
-                        ))
-                    )}
+            {/* Topic list */}
+            <div style={{background:'white',borderRadius:14,padding:20,border:'1px solid #e2e8f0'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                    <h3 style={{margin:0,fontSize:15,fontWeight:700,color:'#1e293b'}}>
+                        {isC ? `เนื้อหา${_CM_UNITS.find(u=>u.id===activeUnit)?.title || ''} (${visibleTopics.length} หัวข้อ)` : `เนื้อหาทั้งหมด (${topics.length} หัวข้อ)`}
+                    </h3>
                 </div>
 
-                {/* Quick bulk publish/unpublish */}
-                {topics.length > 0 && (
-                    <div style={{marginTop:12,display:'flex',gap:10,justifyContent:'flex-end'}}>
-                        <button onClick={async () => {
-                            const batch = db.batch();
-                            topics.forEach(t => batch.update(db.collection('learningTopics').doc(t.id), { isPublished: true }));
-                            await batch.commit();
-                        }} style={{background:'#dcfce7',color:'#166534',border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit'}}>
-                            ✅ เผยแพร่ทั้งหมด
-                        </button>
-                        <button onClick={async () => {
-                            const batch = db.batch();
-                            topics.forEach(t => batch.update(db.collection('learningTopics').doc(t.id), { isPublished: false }));
-                            await batch.commit();
-                        }} style={{background:'#fef3c7',color:'#92400e',border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit'}}>
-                            🔒 ซ่อนทั้งหมด
+                {loading ? (
+                    <div style={{textAlign:'center',padding:'40px 0',color:'#9ca3af'}}>กำลังโหลด...</div>
+                ) : visibleTopics.length === 0 ? (
+                    <div style={{textAlign:'center',padding:'40px 0',color:'#9ca3af'}}>
+                        <div style={{fontSize:40,marginBottom:12}}>📭</div>
+                        <p style={{marginBottom:16}}>ยังไม่มีเนื้อหา{isC ? `ใน${_CM_UNITS.find(u=>u.id===activeUnit)?.title}` : ''}</p>
+                        <button onClick={() => { setEditTopic(null); setShowForm(true); }}
+                            style={{background:'#2563eb',color:'white',border:'none',borderRadius:8,
+                                padding:'10px 24px',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:'inherit'}}>
+                            ➕ เพิ่มหัวข้อแรก
                         </button>
                     </div>
+                ) : (
+                    visibleTopics.map((t, idx) => (
+                        <_CM_TopicCard key={t.id} topic={t} isC={isC}
+                            isFirst={idx === 0} isLast={idx === visibleTopics.length - 1}
+                            onEdit={() => { setEditTopic(t); setShowForm(true); }}
+                            onDelete={() => handleDelete(t.id)}
+                            onMoveUp={() => swapOrder(idx, -1, visibleTopics)}
+                            onMoveDown={() => swapOrder(idx, 1, visibleTopics)}
+                        />
+                    ))
                 )}
             </div>
+
+            {/* Bulk actions */}
+            {visibleTopics.length > 0 && (
+                <div style={{marginTop:12,display:'flex',gap:10,justifyContent:'flex-end'}}>
+                    <button onClick={async () => {
+                        const batch = db.batch();
+                        visibleTopics.forEach(t => batch.update(db.collection('learningTopics').doc(t.id), { isPublished: true }));
+                        await batch.commit();
+                    }} style={{background:'#dcfce7',color:'#166534',border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit'}}>
+                        ✅ เผยแพร่ทั้งหมด
+                    </button>
+                    <button onClick={async () => {
+                        const batch = db.batch();
+                        visibleTopics.forEach(t => batch.update(db.collection('learningTopics').doc(t.id), { isPublished: false }));
+                        await batch.commit();
+                    }} style={{background:'#fef3c7',color:'#92400e',border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit'}}>
+                        🔒 ซ่อนทั้งหมด
+                    </button>
+                </div>
+            )}
 
             {/* Form modal */}
             {showForm && (
                 <_CM_TopicForm
                     topic={editTopic}
+                    courseId={courseId}
+                    isC={isC}
                     unitId={activeUnit}
                     onSave={() => setShowForm(false)}
                     onClose={() => setShowForm(false)}
                 />
             )}
+        </div>
+    );
+}
+
+// ── Main ContentManager (router) ───────────────────────────
+const ContentManager = () => {
+    const { userDoc } = useAuth();
+    // Read courseId from URL
+    const getCourseId = () => {
+        const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+        return params.get('course') || null;
+    };
+    const [courseId, setCourseId] = React.useState(getCourseId);
+
+    // Re-read courseId on hash change (e.g. back link)
+    React.useEffect(() => {
+        const handler = () => setCourseId(getCourseId());
+        window.addEventListener('hashchange', handler);
+        return () => window.removeEventListener('hashchange', handler);
+    }, []);
+
+    return (
+        <div className="min-h-screen" style={{background:'#f8fafc'}}>
+            <Navbar title="AI-Powered Coding Coach" subtitle="จัดการเนื้อหาการเรียนรู้" />
+            <div className="max-w-5xl mx-auto px-4 py-6">
+                {courseId
+                    ? <_CM_CourseView courseId={courseId} />
+                    : <_CM_CoursePicker uid={userDoc?.id} />
+                }
+            </div>
         </div>
     );
 };
