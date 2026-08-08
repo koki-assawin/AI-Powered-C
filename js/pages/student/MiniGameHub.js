@@ -103,6 +103,19 @@ const MiniGameHub = () => {
             statKey: 'bug_hunt',
             badge: null,
         },
+        {
+            id: 'ethics_quiz',
+            title: 'AI Ethics Quiz',
+            icon: '⚖️',
+            desc: '5 สถานการณ์จริง · ว31281 หน่วยที่ 4\nทดสอบจริยธรรมการใช้ AI ในชั้นเรียน',
+            route: '#/student/games/ethics',
+            color: '#6366f1',
+            bg: 'linear-gradient(135deg, #ede9fe, #ddd6fe)',
+            xpFirst: '80 XP + 15 🪙',
+            xpRepeat: '30 XP + 5 🪙',
+            statKey: 'ethics_quiz',
+            badge: 'Ethics Hero',
+        },
     ];
 
     return (

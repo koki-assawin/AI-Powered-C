@@ -219,6 +219,24 @@ const StudentDashboard = () => {
                                 }}>
                                     🎮 Mini-Games
                                 </a>
+                                <a href="#/student/shop" style={{
+                                    flex: '1 1 auto', textAlign: 'center',
+                                    background: 'linear-gradient(135deg,#1c1154,#312e81)', color: '#c4b5fd',
+                                    borderRadius: 12, padding: '10px 16px',
+                                    textDecoration: 'none', fontSize: 13, fontWeight: 600,
+                                    border: '1px solid #4c1d95',
+                                }}>
+                                    🛒 Avatar Shop
+                                </a>
+                                <a href="#/student/team" style={{
+                                    flex: '1 1 auto', textAlign: 'center',
+                                    background: 'linear-gradient(135deg,#0c2a4a,#0e4277)', color: '#7dd3fc',
+                                    borderRadius: 12, padding: '10px 16px',
+                                    textDecoration: 'none', fontSize: 13, fontWeight: 600,
+                                    border: '1px solid #1e40af',
+                                }}>
+                                    👥 TeamSync
+                                </a>
                             </div>
                         )}
                     </div>

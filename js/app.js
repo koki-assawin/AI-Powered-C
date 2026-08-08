@@ -50,8 +50,14 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(CodeAutopsy));
         if (route === '#/student/games/bughunt')
             return guard(React.createElement(BugHunt));
+        if (route === '#/student/games/ethics')
+            return guard(React.createElement(EthicsQuiz));
         if (route.startsWith('#/student/games'))
             return guard(React.createElement(MiniGameHub));
+        if (route === '#/student/shop')
+            return guard(React.createElement(AvatarShop));
+        if (route === '#/student/team')
+            return guard(React.createElement(TeamSync));
         if (route === '#/student/editor')
             return guard(React.createElement(FreeEditor));
         if (route.startsWith('#/student/activity'))
