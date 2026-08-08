@@ -59,7 +59,7 @@ const renderRoute = (route, role) => {
         if (route === '#/student/team')
             return guard(React.createElement(TeamSync));
         if (route.startsWith('#/student/tools'))
-            return guard(React.createElement(LearningTools));
+            return guard(React.createElement(LearningHub));
         if (route === '#/student/editor')
             return guard(React.createElement(FreeEditor));
         if (route.startsWith('#/student/activity'))
@@ -94,6 +94,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(RealtimeDashboard));
         if (route === '#/teacher/editor')
             return guard(React.createElement(FreeEditor));
+        if (route.startsWith('#/teacher/content'))
+            return guard(React.createElement(ContentManager));
 
         return guard(React.createElement(TeacherDashboard));
     }
