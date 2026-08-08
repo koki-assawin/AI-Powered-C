@@ -712,6 +712,16 @@ int main() {
 },
 ];
 
+// ── Tool map: topicId → interactive tool from LearningTools.js ─
+// _DataTypeVisualizer etc. are var-globals defined in LearningTools.js (loaded before this file)
+const _LH_TOOL_MAP = {
+    'u1t2': { comp: _DataTypeVisualizer, label: '📊 Data Type Visualizer', color: '#22d3ee', plan: 'หน่วย 1 · แผน 3'  },
+    'u1t6': { comp: _FlowchartBuilder,   label: '📐 Flowchart → C Code',   color: '#8b5cf6', plan: 'หน่วย 1 · แผน 1'  },
+    'u2t1': { comp: _DecisionTreeViz,    label: '🌳 Decision Tree',         color: '#f59e0b', plan: 'หน่วย 2 · แผน 10' },
+    'u3t3': { comp: _PatternSandbox,     label: '🎨 Pattern Sandbox',       color: '#4ade80', plan: 'หน่วย 3 · แผน 24' },
+    'u4t2': { comp: _MemoryMap,          label: '🗂️ Memory Map',            color: '#f472b6', plan: 'หน่วย 4 · แผน 29' },
+};
+
 // ── Helper: render code with step highlighting ─────────────
 function _LH_CodeBlock({ code, steps, stepIdx }) {
     const lines = code.split('\n');
@@ -772,6 +782,7 @@ function _LH_TopicView({ topic, extraItems }) {
     const [stepIdx, setStepIdx] = React.useState(null);
     const [openAcc, setOpenAcc] = React.useState({});
     const [readMore, setReadMore] = React.useState(false);
+    const [showTool, setShowTool] = React.useState(false);
 
     const unit = _LH_UNITS.find(u => u.id === topic.unitId) || _LH_UNITS[0];
 
@@ -874,6 +885,38 @@ function _LH_TopicView({ topic, extraItems }) {
                     ))}
                 </div>
             )}
+
+            {/* Interactive Tool (from LearningTools.js) */}
+            {_LH_TOOL_MAP[topic.id] && (() => {
+                const tm = _LH_TOOL_MAP[topic.id];
+                const ToolComp = tm.comp;
+                if (!ToolComp) return null;
+                return (
+                    <div style={{marginTop:24,borderTop:'1px solid #e5e7eb',paddingTop:16}}>
+                        <button onClick={() => setShowTool(!showTool)}
+                            style={{width:'100%',background:`${tm.color}12`,border:`1.5px solid ${tm.color}50`,
+                                borderRadius:showTool ? '10px 10px 0 0' : 10,padding:'12px 18px',
+                                cursor:'pointer',textAlign:'left',display:'flex',justifyContent:'space-between',
+                                alignItems:'center',fontFamily:'inherit',transition:'border-radius .15s'}}>
+                            <div>
+                                <span style={{fontWeight:700,fontSize:15,color:tm.color}}>{tm.label}</span>
+                                <span style={{fontSize:11,color:'#6b7280',marginLeft:10,background:'#f1f5f9',borderRadius:10,padding:'2px 8px'}}>
+                                    🧪 Interactive Tool · {tm.plan}
+                                </span>
+                            </div>
+                            <span style={{fontSize:12,fontWeight:600,color:tm.color,whiteSpace:'nowrap'}}>
+                                {showTool ? '▲ ปิด' : '▼ เปิดใช้งาน'}
+                            </span>
+                        </button>
+                        {showTool && (
+                            <div style={{background:'#0f172a',borderRadius:'0 0 10px 10px',padding:20,
+                                border:`1px solid ${tm.color}30`,borderTop:'none',color:'#f1f5f9',fontFamily:"'Prompt',sans-serif"}}>
+                                <ToolComp />
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
         </div>
     );
 }
