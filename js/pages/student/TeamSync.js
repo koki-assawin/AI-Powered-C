@@ -8,7 +8,7 @@
 // projectTeams/{teamId}/feedback/{id} → { fromUid, fromName, toUid, toName, scores:{...}, comment, createdAt }
 
 const TASK_STATUSES = ['todo', 'doing', 'done'];
-const STATUS_LABELS = { todo: '📋 Todo', doing: '⚙️ กำลังทำ', done: '✅ เสร็จ' };
+const _TS_STATUS_LABELS = { todo: '📋 Todo', doing: '⚙️ กำลังทำ', done: '✅ เสร็จ' };
 const STATUS_COLORS = { todo: '#334155', doing: '#1e3a5f', done: '#052e16' };
 const STATUS_BORDER = { todo: '#475569', doing: '#3b82f6', done: '#16a34a' };
 
@@ -82,7 +82,7 @@ const _TaskCard = ({ task, isOwner, onStatusChange, onDelete }) => {
                         background: 'transparent', color: '#94a3b8', fontSize: 10,
                         cursor: 'pointer', fontFamily: "'Prompt',sans-serif", whiteSpace: 'nowrap',
                     }}>
-                        → {STATUS_LABELS[nextStatus].split(' ')[1]}
+                        → {_TS_STATUS_LABELS[nextStatus].split(' ')[1]}
                     </button>
                     {isOwner && (
                         <button onClick={() => onDelete(task.id)} style={{
@@ -568,7 +568,7 @@ const TeamSync = () => {
                                                 border: `1px solid ${STATUS_BORDER[status]}`,
                                             }}>
                                                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10, color: '#94a3b8' }}>
-                                                    {STATUS_LABELS[status]}
+                                                    {_TS_STATUS_LABELS[status]}
                                                     <span style={{
                                                         marginLeft: 6, background: '#0f172a', borderRadius: 10,
                                                         padding: '1px 6px', fontSize: 11,
