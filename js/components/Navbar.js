@@ -114,9 +114,10 @@ const Navbar = ({ title, subtitle }) => {
         {
             label: 'เรียน', icon: '📖',
             children: [
-                { hash: '#/student/courses',  label: 'รายวิชา',  icon: '📚' },
-                { hash: '#/student/practice', label: 'ฝึกเอง',   icon: '🎯' },
-                { hash: '#/student/editor',   label: 'Code Editor', icon: '💻' },
+                { hash: '#/student/courses',  label: 'รายวิชา',        icon: '📚' },
+                { hash: '#/student/tools',    label: 'Learning Tools',  icon: '🧪' },
+                { hash: '#/student/practice', label: 'ฝึกเอง',          icon: '🎯' },
+                { hash: '#/student/editor',   label: 'Code Editor',     icon: '💻' },
             ],
         },
         {

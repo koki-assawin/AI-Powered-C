@@ -197,9 +197,17 @@ const CourseViewer = () => {
 
                                         <button
                                             onClick={() => { window.location.hash = `#/student/workspace?course=${course.id}`; }}
-                                            className="w-full py-2 rounded-lg font-medium text-sm bg-green-500 text-white hover:bg-green-600 transition-all mb-2">
-                                            เข้าเรียน →
+                                            className="w-full py-2 rounded-lg font-medium text-sm text-white hover:opacity-90 transition-all mb-2"
+                                            style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)' }}>
+                                            📝 ทำโจทย์ →
                                         </button>
+
+                                        <a
+                                            href={`#/student/tools`}
+                                            className="block w-full py-2 rounded-lg font-medium text-sm text-center mb-2"
+                                            style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', textDecoration: 'none' }}>
+                                            🧪 Learning Tools
+                                        </a>
 
                                         <a
                                             href={`#/student/games?unit=${course.id}`}
