@@ -190,6 +190,14 @@ function _formatCLike(code) {
 // Expose globally so CodingWorkspace Format button can call it
 window.formatCCode = formatCCode;
 
+// Inject Loop Tracer highlight CSS once
+if (!document.getElementById('cm-trace-style')) {
+    const _s = document.createElement('style');
+    _s.id = 'cm-trace-style';
+    _s.textContent = '.cm-trace-highlight { background: rgba(234,179,8,0.22) !important; }';
+    document.head.appendChild(_s);
+}
+
 // ── CodeEditor React component ───────────────────────────────────────────────
 const EDITOR_MODES = {
     c:      'text/x-csrc',
@@ -198,7 +206,7 @@ const EDITOR_MODES = {
     python: 'python',
 };
 
-const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px', fontSize = 14, theme = 'dracula', fontFamily = 'Consolas' }) => {
+const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px', fontSize = 14, theme = 'dracula', fontFamily = 'Consolas', highlightLine = null }) => {
     const containerRef = React.useRef(null);
     const cmRef        = React.useRef(null);
     const suppressRef  = React.useRef(false);
@@ -395,6 +403,17 @@ const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px
         void wrapper.offsetHeight;
         cmRef.current.refresh();
     }, [fontFamily]);
+
+    // Highlight a specific line for Loop Tracer (highlightLine = 1-indexed, null = clear)
+    React.useEffect(() => {
+        const cm = cmRef.current;
+        if (!cm) return;
+        cm.eachLine(h => cm.removeLineClass(h, 'background', 'cm-trace-highlight'));
+        if (highlightLine != null && highlightLine >= 1) {
+            const h = cm.getLineHandle(highlightLine - 1);
+            if (h) cm.addLineClass(h, 'background', 'cm-trace-highlight');
+        }
+    }, [highlightLine]);
 
     return (
         <div

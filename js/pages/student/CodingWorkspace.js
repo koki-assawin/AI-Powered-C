@@ -80,6 +80,12 @@ const CodingWorkspace = () => {
     const [runCount, setRunCount] = React.useState(0);
     const sessionStartRef = React.useRef(Date.now());
 
+    // Loop Tracer state (หน่วยที่ 3 ว31281 — Explain phase)
+    const [traceData,       setTraceData]       = React.useState(null); // { variables, steps } | { error } | null
+    const [traceIdx,        setTraceIdx]        = React.useState(0);
+    const [traceLoading,    setTraceLoading]    = React.useState(false);
+    const [highlightedLine, setHighlightedLine] = React.useState(null);
+
     const isExamMode = currentAssignment?.assignmentType === 'exam';
 
     React.useEffect(() => { if (courseId) loadCourse(); }, [courseId]);
@@ -413,6 +419,39 @@ const CodingWorkspace = () => {
         } finally {
             setAiAnalyzing(false);
         }
+    };
+
+    // Loop Tracer — detect loops in code (strip comments first)
+    const hasLoops = React.useMemo(() => {
+        const src = code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+        return /\b(for|while|do)\s*[\s({]/.test(src);
+    }, [code]);
+
+    const goTraceStep = (n) => {
+        if (!traceData?.steps?.length) return;
+        const clamped = Math.max(0, Math.min(n, traceData.steps.length - 1));
+        setTraceIdx(clamped);
+        setHighlightedLine(traceData.steps[clamped]?.line || null);
+    };
+
+    const handleLoopTrace = async () => {
+        if (!hasLoops || traceLoading) return;
+        setTraceLoading(true);
+        setTraceData(null);
+        setTraceIdx(0);
+        setHighlightedLine(null);
+        setView('trace');
+        if (typeof logUsageEvent === 'function') logUsageEvent(userDoc?.id, 'loop_trace', { courseId, assignmentId: currentAssignment?.id, language: selectedLanguage, userType: userDoc?.role || 'student' });
+        try {
+            const result = await generateLoopTrace(code, selectedLanguage, frEchoedLines.join('\n'), freeRunOutput);
+            setTraceData(result);
+            if (result.steps && result.steps.length > 0) {
+                setHighlightedLine(result.steps[0].line || null);
+            }
+        } catch (e) {
+            setTraceData({ error: e.message });
+        }
+        setTraceLoading(false);
     };
 
     const handleChat = async (e) => {
@@ -1025,6 +1064,7 @@ const CodingWorkspace = () => {
                                 fontSize={fontSize}
                                 theme={editorTheme}
                                 fontFamily={fontFamily}
+                                highlightLine={view === 'trace' ? highlightedLine : null}
                             />
                         </div>
 
@@ -1041,6 +1081,7 @@ const CodingWorkspace = () => {
                                     { key: 'run',  label: '▶ รัน' },
                                     { key: 'ai',   label: '🤖 AI Lab' },
                                     { key: 'chat', label: '💬 แชท' },
+                                    ...(traceData ? [{ key: 'trace', label: '🔍 Trace' }] : []),
                                 ] : []),
                             ].map(t => (
                                 <button
@@ -1121,11 +1162,20 @@ const CodingWorkspace = () => {
                                             {frCollecting && <span className="ml-2 text-xs font-normal" style={{ color: '#fbbf24' }}>⌨️ รอรับค่า...</span>}
                                         </h4>
                                         {!frCollecting && (
-                                            <button onClick={handleFreeRun} disabled={freeRunning}
-                                                className="px-3 py-1.5 text-white rounded-lg text-xs disabled:opacity-50 flex items-center gap-1"
-                                                style={{ background: '#1E7E34' }}>
-                                                {freeRunning ? <SpinIcon className="w-3 h-3" /> : '▶'} รันอีกครั้ง
-                                            </button>
+                                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                                {hasLoops && freeRunOutput && !freeRunning && (
+                                                    <button onClick={handleLoopTrace} disabled={traceLoading}
+                                                        className="px-3 py-1.5 text-white rounded-lg text-xs disabled:opacity-50 flex items-center gap-1"
+                                                        style={{ background: '#B45309' }}>
+                                                        {traceLoading ? <SpinIcon className="w-3 h-3" /> : '🔍'} {traceLoading ? 'กำลัง Trace...' : 'Trace Loop'}
+                                                    </button>
+                                                )}
+                                                <button onClick={handleFreeRun} disabled={freeRunning}
+                                                    className="px-3 py-1.5 text-white rounded-lg text-xs disabled:opacity-50 flex items-center gap-1"
+                                                    style={{ background: '#1E7E34' }}>
+                                                    {freeRunning ? <SpinIcon className="w-3 h-3" /> : '▶'} รันอีกครั้ง
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                     <div className="rounded-lg overflow-hidden" style={{
@@ -1182,6 +1232,113 @@ const CodingWorkspace = () => {
                                             )}
                                         </div>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Loop Trace Panel */}
+                            {view === 'trace' && (
+                                <div>
+                                    {traceLoading && (
+                                        <div className="text-center py-8">
+                                            <Spinner text="AI กำลังสร้าง Trace Table..." />
+                                        </div>
+                                    )}
+                                    {!traceLoading && traceData?.error && (
+                                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                                            ❌ {traceData.error}
+                                        </div>
+                                    )}
+                                    {!traceLoading && traceData?.steps && (
+                                        <div>
+                                            {/* Navigation header */}
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>
+                                                    🔍 Loop Trace Table
+                                                </span>
+                                                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                                    <button onClick={() => goTraceStep(0)}
+                                                        style={{ padding: '2px 8px', borderRadius: 6, border: '1px solid #d97706', background: 'transparent', color: '#92400e', fontSize: 11, cursor: 'pointer', fontFamily: "'Prompt',sans-serif" }}>
+                                                        ⏮
+                                                    </button>
+                                                    <button onClick={() => goTraceStep(traceIdx - 1)} disabled={traceIdx === 0}
+                                                        style={{ padding: '2px 8px', borderRadius: 6, border: '1px solid #d97706', background: 'transparent', color: '#92400e', fontSize: 11, cursor: 'pointer', fontFamily: "'Prompt',sans-serif", opacity: traceIdx === 0 ? 0.4 : 1 }}>
+                                                        ← ย้อน
+                                                    </button>
+                                                    <span style={{ fontSize: 11, color: '#6B7280', minWidth: 70, textAlign: 'center' }}>
+                                                        {traceIdx + 1} / {traceData.steps.length}
+                                                    </span>
+                                                    <button onClick={() => goTraceStep(traceIdx + 1)} disabled={traceIdx >= traceData.steps.length - 1}
+                                                        style={{ padding: '2px 8px', borderRadius: 6, border: '1px solid #d97706', background: 'transparent', color: '#92400e', fontSize: 11, cursor: 'pointer', fontFamily: "'Prompt',sans-serif", opacity: traceIdx >= traceData.steps.length - 1 ? 0.4 : 1 }}>
+                                                        ถัดไป →
+                                                    </button>
+                                                    <button onClick={() => goTraceStep(traceData.steps.length - 1)}
+                                                        style={{ padding: '2px 8px', borderRadius: 6, border: '1px solid #d97706', background: 'transparent', color: '#92400e', fontSize: 11, cursor: 'pointer', fontFamily: "'Prompt',sans-serif" }}>
+                                                        ⏭
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Current step info */}
+                                            {(() => {
+                                                const step = traceData.steps[traceIdx];
+                                                return (
+                                                    <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8, padding: '6px 10px', marginBottom: 8, fontSize: 12 }}>
+                                                        <span style={{ fontWeight: 600, color: '#92400e' }}>บรรทัด {step.line}</span>
+                                                        <span style={{ color: '#78350f', marginLeft: 8 }}>{step.label}</span>
+                                                        {step.note && <div style={{ color: '#92400e', marginTop: 2, fontSize: 11 }}>💡 {step.note}</div>}
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* Trace table */}
+                                            <div style={{ overflowX: 'auto' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'Consolas, monospace' }}>
+                                                    <thead>
+                                                        <tr style={{ background: '#1e1e2e', color: '#cdd6f4' }}>
+                                                            <th style={{ padding: '4px 8px', textAlign: 'center', borderRight: '1px solid #313244', width: 36, fontWeight: 600, fontSize: 11 }}>#</th>
+                                                            <th style={{ padding: '4px 8px', textAlign: 'left', borderRight: '1px solid #313244', color: '#89b4fa', fontSize: 11 }}>บรรทัด</th>
+                                                            {traceData.variables.map(v => (
+                                                                <th key={v} style={{ padding: '4px 8px', textAlign: 'center', borderRight: '1px solid #313244', color: '#a6e3a1', fontSize: 11 }}>{v}</th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {traceData.steps.map((step, i) => (
+                                                            <tr key={i}
+                                                                onClick={() => goTraceStep(i)}
+                                                                style={{
+                                                                    background: i === traceIdx ? '#fef3c7' : i % 2 === 0 ? '#f9fafb' : '#ffffff',
+                                                                    cursor: 'pointer',
+                                                                    borderBottom: '1px solid #e5e7eb',
+                                                                    fontWeight: i === traceIdx ? 600 : 400,
+                                                                    outline: i === traceIdx ? '2px solid #f59e0b' : 'none',
+                                                                }}>
+                                                                <td style={{ padding: '3px 8px', textAlign: 'center', color: '#6B7280', borderRight: '1px solid #e5e7eb', fontSize: 11 }}>
+                                                                    {i === traceIdx ? '▶' : i + 1}
+                                                                </td>
+                                                                <td style={{ padding: '3px 8px', color: '#3b82f6', borderRight: '1px solid #e5e7eb' }}>{step.line}</td>
+                                                                {(step.values || []).map((val, vi) => (
+                                                                    <td key={vi} style={{ padding: '3px 8px', textAlign: 'center', borderRight: '1px solid #e5e7eb', color: i === traceIdx ? '#92400e' : '#374151' }}>
+                                                                        {val}
+                                                                    </td>
+                                                                ))}
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <div style={{ marginTop: 6, fontSize: 10, color: '#9CA3AF', textAlign: 'right' }}>
+                                                คลิกแถวหรือกดปุ่มเพื่อไปยัง step ที่ต้องการ • Editor จะ highlight บรรทัดที่กำลัง execute
+                                            </div>
+                                        </div>
+                                    )}
+                                    {!traceLoading && !traceData && (
+                                        <div className="text-center py-8 text-gray-400">
+                                            <div className="text-4xl mb-2">🔍</div>
+                                            <p>กด "Trace Loop" หลังรันโค้ดเพื่อดู Trace Table</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

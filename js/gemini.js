@@ -443,3 +443,49 @@ ${levelInstructions[hintLevel] || levelInstructions[1]}
 
     return callGeminiApi(prompt);
 };
+
+// Generate Loop Trace Table for Loop Tracer feature (หน่วยที่ 3 ว31281)
+const generateLoopTrace = async (code, language, stdin, actualOutput) => {
+    const langName = (LANGUAGES[language] || {}).name || language;
+    const numberedCode = code.split('\n').map((l, i) => `${i + 1}: ${l}`).join('\n');
+    const stdinNote  = stdin  ? `stdin ที่ใส่เข้าไป: ${stdin}` : '';
+    const outputNote = actualOutput ? `ผลลัพธ์จริงที่ได้: ${actualOutput.slice(0, 300)}` : '';
+
+    const prompt = `คุณคือผู้ช่วยสอนโปรแกรมมิ่ง ช่วยวิเคราะห์โค้ด ${langName} ต่อไปนี้และสร้าง Trace Table สำหรับ Loop
+
+โค้ด (พร้อมหมายเลขบรรทัด):
+${numberedCode}
+${stdinNote}
+${outputNote}
+
+สร้าง Trace Table โดย:
+- ระบุ variables ที่ loop ใช้ (counter, accumulator, flag, เงื่อนไข ฯลฯ) ไม่เกิน 6 ตัวแปร
+- แสดงค่าทีละ step ไม่เกิน 30 steps (ถ้า loop มากกว่านั้นให้ตัดที่ step ที่ 30)
+- line คือหมายเลขบรรทัดของโค้ด (1-indexed) ที่กำลัง execute อยู่ในขั้นนี้
+- label คือคำอธิบายสั้นๆ ว่าเกิดอะไรขึ้นในขั้นนี้ (ภาษาไทย ไม่เกิน 40 ตัวอักษร)
+- values คือ array ของค่าตัวแปรตามลำดับ variables (แต่ละค่าเป็น string)
+- note คือคำอธิบายเพิ่มเติมเกี่ยวกับขั้นนี้ (ภาษาไทย ถ้าไม่มีให้ส่ง "")`;
+
+    const schema = {
+        type: 'OBJECT',
+        properties: {
+            variables: { type: 'ARRAY', items: { type: 'STRING' } },
+            steps: {
+                type: 'ARRAY',
+                items: {
+                    type: 'OBJECT',
+                    properties: {
+                        line:   { type: 'INTEGER' },
+                        label:  { type: 'STRING'  },
+                        values: { type: 'ARRAY', items: { type: 'STRING' } },
+                        note:   { type: 'STRING'  },
+                    },
+                    required: ['line', 'label', 'values', 'note'],
+                },
+            },
+        },
+        required: ['variables', 'steps'],
+    };
+
+    return callGeminiApi(prompt, schema);
+};
