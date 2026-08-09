@@ -1,99 +1,505 @@
-# เอกสารระบบ: แพลตฟอร์มโค้ชชิงการเขียนโปรแกรมอัตโนมัติตามวัฏจักร 5Es
-# บูรณาการปัญญาประดิษฐ์และเกมมิฟิเคชัน
-## AI-Powered Coding Platform — คู่มือระบบฉบับสมบูรณ์
+# เอกสารระบบและข้อมูลนวัตกรรม
+# แพลตฟอร์มการเรียนรู้การเขียนโปรแกรมเชิงอัจฉริยะ
+## AI-Powered Coding Coach (APCC)
+### บูรณาการปัญญาประดิษฐ์ เกมมิฟิเคชัน และกรอบแนวคิด 5Es
 
 **รหัสวิชา:** ว31281 การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น  
-**กลุ่มเป้าหมาย:** นักเรียน ม.4/6 จำนวน 32 คน  
+**กลุ่มเป้าหมาย:** นักเรียน ม.4/6 โรงเรียนเตรียมอุดมศึกษาพัฒนาการ  
 **URL ระบบ:** https://koki-assawin.github.io/AI-Powered-C/  
-**วันที่จัดทำเอกสาร:** 8 สิงหาคม 2569  
-**เวอร์ชันระบบ:** v5.5 (+ Learning Hub + Content CMS + Gradebook E1-style)
+**วันที่จัดทำเอกสาร:** 9 สิงหาคม 2569  
+**เวอร์ชันระบบ:** v5.5
 
 ---
 
 ## สารบัญ
 
-1. [ภาพรวมระบบ](#1-ภาพรวมระบบ)
-2. [สถาปัตยกรรมและเทคโนโลยี](#2-สถาปัตยกรรมและเทคโนโลยี)
-3. [โครงสร้างฐานข้อมูล Firestore](#3-โครงสร้างฐานข้อมูล-firestore)
-4. [ระบบ Gamification](#4-ระบบ-gamification)
-5. [ระบบ AI Coaching (5Es)](#5-ระบบ-ai-coaching-5es)
-6. [Mini-Games](#6-mini-games)
-7. [ระบบ Achievement (รางวัลและความสำเร็จ)](#7-ระบบ-achievement)
-8. [คู่มือผู้ดูแลระบบ (Admin)](#8-คู่มือผู้ดูแลระบบ)
-9. [คู่มือครู (Teacher)](#9-คู่มือครู)
-10. [คู่มือนักเรียน (Student)](#10-คู่มือนักเรียน)
-11. [ข้อมูลสำหรับงานวิจัย](#11-ข้อมูลสำหรับงานวิจัย)
-12. [Security Rules และสิทธิ์การเข้าถึง](#12-security-rules)
-13. [โครงสร้างไฟล์ระบบ](#13-โครงสร้างไฟล์ระบบ)
+**ส่วนที่ 1 — ข้อมูลสำหรับรายงานนวัตกรรม (ก.ค.ศ.)**
+1. [ชื่อนวัตกรรม](#1-ชื่อนวัตกรรม)
+2. [ระยะเวลาการดำเนินการ](#2-ระยะเวลาการดำเนินการ)
+3. [ความเป็นมาและความสำคัญของปัญหา](#3-ความเป็นมาและความสำคัญของปัญหา)
+4. [วัตถุประสงค์](#4-วัตถุประสงค์)
+5. [ทฤษฎี แนวคิด และองค์ความรู้](#5-ทฤษฎีแนวคิดและองค์ความรู้)
+6. [กระบวนการสร้างและพัฒนา](#6-กระบวนการสร้างและพัฒนา)
+7. [การนำนวัตกรรมไปใช้](#7-การนำนวัตกรรมไปใช้)
+8. [ผลจากการใช้นวัตกรรม](#8-ผลจากการใช้นวัตกรรม)
+9. [ประโยชน์ของนวัตกรรม](#9-ประโยชน์ของนวัตกรรม)
+10. [การยอมรับและการเป็นแบบอย่างที่ดี](#10-การยอมรับและการเป็นแบบอย่างที่ดี)
+11. [การพัฒนาต่อยอด](#11-การพัฒนาต่อยอด)
+
+**ส่วนที่ 2 — ข้อมูลทางเทคนิค (ภาคผนวก)**
+- [ก. สถาปัตยกรรมและเทคโนโลยี](#ก-สถาปัตยกรรมและเทคโนโลยี)
+- [ข. โครงสร้างฐานข้อมูล Firestore](#ข-โครงสร้างฐานข้อมูล-firestore)
+- [ค. ระบบ Gamification](#ค-ระบบ-gamification)
+- [ง. ระบบ AI Coaching (5Es)](#ง-ระบบ-ai-coaching)
+- [จ. Mini-Games](#จ-mini-games)
+- [ฉ. ระบบ Achievement](#ฉ-ระบบ-achievement)
+- [ช. Learning Hub และ Content CMS](#ช-learning-hub-และ-content-cms)
+- [ซ. ความปลอดภัยและสิทธิ์การเข้าถึง](#ซ-ความปลอดภัยและสิทธิ์การเข้าถึง)
+- [ฌ. โครงสร้างไฟล์ระบบ](#ฌ-โครงสร้างไฟล์ระบบ)
+- [ญ. เวอร์ชัน History](#ญ-เวอร์ชัน-history)
 
 ---
 
-## 1. ภาพรวมระบบ
-
-### 1.1 ชื่อและวัตถุประสงค์
-
-ระบบนี้พัฒนาขึ้นเพื่อการวิจัยการศึกษา โดยนำกรอบการสอนแบบ **5Es (Engage → Explore → Explain → Elaborate → Evaluate)** มาบูรณาการกับ:
-
-- **Gamification:** XP, Rank, Badge, Leaderboard, Streak เพื่อเพิ่มแรงจูงใจ
-- **AI Coaching:** Gemini API ช่วยให้ Hint, วิเคราะห์จุดอ่อน, ให้กำลังใจ
-- **Mini-Games:** เกมฝึกทักษะ C ที่สนุกและวัดผลได้
-- **Analytics Dashboard:** ครูเห็นข้อมูลเชิงลึกของนักเรียนทุกคน
-
-### 1.2 กลุ่มผู้ใช้และ Role
-
-| Role | จำนวน | หน้าที่ |
-|---|---|---|
-| **student** |  เรียน, ส่งงาน, เล่นเกม, ดู Leaderboard |
-| **teacher** | สร้างวิชา, ออกโจทย์, ดูผล, จัดการ Gamification |
-| **admin** | จัดการผู้ใช้, ตั้งค่าระบบ, Seed ข้อมูลวิจัย |
-
-### 1.3 การแมปกับกรอบ 5Es
-
-| ขั้น 5E | คอมโพเนนต์ระบบ | เป้าหมาย |
-|---|---|---|
-| **Engage** | Streak, XP Bar, Rank, Daily Login Reward | ดึงดูดให้เข้าระบบทุกวัน |
-| **Explore** | Mini-Games (Quiz Blitz, Code Autopsy), Self-Practice | สำรวจเนื้อหาผ่านการลงมือทำ |
-| **Explain** | AI Socratic Coach (Hint 3 ระดับ), Diagnostic Coach | รับคำอธิบายเมื่อติดปัญหา |
-| **Elaborate** | Bug Hunt, Challenge Coach, โจทย์ระดับ Hard | ต่อยอดความรู้ในเชิงลึก |
-| **Evaluate** | Leaderboard, Achievements, Analytics Coach | สะท้อนผลการเรียนรู้ |
+# ส่วนที่ 1 — ข้อมูลสำหรับรายงานนวัตกรรม
 
 ---
 
-## 2. สถาปัตยกรรมและเทคโนโลยี
+## 1. ชื่อนวัตกรรม
 
-### 2.1 Stack หลัก
+**แพลตฟอร์มการเรียนรู้การเขียนโปรแกรมเชิงอัจฉริยะ ด้วยกรอบแนวคิด 5Es  
+บูรณาการปัญญาประดิษฐ์และเกมมิฟิเคชัน**
 
-| Layer | เทคโนโลยี | รายละเอียด |
+*(AI-Powered Coding Coach — APCC)*
+
+นวัตกรรมนี้เป็น **ระบบบริหารจัดการการเรียนรู้ (Learning Management System)** ที่ผู้สอนพัฒนาขึ้นด้วยตนเอง สำหรับรายวิชา ว31281 การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น ระดับชั้น ม.4 โดยบูรณาการ AI Coach ที่ขับเคลื่อนด้วย Google Gemini, ระบบ Gamification (XP/Rank/Achievement), Mini-Games ฝึกทักษะ, ศูนย์การเรียนรู้ดิจิทัล (Learning Hub) และ Analytics Dashboard เพื่อส่งเสริมการเรียนรู้เชิงรุกและสนับสนุนการตัดสินใจเชิงข้อมูลของครู
+
+---
+
+## 2. ระยะเวลาการดำเนินการ
+
+| ขั้นตอน | ช่วงเวลา |
+|---|---|
+| วิเคราะห์ปัญหา ออกแบบระบบ | ธันวาคม 2567 – มกราคม 2568 |
+| พัฒนาระบบหลัก (v4.6–v5.0) | กุมภาพันธ์ – มีนาคม 2568 |
+| พัฒนา Gamification + AI Coach (v5.0–v5.3) | เมษายน 2568 |
+| พัฒนา Learning Hub + Content CMS (v5.4–v5.5) | พฤษภาคม – มิถุนายน 2568 |
+| นำไปใช้จริงกับนักเรียน | ภาคเรียนที่ 1 ปีการศึกษา 2568 |
+| เก็บข้อมูลและประเมินผล | มิถุนายน – กันยายน 2568 |
+| ถอดบทเรียนและจัดทำรายงาน | ตุลาคม 2568 |
+
+---
+
+## 3. ความเป็นมาและความสำคัญของปัญหา
+
+### 3.1 บริบทของปัญหา
+
+วิชาการเขียนโปรแกรมคอมพิวเตอร์เป็นทักษะสำคัญในศตวรรษที่ 21 แต่การสอนในชั้นเรียนขนาด 32 คนประสบปัญหาหลายประการ:
+
+**ด้านนักเรียน:**
+- นักเรียนมีพื้นฐานและความสามารถที่หลากหลายมาก บางคนไม่เคยเขียนโปรแกรมมาก่อน บางคนมีประสบการณ์แล้ว ทำให้การสอนแบบเดียวไม่ตอบโจทย์ทุกคน
+- การเรียนเขียนโปรแกรมต้องการการฝึกซ้ำ (Deliberate Practice) แต่นักเรียนขาดแรงจูงใจและ Feedback ที่ทันทีเมื่อทำงานนอกเวลาเรียน
+- เมื่อนักเรียนติดปัญหาในการเขียนโค้ด ไม่มีช่องทางขอความช่วยเหลือที่สะดวกนอกห้องเรียน
+- ขาดเนื้อหาอ้างอิงดิจิทัลที่เชื่อมโยงกับหลักสูตรวิชาโดยตรง
+
+**ด้านครูผู้สอน:**
+- ครูไม่สามารถติดตามพัฒนาการรายคนได้แบบ Real-time ในชั้นเรียนขนาดใหญ่
+- การตรวจงานด้วยตนเองใช้เวลามาก และ Feedback ไม่ทันที
+- ขาดข้อมูลเชิงลึกว่านักเรียนคนใดกำลังประสบปัญหา ก่อนที่ปัญหาจะสะสมจนแก้ไขยาก
+- ไม่มีระบบจัดการเนื้อหาดิจิทัลที่ใช้งานง่ายสำหรับครูไม่มีพื้นฐานเทคนิค
+
+**ด้านหลักสูตร:**
+- แผนการสอนว31281 มี 40 แผน ใน 5 หน่วย แต่ไม่มีสื่อดิจิทัล Interactive ประกอบ
+- นักเรียนต้องท่องจำ Syntax โดยไม่เห็นภาพการทำงานจริงของโปรแกรม
+
+### 3.2 ความสำคัญของการแก้ปัญหา
+
+การพัฒนาแพลตฟอร์ม APCC ตอบสนองต่อ:
+- **นโยบายกระทรวงศึกษาธิการ** ด้านการบูรณาการเทคโนโลยีและ AI ในการเรียนการสอน
+- **หลักสูตรแกนกลาง 2551 (ฉบับปรับปรุง 2560)** ที่เน้นทักษะกระบวนการคิดและการแก้ปัญหา
+- **ทักษะศตวรรษที่ 21** ด้าน Digital Literacy, Critical Thinking และ Computational Thinking
+- **แนวคิด Personalized Learning** ที่ UNESCO และ OECD ส่งเสริมในระดับสากล
+
+---
+
+## 4. วัตถุประสงค์
+
+1. **เพื่อพัฒนาแพลตฟอร์ม LMS** ที่บูรณาการ AI Coaching ตามกรอบแนวคิด 5Es สำหรับรายวิชาการเขียนโปรแกรมภาษา C
+2. **เพื่อสร้างแรงจูงใจ** ในการเรียนรู้การเขียนโปรแกรมด้วยระบบ Gamification (XP, Rank, Badge, Leaderboard, Streak)
+3. **เพื่อให้ครูมีเครื่องมือวิเคราะห์** พัฒนาการนักเรียนรายคนและภาพรวมชั้นเรียนแบบ Real-time
+4. **เพื่อสร้างศูนย์การเรียนรู้ดิจิทัล (Learning Hub)** ที่มีเนื้อหา Interactive ครอบคลุมหลักสูตร 5 หน่วย 40 แผน
+5. **เพื่อให้ครูสามารถสร้างและจัดการเนื้อหา** ดิจิทัลประจำวิชาได้ด้วยตนเองผ่าน Content CMS ที่ใช้งานง่าย
+6. **เพื่อศึกษาความสัมพันธ์** ระหว่างพฤติกรรมการใช้ Gamification กับผลสัมฤทธิ์ทางการเรียน
+
+---
+
+## 5. ทฤษฎี แนวคิด และองค์ความรู้
+
+### 5.1 กรอบแนวคิด 5Es (Bybee, 1997)
+
+กรอบ 5Es เป็นแนวคิดการสอนวิทยาศาสตร์ของ Rodger Bybee ที่ระบบ APCC นำมาบูรณาการกับเทคโนโลยี:
+
+| ขั้น 5E | ความหมาย | คอมโพเนนต์ใน APCC |
 |---|---|---|
-| **Frontend** | React 17 (CDN), Babel | JSX transpile ในเบราว์เซอร์ ไม่ต้อง build step |
-| **Routing** | Hash Router (`#/path`) | Single Page Application, ไม่ต้องการ server |
-| **Database** | Firebase Firestore (compat v9) | Real-time NoSQL, offline support |
-| **Auth** | Firebase Authentication | Email/Password |
-| **Hosting** | Firebase Hosting + GitHub Pages | Deploy ด้วย `firebase deploy` |
-| **AI** | Google Gemini API (gemini-2.0-flash) | Coaching, Mini-game generation, Analytics |
-| **Code Runner** | Piston API → Judge0 (parallel) | Execute C code; 8s timeout/test; Wandbox ถูกตัดออก |
-| **UI** | Tailwind CSS + Bootstrap 5.3 | Utility-first + K-Minimal pink theme |
-| **Editor** | CodeMirror 5 | Syntax highlight สำหรับ C + หลาย Theme |
-| **Charts** | Chart.js | กราฟวิเคราะห์ผลการเรียน |
-| **Font** | Google Fonts (Prompt, JetBrains Mono) | Thai-friendly font |
+| **Engage** (กระตุ้น) | สร้างความสนใจ เชื่อมกับประสบการณ์เดิม | Streak Bonus, XP Bar, Daily Login Reward, Rank Up Animation |
+| **Explore** (สำรวจ) | ลงมือปฏิบัติ สำรวจด้วยตนเอง | Mini-Games (Quiz Blitz, Code Autopsy, Bug Hunt), Self-Practice |
+| **Explain** (อธิบาย) | เชื่อมประสบการณ์กับแนวคิดทางทฤษฎี | AI Socratic Coach (Hint 4 ระดับ), Learning Hub 25 หัวข้อ |
+| **Elaborate** (ขยาย) | ต่อยอดความรู้ในบริบทใหม่ | Challenge Coach, โจทย์ระดับ Hard, Interactive Tools |
+| **Evaluate** (ประเมิน) | สะท้อนผลการเรียนรู้ | Analytics Dashboard, Leaderboard, Achievement, Diagnostic Coach |
 
-### 2.2 การโหลดสคริปต์ (ลำดับสำคัญ)
+### 5.2 Gamification ในการศึกษา
+
+**Deterding et al. (2011)** นิยาม Gamification ว่าคือ "การนำองค์ประกอบของเกมมาใช้ในบริบทที่ไม่ใช่เกม" งานวิจัยหลายชิ้นยืนยันว่า Gamification ส่งผลต่อ:
+- **แรงจูงใจภายใน (Intrinsic Motivation)** — นักเรียนอยากเรียนรู้ด้วยตนเอง
+- **การมีส่วนร่วม (Engagement)** — เวลาที่ใช้กับกิจกรรมเพิ่มขึ้น
+- **ความพยายาม (Persistence)** — ยอมลองแก้ปัญหาซ้ำมากขึ้น
+
+องค์ประกอบ Gamification ใน APCC ได้แก่:
+- **XP & Rank** (Points & Levels): กลไกพื้นฐานที่ให้ Feedback ความก้าวหน้า
+- **Achievement & Badge**: รางวัลสำหรับพฤติกรรมที่ต้องการส่งเสริม
+- **Leaderboard**: การแข่งขันแบบร่วมมือในชั้นเรียนเดียวกัน
+- **Streak**: สร้างนิสัยการเรียนสม่ำเสมอ
+- **Season & Multiplier**: สร้างช่วงเวลาพิเศษที่น่าตื่นเต้น
+
+### 5.3 Socratic Method และ Scaffolding
+
+**Socratic Coaching** ใน APCC อิงแนวคิดของ Vygotsky (Zone of Proximal Development) และ Bloom's Taxonomy:
+- AI Hint ไม่บอกคำตอบตรงๆ แต่ถามคำถามชี้นำ (ระดับ 1)
+- ค่อยๆ เพิ่ม Scaffold จนถึงการวิเคราะห์โค้ดโดยตรง (ระดับ 4)
+- เป้าหมายคือให้นักเรียนคิดออกเองมากที่สุด ลด Dependency
+
+### 5.4 Formative Assessment แบบ Real-time
+
+**Black & Wiliam (1998)** พิสูจน์ว่า Formative Assessment (การประเมินระหว่างเรียน) ที่ให้ Feedback ทันทีมีผลต่อผลสัมฤทธิ์สูงกว่า Summative Assessment (การสอบปลาย) อย่างมีนัยสำคัญ APCC รองรับด้วย:
+- Auto-grader ที่ให้ Feedback ทุก Test Case ทันทีที่ Submit
+- Analytics Coach ที่วิเคราะห์ Pattern ความผิดพลาดและแนะนำโดยอัตโนมัติ
+- Predictive Risk Alert แจ้งเตือนก่อนนักเรียนจะล้มเหลว
+
+### 5.5 Constructivism และ Active Learning
+
+**Papert (1991) — Constructionism**: การเรียนรู้ที่ดีที่สุดเกิดจากการ "สร้าง" สิ่งที่แชร์ได้กับผู้อื่น ระบบ APCC ส่งเสริมด้วย:
+- นักเรียนเขียนโค้ดจริง เห็นผลลัพธ์จริงผ่าน Code Runner
+- Interactive Tools ใน Learning Hub ให้ทดลองแก้ไขและเห็นผลทันที
+- Bug Hunt เกมที่นักเรียนต้องค้นหาและแก้ไขข้อผิดพลาดด้วยตนเอง
+
+---
+
+## 6. กระบวนการสร้างและพัฒนา
+
+### 6.1 วิธีการพัฒนา (Iterative Design)
+
+ผู้สอนใช้แนวทาง **Agile / Iterative Design** โดยพัฒนาเป็นรอบ (Sprint) สั้นๆ ทดสอบกับผู้ใช้จริง แล้วปรับปรุงต่อเนื่อง:
 
 ```
-1. firebase.js          → ตั้งค่า Firebase (db, auth, firebase globals)
-2. gemini.js            → Gemini API wrapper (analyzeCode, generateProblems, ฯลฯ)
-3. grader.js            → Auto-grader: Wandbox → Piston → Judge0 fallback
+วิเคราะห์ปัญหา → ออกแบบ Prototype → พัฒนา Feature →
+ทดสอบกับนักเรียน/ครู → รับ Feedback → ปรับปรุง → (วนซ้ำ)
+```
+
+### 6.2 เทคโนโลยีที่ใช้
+
+| Layer | เทคโนโลยี | เหตุผลที่เลือก |
+|---|---|---|
+| Frontend | React 17 (CDN) + Babel | ไม่ต้องการ build step, deploy ง่าย, Babel transpile JSX ในเบราว์เซอร์ |
+| Routing | Hash Router (#/path) | Single Page App, รองรับ GitHub Pages โดยไม่ต้อง server config |
+| Database | Firebase Firestore | Real-time sync, offline support, Security Rules, ฟรีสำหรับ project ขนาดนี้ |
+| Auth | Firebase Authentication | Email/Password, Integration กับ Firestore, ปลอดภัย |
+| Hosting | GitHub Pages | ฟรี, CI/CD อัตโนมัติจาก git push, เสถียร |
+| AI | Google Gemini API (gemini-2.0-flash) | ภาษาไทยดี, Fast response, ฟรี tier เพียงพอ |
+| Code Runner | Piston API → Judge0 (Parallel) | Execute C code จริงใน Sandbox, 8s timeout/test |
+| UI | Tailwind CSS + Bootstrap 5.3 | Utility-first + ธีม K-Minimal |
+| Editor | CodeMirror 5 | Syntax highlight C, หลาย Theme, เบา |
+| Charts | Chart.js | กราฟ Analytics, CDN |
+
+### 6.3 ลำดับการพัฒนา (Version History)
+
+| เวอร์ชัน | Feature หลักที่เพิ่ม | ช่วงเวลา |
+|---|---|---|
+| v4.6 | LMS พื้นฐาน: วิชา, โจทย์, ส่งงาน, Grader, AI Hint | ก.พ. 2568 |
+| v5.0 | Gamification (XP/Rank/Streak/Leaderboard/Achievement) | มี.ค. 2568 |
+| v5.0 | AI Coaching 5 บทบาท (5Es Framework) | มี.ค. 2568 |
+| v5.0 | Mini-games (Quiz Blitz, Code Autopsy, Bug Hunt) | มี.ค. 2568 |
+| v5.1 | Achievement System (13 badges), AchievementsPage | เม.ย. 2568 |
+| v5.2 | Predictive Risk Alert Coach, StudentActivityView | เม.ย. 2568 |
+| v5.3 | ActivityBuilder, RealtimeDashboard, FreeEditor | เม.ย. 2568 |
+| v5.3 | StudentAnalytics แท็บที่ 7 (กลุ่มผู้เรียน), Bulk AI Analysis | เม.ย. 2568 |
+| v5.4 | Socratic Hint Level 4, Leaderboard per-course isolation | พ.ค. 2568 |
+| v5.5 | **Learning Hub v1.1** (25 built-in topics, 5 interactive tools) | มิ.ย. 2568 |
+| v5.5 | **Content CMS v1.1** (per-course, course picker, unit tabs) | มิ.ย. 2568 |
+| v5.5 | Gradebook v5.2 (E1-style, unit groups, 3-way filter) | มิ.ย. 2568 |
+| v5.5 | Grader: parallel execution, 8s timeout, Wandbox ออก | มิ.ย. 2568 |
+
+### 6.4 สถาปัตยกรรมระบบโดยรวม
+
+```
+[นักเรียน / ครู / Admin]
+         │
+    [Browser] ← React 17 + Tailwind + CodeMirror
+         │
+    ┌────┴────────────────────────┐
+    │         Firebase            │
+    │  ┌─────────────────────┐   │
+    │  │ Authentication      │   │
+    │  │ Firestore Database  │   │
+    │  │ (24 Collections)    │   │
+    │  └─────────────────────┘   │
+    └─────────────────────────────┘
+         │
+    ┌────┴──────────────────────────────┐
+    │      External APIs               │
+    │  Google Gemini (AI Coach)        │
+    │  Piston API / Judge0 (C runner)  │
+    └──────────────────────────────────┘
+```
+
+### 6.5 การแก้ปัญหาทางเทคนิคที่สำคัญ
+
+- **Global Variable Conflict:** React components ทั้งหมดถูก transpile เป็น `var` (global scope) จึงใช้ prefix ป้องกัน collision เช่น `_LH_` (LearningHub), `_CM_` (ContentManager), `_TS_` (TeamSync)
+- **Script Load Order:** Interactive Tools ใน Learning Hub อ้างอิง component จาก LearningTools.js จึงต้องโหลดก่อน LearningHub.js เสมอ
+- **Firestore Composite Index:** หลีกเลี่ยงด้วยการ sort client-side แทน `.orderBy()` หลายฟิลด์
+- **Code Execution Safety:** C code ถูก execute ใน Piston Sandbox แบบ Parallel (ทุก Test Case พร้อมกัน) พร้อม 8s timeout ต่อ test เพื่อป้องกัน infinite loop
+
+---
+
+## 7. การนำนวัตกรรมไปใช้
+
+### 7.1 กลุ่มเป้าหมาย
+
+- **นักเรียน:** ม.4/6 โรงเรียนเตรียมอุดมศึกษาพัฒนาการ จำนวน 32 คน
+- **ภาคเรียน:** ภาคเรียนที่ 1 ปีการศึกษา 2568
+- **วิชา:** ว31281 การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น (ภาษา C)
+
+### 7.2 บทบาทผู้ใช้ระบบ
+
+| Role | จำนวน | หน้าที่หลัก |
+|---|---|---|
+| **student** | 32 คน | เรียน, ทำโจทย์, เล่นเกม, อ่าน Learning Hub, ดู Leaderboard |
+| **teacher** | ผู้สอน | สร้างวิชา/โจทย์, จัดการเนื้อหา, วิเคราะห์ผล, จัดการ Gamification |
+| **admin** | ผู้สอน + ผู้ดูแล | จัดการผู้ใช้, ตั้งค่า Gemini API Key |
+
+### 7.3 ขั้นตอนการใช้งาน (Workflow)
+
+**สำหรับนักเรียน (รายวัน):**
+```
+Login → รับ Streak Bonus XP
+  → อ่านเนื้อหาใหม่ใน Learning Hub (หัวข้อที่เกี่ยวกับแผนวันนี้)
+  → เล่น Mini-Game ฝึกทบทวน (Quiz Blitz / Code Autopsy / Bug Hunt)
+  → ทำโจทย์ Assignment ในวิชา → ขอ Hint จาก AI ถ้าติด
+  → ดู Leaderboard เปรียบเทียบกับเพื่อน
+```
+
+**สำหรับครู (รายสัปดาห์):**
+```
+ดู Analytics Dashboard → ระบุนักเรียนที่ต้องช่วยเหลือ
+  → เพิ่ม/อัพเดทเนื้อหาใน Content CMS (ตามแผนการสอนถัดไป)
+  → สร้างโจทย์ใหม่ + Test Cases → Publish
+  → ระหว่างชั้นเรียน: เปิด Realtime Dashboard ดูสถานะนักเรียน
+  → หลังเรียน: ดูรายงาน AI วิเคราะห์ข้อผิดพลาดที่พบบ่อย
+```
+
+### 7.4 การเชื่อมโยงระบบกับแผนการสอน
+
+**5 หน่วยการเรียนรู้ ว31281 ที่ระบบรองรับ:**
+
+| หน่วย | ชื่อหน่วย | แผนที่ | เนื้อหาหลักใน Learning Hub | Interactive Tool |
+|---|---|---|---|---|
+| 1 | โครงสร้างโปรแกรม C + I/O | 1–9 | ตัวแปร, Data Types, printf/scanf, ตัวดำเนินการ | 📊 Data Type Visualizer, 📐 Flowchart→C |
+| 2 | การตัดสินใจ | 10–13 | if/else, switch, nested conditions | 🌳 Decision Tree Visualizer |
+| 3 | การวนซ้ำ (Loop) | 14–23 | for, while, do-while, nested loop, Pattern | 🎨 Pattern Sandbox |
+| 4 | อาร์เรย์และฟังก์ชัน | 24–33 | Array 1D/2D, Function, Parameter, Scope | 🗂️ Memory Map |
+| 5 | Pointer และ File I/O | 34–40 | Pointer, String, fopen/fclose, fprintf/fscanf | — |
+
+### 7.5 ระบบ AI Coaching ตามกรอบ 5Es
+
+| บทบาท AI | ขั้น 5E | Trigger | หน้าที่ |
+|---|---|---|---|
+| **Mindset Coach** | Engage | ล้มเหลว 3 ครั้งติด | ให้กำลังใจ สร้างแรงจูงใจ |
+| **Socratic Coach** | Explore | กดขอ Hint | ให้ Hint 4 ระดับแบบ Socratic |
+| **Analytics Coach** | Explain | กดดู Weekly Insight | สรุป XP Trend + คำแนะนำ |
+| **Diagnostic Coach** | Evaluate | กดวิเคราะห์จุดอ่อน | วิเคราะห์ Pattern ล่าสุด 30 submission |
+| **Challenge Coach** | Elaborate | คะแนน ≥ 90% ต่อเนื่อง | แนะนำโจทย์ยากขึ้น |
+| **Predictive Risk Alert** | Evaluate | อัตโนมัติ (คะแนนลด) | แจ้งเตือนก่อนนักเรียนล้มเหลว |
+
+### 7.6 Learning Hub — ศูนย์การเรียนรู้ดิจิทัล
+
+Learning Hub (`#/student/tools?course=COURSEID`) เป็นฟีเจอร์ที่พัฒนาเพิ่มเติมเพื่อแก้ปัญหาการขาดสื่อดิจิทัลที่เชื่อมกับหลักสูตร:
+
+**เนื้อหา Built-in 25 หัวข้อ** (เฉพาะวิชาภาษา C):
+
+| หน่วย | หัวข้อ | รูปแบบเนื้อหา |
+|---|---|---|
+| หน่วย 1 | โครงสร้างโปรแกรม C, ตัวแปรและชนิดข้อมูล, รับ/แสดงผล, ตัวดำเนินการ, นิพจน์ทางคณิตศาสตร์ (5 หัวข้อ) | คำอธิบาย + โค้ด Step-through + Tips |
+| หน่วย 2 | if/else, if ซ้อน, switch-case, เงื่อนไขผสม (4 หัวข้อ) | คำอธิบาย + โค้ด Step-through + คำเตือน |
+| หน่วย 3 | for loop, while loop, do-while, nested loop, break/continue, Pattern (6 หัวข้อ) | คำอธิบาย + โค้ด + Interactive Pattern |
+| หน่วย 4 | Array 1D, Array 2D, Function, Parameter/Return, Scope (5 หัวข้อ) | คำอธิบาย + โค้ด + Memory Map |
+| หน่วย 5 | Pointer, String Function, File I/O พื้นฐาน, fprintf/fscanf, การแก้บัคพื้นฐาน (5 หัวข้อ) | คำอธิบาย + โค้ด Step-through |
+
+**Interactive Tools ฝังใน Topic:**
+
+| เครื่องมือ | หน่วย | หน้าที่ |
+|---|---|---|
+| 📊 Data Type Visualizer | 1 | แสดงขนาด, ช่วงค่า, และตัวอย่างค่าของทุก Data Type |
+| 📐 Flowchart → C Code | 1 | วาด Flowchart แล้วแปลงเป็นโครงสร้างโค้ด C อัตโนมัติ |
+| 🌳 Decision Tree | 2 | สร้างต้นไม้การตัดสินใจ if/else แบบ Visual |
+| 🎨 Pattern Sandbox | 3 | ปรับตัวแปร loop เพื่อดูผลลัพธ์ Pattern ที่เปลี่ยนแปลง |
+| 🗂️ Memory Map | 4 | เห็นภาพ Array และ Pointer ใน Memory แบบ Interactive |
+
+**Content CMS (Teacher Side):**
+
+ครูจัดการเนื้อหาผ่าน `#/teacher/content` โดย:
+- **Course Picker:** เลือกวิชาที่ต้องการจัดการ (รองรับทุกภาษา)
+- **Per-Course View:** วิชา C แสดงแท็บหน่วย 1-5, วิชาอื่นแสดง Flat List
+- **Topic Form:** เพิ่ม/แก้ไขหัวข้อ พร้อมแนบ Resource (วิดีโอ/PDF/ลิงก์)
+- **Publish Toggle:** เผยแพร่หรือซ่อนได้ทันที
+- เนื้อหาที่ครูเพิ่มจะปรากฏใน Learning Hub ของนักเรียนแบบ Real-time
+
+---
+
+## 8. ผลจากการใช้นวัตกรรม
+
+### 8.1 ผลด้านพฤติกรรมการเรียน
+
+*(ข้อมูลจากระบบ — กรอกผลจริงหลังสิ้นสุดภาคเรียน)*
+
+| ตัวชี้วัด | ผลที่ได้ |
+|---|---|
+| อัตราการส่งงาน (Submission Rate) | \_\_\_% |
+| คะแนนเฉลี่ยทุก Assignment | \_\_\_ / 100 คะแนน |
+| จำนวนนักเรียนที่ผ่านทุก Assignment | \_\_\_ / 32 คน |
+| XP เฉลี่ยต่อคน | \_\_\_ XP |
+| Streak เฉลี่ยสูงสุด | \_\_\_ วัน |
+| จำนวน Mini-Game Session รวม | \_\_\_ ครั้ง |
+| จำนวน AI Coach Interaction รวม | \_\_\_ ครั้ง |
+| จำนวนครั้งที่นักเรียนใช้ Learning Hub | \_\_\_ ครั้ง |
+
+### 8.2 ผลด้านผลสัมฤทธิ์ทางการเรียน
+
+*(กรอกผลการวัดผลจริง E1 / คะแนนสอบ)*
+
+| หน่วย | คะแนนเฉลี่ยก่อนใช้ระบบ | คะแนนเฉลี่ยหลังใช้ระบบ | ผลต่าง |
+|---|---|---|---|
+| หน่วย 1 — โครงสร้างโปรแกรม C | | | |
+| หน่วย 2 — การตัดสินใจ | | | |
+| หน่วย 3 — การวนซ้ำ | | | |
+| หน่วย 4 — อาร์เรย์และฟังก์ชัน | | | |
+| หน่วย 5 — Pointer และ File I/O | | | |
+
+### 8.3 ผลด้านแรงจูงใจและความพึงพอใจ
+
+*(กรอกผลแบบสอบถามความพึงพอใจ / SDT Scale)*
+
+| ด้าน | ผลที่ได้ |
+|---|---|
+| ความพึงพอใจต่อระบบโดยรวม (5 ระดับ) | \_\_\_ / 5 |
+| ความสนุกในการเรียน | \_\_\_ / 5 |
+| การรับรู้ความก้าวหน้าของตนเอง | \_\_\_ / 5 |
+| ความต้องการใช้ระบบต่อเนื่อง | \_\_\_ / 5 |
+
+### 8.4 ผลด้านการสอน (ครูผู้สอน)
+
+*(กรอกผลการสังเกตและสะท้อนการสอน)*
+
+- ประหยัดเวลาตรวจงานเฉลี่ย \_\_\_ ชั่วโมง/สัปดาห์
+- ครูสามารถระบุนักเรียนที่ต้องช่วยเหลือได้ล่วงหน้า \_\_\_ วันก่อนสอบ
+- จำนวนครั้งที่ครูใช้ AI Coach Report เพื่อปรับการสอน \_\_\_ ครั้ง
+
+---
+
+## 9. ประโยชน์ของนวัตกรรม
+
+### 9.1 ประโยชน์ต่อนักเรียน
+
+- **เรียนรู้ตามจังหวะตนเอง (Self-Paced):** นักเรียนสามารถทบทวนเนื้อหาผ่าน Learning Hub และทำโจทย์ซ้ำได้ไม่จำกัด
+- **Feedback ทันที:** ทราบผลการทดสอบและคะแนนทันทีที่ Submit ไม่ต้องรอครูตรวจ
+- **AI Coach ตลอด 24 ชั่วโมง:** ขอ Hint ได้ทุกเวลา ไม่จำเป็นต้องรอชั่วโมงเรียน
+- **สื่อ Interactive ครอบคลุมหลักสูตร:** เห็นภาพการทำงานของโค้ดจริงผ่าน Data Type Visualizer, Memory Map ฯลฯ ไม่ใช่แค่ข้อความ
+- **Gamification สร้างแรงจูงใจ:** XP, Badge, Leaderboard ทำให้การฝึกซ้ำกลายเป็นเรื่องสนุก
+- **ข้อมูลความก้าวหน้า:** Gradebook แบบ E1-style ให้นักเรียนเห็นคะแนนแยกตามหน่วย
+
+### 9.2 ประโยชน์ต่อครูผู้สอน
+
+- **Analytics Real-time:** เห็นพัฒนาการรายคนและภาพรวมชั้นเรียนโดยไม่ต้องรวบรวมข้อมูลเอง
+- **AI รายงานชั้นเรียน:** Gemini วิเคราะห์ข้อผิดพลาดที่พบบ่อยและแนะนำการปรับการสอน
+- **Content CMS ที่ใช้งานง่าย:** ครูเพิ่มเนื้อหาดิจิทัลประจำวิชาได้โดยไม่ต้องมีทักษะ Coding
+- **ลดภาระการตรวจงาน:** Auto-grader ตรวจทุก Test Case อัตโนมัติ ครูเน้นการให้คำปรึกษาแทน
+- **Realtime Dashboard:** ระหว่างชั้นเรียนเห็นสถานะนักเรียนทุกคนแบบ Real-time
+- **เครื่องมือ FreeEditor:** สาธิตโค้ดหน้าชั้นเรียนพร้อม Drawing Annotation ได้
+
+### 9.3 ประโยชน์ต่อสถานศึกษา
+
+- ระบบ LMS ที่สร้างด้วย Open-source + ฟรี Platform (Firebase Free Tier + GitHub Pages) ต้นทุนต่ำมาก
+- รองรับหลายวิชาและหลายภาษาโปรแกรม (C, Python, Java, C++ ฯลฯ) ขยายได้ง่าย
+- ข้อมูลเชิง Analytics ช่วยสนับสนุนการตัดสินใจเชิงนโยบายของสถานศึกษา
+- เป็น Best Practice ที่ครูคนอื่นในสถานศึกษาสามารถนำไปปรับใช้ได้
+
+### 9.4 ประโยชน์ต่อวงการศึกษา
+
+- เป็นตัวอย่างการนำ AI มาช่วยสอนวิชาเชิงทักษะอย่างมีประสิทธิภาพ
+- แนวทาง Socratic AI Coaching ที่ไม่ให้คำตอบตรงๆ สามารถนำไปประยุกต์กับวิชาอื่น
+- ต้นทุนต่ำทำให้โรงเรียนขนาดเล็กหรือพื้นที่ห่างไกลสามารถนำไปใช้ได้
+
+---
+
+## 10. การยอมรับและการเป็นแบบอย่างที่ดี
+
+*(กรอกข้อมูลจริงหลังดำเนินการ)*
+
+### 10.1 การยอมรับจากนักเรียน
+
+- ผลแบบสอบถามความพึงพอใจ: \_\_\_
+- ข้อเสนอแนะเชิงบวกที่ได้รับ: \_\_\_
+- จำนวนนักเรียนที่ใช้งานต่อเนื่อง (Retention Rate): \_\_\_
+
+### 10.2 การยอมรับจากเพื่อนครู
+
+- จำนวนครูที่เข้าร่วมชม/ทดลองใช้ระบบ: \_\_\_ คน
+- วิชา/หน่วยงานที่สนใจนำไปปรับใช้: \_\_\_
+- การนำเสนอในวงประชุมวิชาการ/PLC: \_\_\_
+
+### 10.3 การยอมรับจากองค์กรภายนอก
+
+- การนำเสนอในงานประชุม/วิชาการ: \_\_\_
+- รางวัลหรือการได้รับการยอมรับ: \_\_\_
+
+### 10.4 การเป็นแบบอย่างที่ดี
+
+- ครูในสถานศึกษานำไปปรับใช้: \_\_\_ คน/วิชา
+- โรงเรียนอื่นที่สนใจ: \_\_\_
+- การเผยแพร่ผ่านสื่อ/ช่องทางต่างๆ: \_\_\_
+
+---
+
+## 11. การพัฒนาต่อยอด
+
+### 11.1 แผนระยะสั้น (ภาคเรียนที่ 2 ปีการศึกษา 2568)
+
+- **เพิ่มภาษาโปรแกรม:** ขยาย Learning Hub Built-in content สำหรับ Python เพื่อรองรับ ว30284
+- **AI Question Generator:** ให้ Gemini สร้างโจทย์ใหม่อัตโนมัติตามระดับความยากที่ครูกำหนด
+- **Self-Assessment Tool:** ให้นักเรียนประเมินตนเองและแสดงใน Gradebook
+- **Notification System:** แจ้งเตือน Email/LINE เมื่อใกล้วันส่งงานหรือมี Streak ขาด
+
+### 11.2 แผนระยะกลาง (ปีการศึกษา 2569)
+
+- **Mobile Application:** พัฒนา Progressive Web App (PWA) ให้ใช้งานบน smartphone ได้สะดวกขึ้น
+- **Peer Code Review:** ระบบให้นักเรียนรีวิวโค้ดกันเองแบบ Structured โดย AI เป็น Moderator
+- **Adaptive Learning Path:** AI แนะนำลำดับการเรียนที่ปรับเองตาม Performance รายคน
+- **Co-teacher Collaboration:** เครื่องมือให้ครูหลายคนร่วมจัดการวิชาเดียวกัน
+
+### 11.3 แผนระยะยาว (2570 เป็นต้นไป)
+
+- **Multi-school Platform:** ขยายให้โรงเรียนอื่นใช้งานร่วมกันผ่าน School Code
+- **Research Data Partnership:** แชร์ข้อมูล (anonymized) กับมหาวิทยาลัยเพื่อวิจัยการศึกษา
+- **AI Curriculum Advisor:** ระบบ AI ที่แนะนำปรับแผนการสอนตามข้อมูลผลสัมฤทธิ์ชั้นเรียน
+- **Open Source Release:** เผยแพร่ Source Code บน GitHub เพื่อให้ครูคนอื่นนำไปพัฒนาต่อ
+
+---
+
+# ส่วนที่ 2 — ข้อมูลทางเทคนิค (ภาคผนวก)
+
+---
+
+## ก. สถาปัตยกรรมและเทคโนโลยี
+
+### ก.1 การโหลดสคริปต์ (ลำดับสำคัญ)
+
+```
+1. firebase.js          → ตั้งค่า Firebase (db, auth)
+2. gemini.js            → Gemini API wrapper
+3. grader.js            → Auto-grader: Piston → Judge0 (parallel, 8s timeout)
 4. gamification.js      → XP/Rank/Streak/Leaderboard engine
 5. achievementEngine.js → Achievement definitions (13 รายการ) + checker
-6. aiCoach.js           → AI Coach 5 roles + Predictive Risk Alert
-7. miniGameGenerator.js → สร้างเนื้อหา Mini-game (Gemini + fallback)
-8. context.js           → React AuthContext (handleDailyStreak เรียกที่นี่)
+6. aiCoach.js           → AI Coach 6 roles
+7. miniGameGenerator.js → Mini-game content (Gemini + fallback)
+8. context.js           → React AuthContext + handleDailyStreak
 9. components/          → Navbar, XPBar, CodeEditor ฯลฯ
-10. pages/              → Student, Teacher, Admin pages
-11. app.js              → Hash Router (โหลดสุดท้าย)
+10. LearningTools.js    → 5 Interactive Tool components (globals)
+11. LearningHub.js      → ศูนย์การเรียนรู้ (อ้างอิง Tool globals จากข้อ 10)
+12. pages/              → Student, Teacher, Admin pages
+13. ContentManager.js   → Content CMS
+14. app.js              → Hash Router (โหลดสุดท้าย)
 ```
 
-### 2.3 ลำดับการโหลด Route
+> **สำคัญ:** LearningTools.js ต้องโหลดก่อน LearningHub.js เสมอ เพราะ LearningHub อ้างอิง component (_DataTypeVisualizer ฯลฯ) ที่เป็น global variable
+
+### ก.2 Route ทั้งหมด
 
 ```
 #/login, #/register          → ไม่ต้อง login
@@ -104,9 +510,9 @@
 
 ---
 
-## 3. โครงสร้างฐานข้อมูล Firestore
+## ข. โครงสร้างฐานข้อมูล Firestore
 
-### 3.1 Collections ทั้งหมด (24 Collections)
+### ข.1 Collections (24 Collections)
 
 #### กลุ่ม: ผู้ใช้และ Auth
 
@@ -115,25 +521,24 @@
 displayName    : string   — ชื่อแสดง
 email          : string   — อีเมล
 role           : string   — 'student' | 'teacher' | 'admin'
-studentCode    : string   — รหัสนักเรียน (เช่น "11669")
-number         : number   — เลขที่ในห้อง (1-32)
+studentCode    : string   — รหัสนักเรียน
+number         : number   — เลขที่ในห้อง
 approvedByAdmin: boolean  — ครูอนุมัติแล้วหรือยัง
 createdAt      : timestamp
 ```
 
-**`playerStats/{uid}`** ← Gamification หลัก
+**`playerStats/{uid}`**
 ```
 xp             : number   — XP สะสมทั้งหมด
 rank           : number   — ระดับ 1-10
-rankName       : string   — ชื่อ Rank ภาษาไทย
+rankName       : string   — ชื่อ Rank
 codeCoin       : number   — สกุลเงินหลัก
 crystal        : number   — สกุลเงินพิเศษ
 streakDays     : number   — Streak ต่อเนื่องปัจจุบัน
 longestStreak  : number   — Streak สูงสุดตลอดกาล
-lastLoginDate  : string   — 'YYYY-MM-DD' วันที่ Login ล่าสุด
-dailyXP        : number   — XP วันนี้ (reset ทุกเที่ยงคืน)
-weeklyXP       : number   — XP สัปดาห์นี้ (reset ทุกวันจันทร์)
-seasonXP       : number   — XP ช่วง Season ปัจจุบัน
+lastLoginDate  : string   — 'YYYY-MM-DD'
+dailyXP        : number   — XP วันนี้
+weeklyXP       : number   — XP สัปดาห์นี้
 updatedAt      : timestamp
 ```
 
@@ -143,7 +548,7 @@ updatedAt      : timestamp
 ```
 title          : string   — ชื่อวิชา
 description    : string   — คำอธิบาย
-language       : string   — 'c' | 'python' | 'java' | 'cpp' ฯลฯ
+language       : string   — 'c' | 'python' | 'java' | 'cpp'
 teacherId      : string   — uid ของครูเจ้าของวิชา
 coTeacherIds   : array    — uid ของครูร่วม
 isPublished    : boolean  — เปิดให้นักเรียนเห็น
@@ -158,197 +563,109 @@ courseId       : string   — วิชาที่สังกัด
 title          : string   — ชื่อโจทย์
 description    : string   — โจทย์ (Markdown)
 difficulty     : string   — 'easy' | 'medium' | 'hard'
-dueDate        : timestamp — วันส่ง
+dueDate        : timestamp
 isPublished    : boolean
-totalPoints    : number   — คะแนนเต็ม
-rawScore       : number   — คะแนนที่นำมาคำนวณ XP
-languageId     : string   — 'c' (ภาษาที่ใช้)
-starterCode    : string   — โค้ดตั้งต้น
+totalPoints    : number
 unitNumber     : number   — หน่วยการเรียนรู้
+starterCode    : string   — โค้ดตั้งต้น
 ```
 
 **`testCases/{testCaseId}`**
 ```
 assignmentId   : string
-description    : string   — คำอธิบาย Test Case
 input          : string   — Input ที่ส่งให้โปรแกรม
 expectedOutput : string   — Output ที่คาดหวัง
 hidden         : boolean  — ซ่อนจากนักเรียน
-order          : number   — ลำดับ
-points         : number   — คะแนนของ Test Case นี้
-```
-
-**`lessons/{lessonId}`**
-```
-courseId       : string
-title          : string
 order          : number
-content        : string   — เนื้อหา (Markdown/HTML)
-videoUrl       : string   — ลิงก์วิดีโอ (optional)
+points         : number
 ```
 
-**`learningTopics/{docId}`** ← Learning Hub CMS (v5.5)
+**`learningTopics/{docId}`** ← Learning Hub CMS
 ```
-courseId       : string   — วิชาที่สังกัด (Scope per-course)
-unitId         : number   — หน่วยการเรียนรู้ (1-5, null สำหรับไม่แบ่งหน่วย)
-parentTopicId  : string   — id ของ built-in topic ที่ attach อยู่ (optional)
+courseId       : string   — วิชาที่สังกัด (per-course scope)
+unitId         : number   — หน่วย 1-5 (null ถ้าไม่แบ่งหน่วย)
+parentTopicId  : string   — id ของ built-in topic (optional)
 title          : string   — ชื่อหัวข้อ
 icon           : string   — emoji icon
-content        : string   — เนื้อหา (HTML/Markdown)
+content        : string   — เนื้อหา
 resources      : array    — [{type:'video'|'pdf'|'image'|'link', url, label}]
-isPublished    : boolean  — เผยแพร่ให้นักเรียนเห็น
-order          : number   — ลำดับการแสดงผล
+isPublished    : boolean
+order          : number
 createdAt      : timestamp
 updatedAt      : timestamp
-createdBy      : string   — uid ของครูผู้สร้าง
+createdBy      : string   — uid ครูผู้สร้าง
 ```
 
 #### กลุ่ม: การลงทะเบียนและการส่งงาน
 
 **`enrollments/{docId}`**
 ```
-studentId      : string   — uid ของนักเรียน
-courseId       : string   — วิชาที่ลงทะเบียน
+studentId      : string
+courseId       : string
 enrolledAt     : timestamp
 status         : string   — 'active' | 'dropped'
 ```
 
 **`submissions/{submissionId}`**
 ```
-studentId      : string
-courseId       : string
-assignmentId   : string
-code           : string   — โค้ดที่ส่ง
-language       : string   — 'c'
-score          : number   — คะแนน 0-100
-passed         : boolean  — ผ่านทุก Test Case หรือไม่
+studentId, courseId, assignmentId : string
+code           : string
+score          : number   — 0-100
+passed         : boolean
 status         : string   — 'accepted' | 'wrong_answer' | 'error'
-feedback       : string   — ความคิดเห็น AI
-submittedAt    : timestamp
 testResults    : array    — ผลแต่ละ Test Case
+submittedAt    : timestamp
 ```
 
 **`selfPracticeSubmissions/{docId}`**
 ```
-studentId      : string
-courseId       : string
-code, language, score, submittedAt (เหมือน submissions)
-metadata       : object   — ข้อมูลเพิ่มเติม (problem type, difficulty)
+studentId, courseId : string
+code, score, submittedAt (เหมือน submissions)
+metadata       : object   — ข้อมูลเพิ่มเติม
 ```
 
 #### กลุ่ม: Gamification
 
-**`xpLedger/{docId}`** ← Audit Trail ไม่เคยแก้ไข
+**`xpLedger/{docId}`** — Audit Trail ไม่เคยแก้ไข
 ```
-uid            : string
-xpAwarded      : number
-coinAwarded    : number
-crystalAwarded : number
-source         : string   — 'submission_accepted' | 'first_solve' | 
-                            'streak_bonus' | 'minigame' | 'achievement'
-relatedId      : string   — id ของ submission/assignment ที่เกี่ยวข้อง
-metadata       : object   — ข้อมูลเพิ่มเติม (score, streakDays ฯลฯ)
+uid, xpAwarded, coinAwarded, crystalAwarded : number/string
+source         : string   — 'submission_accepted'|'first_solve'|'streak_bonus'|'minigame'|'achievement'
+relatedId      : string
 createdAt      : timestamp
 ```
 
 **`leaderboardSnapshots/{docId}`**
 ```
 docId format   : '{courseId}_alltime' | '{courseId}_weekly' | '{courseId}_daily'
-                  หรือ 'alltime' | 'weekly' | 'daily' (global)
-period         : string   — 'alltime' | 'weekly' | 'daily'
-courseId       : string | null
-entries        : array    — [{uid, displayName, xp, rank, rankName, rankIcon,
-                              dailyXP, weeklyXP, seasonXP, codeCoin, streakDays}]
+entries        : array    — [{uid, displayName, xp, rank, rankName, rankIcon, ...}]
 updatedAt      : timestamp
 ```
 
-**`achievements/{achievementId}`**
-```
-nameTh         : string   — ชื่อภาษาไทย
-nameEn         : string   — ชื่อภาษาอังกฤษ
-icon           : string   — emoji
-desc           : string   — คำอธิบาย
-category       : string   — 'skill' | 'streak' | 'social' | 'special'
-rarity         : string   — 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
-xpReward       : number
-coinReward     : number
-crystalReward  : number
-```
-
-**`studentAchievements/{uid_achievementId}`**
-```
-uid            : string
-achievementId  : string
-earnedAt       : timestamp
-xpAwarded      : number
-coinAwarded    : number
-crystalAwarded : number
-seeded         : boolean  — true ถ้า Seed จาก ResearchDataSeeder
-```
-
-**`seasons/{seasonId}`**
-```
-name           : string   — ชื่อ Season (เช่น "Season 1 ภาคเรียน 1/2568")
-startDate      : timestamp
-endDate        : timestamp
-isActive       : boolean  — มีได้แค่ 1 active ในเวลาเดียวกัน
-xpMultiplier   : number   — ตัวคูณ XP (เช่น 2 = XP สองเท่า)
-```
+**`achievements/{achievementId}`**, **`studentAchievements/{uid_achievementId}`**, **`seasons/{seasonId}`**  
+*(ดูรายละเอียดใน ฉ. ระบบ Achievement)*
 
 #### กลุ่ม: AI Coach
 
-**`coachInteractions/{docId}`** ← Research Measurement
+**`coachInteractions/{docId}`**
 ```
-uid            : string
-coachRole      : string   — 'mindset' | 'socratic' | 'analytics' | 
-                            'diagnostic' | 'challenge'
-triggerEvent   : string   — เหตุการณ์ที่ trigger (เช่น 'fail_3_times')
-relatedId      : string   — assignmentId ที่เกี่ยวข้อง
-prompt         : string   — prompt ที่ส่ง Gemini (max 500 chars)
-response       : string   — คำตอบจาก Gemini (max 1000 chars)
+uid, coachRole, triggerEvent, relatedId : string
+prompt, response : string
 createdAt      : timestamp
 ```
 
 #### กลุ่ม: Mini-Games
 
-**`miniGameContent/{gameType_unitId_date}`**
-```
-gameType       : string   — 'quiz_blitz' | 'code_autopsy' | 'bug_hunt'
-unitId         : string   — หน่วยเนื้อหา
-date           : string   — 'YYYY-MM-DD' (cache รายวัน)
-questions      : array    — เนื้อหาเกม (generated by Gemini หรือ fallback)
-isActive       : boolean
-generatedBy    : string   — 'gemini' | 'fallback'
-createdAt      : timestamp
-```
-
-**`miniGameSessions/{docId}`**
-```
-uid            : string
-gameType       : string
-score          : number   — 0-100
-correctAnswers : number
-totalQuestions : number   — มักเป็น 5
-timeSpentSeconds: number
-xpEarned       : number
-coinEarned     : number
-isFirstPlayToday: boolean — ได้ XP เต็มหรือ repeat rate
-playedAt       : timestamp
-seeded         : boolean
-```
+**`miniGameContent/{gameType_unitId_date}`**, **`miniGameSessions/{docId}`**
 
 #### กลุ่ม: ระบบ
 
-**`config/gemini`**
-```
-apiKey         : string   — Gemini API Key (Admin ตั้งค่าผ่าน UI)
-```
+**`config/gemini`** — Gemini API Key (Admin ตั้งค่าผ่าน UI)
 
 ---
 
-## 4. ระบบ Gamification
+## ค. ระบบ Gamification
 
-### 4.1 XP Award Table
+### ค.1 XP Award Table
 
 | เหตุการณ์ | XP | CodeCoin | Crystal |
 |---|---|---|---|
@@ -356,586 +673,173 @@ apiKey         : string   — Gemini API Key (Admin ตั้งค่าผ่�
 | ส่งงาน Score 80-99% | +30 | +5 | 0 |
 | ส่งงาน Score 50-79% | +15 | +2 | 0 |
 | ส่งงาน Score < 50% | +5 | 0 | 0 |
-| First Solve Bonus (score ≥ 60%, ไม่เคยผ่านมาก่อน) | +20 | +5 | +1 |
-| Login Streak (ทุกวัน) | +10 | +2 | 0 |
+| First Solve Bonus (score ≥ 60%) | +20 | +5 | +1 |
+| Login Streak ทุกวัน | +10 | +2 | 0 |
 | Streak Bonus 3+ วัน | +20 | +5 | 0 |
 | Streak Bonus 7+ วัน | +50 | +10 | +2 |
-| Quiz Blitz (เล่นครั้งแรกของวัน) | +25 | +10 | 0 |
-| Quiz Blitz (เล่นซ้ำ) | +10 | +3 | 0 |
-| Quiz Blitz (Perfect Score) | +15 bonus | 0 | 0 |
+| Quiz Blitz (ครั้งแรกของวัน) | +25 | +10 | 0 |
+| Quiz Blitz (ซ้ำ) | +10 | +3 | 0 |
+| Quiz Blitz (Perfect) | +15 bonus | — | — |
 | Code Autopsy (ครั้งแรก) | +20 | +8 | 0 |
 | Code Autopsy (ซ้ำ) | +8 | +2 | 0 |
-| Code Autopsy (Perfect) | +10 bonus | 0 | 0 |
 | Bug Hunt (ครั้งแรก) | +30 | +12 | 0 |
 | Bug Hunt (ซ้ำ) | +5 | +1 | 0 |
-| Bug Hunt (Perfect) | +20 bonus | 0 | 0 |
-| Achievement ต่างๆ | ตาม Achievement | ตาม Achievement | ตาม Achievement |
+| Achievement | ตาม Achievement | ตาม Achievement | ตาม Achievement |
 
-> **หมายเหตุ:** ถ้ามี Season ที่ Active อยู่ XP ทุกประเภทจะถูกคูณด้วย `xpMultiplier` ของ Season นั้น
+> ถ้ามี Season Active: XP ทุกประเภทถูกคูณด้วย `xpMultiplier` ของ Season นั้น
 
-### 4.2 ระบบ Rank (10 ระดับ)
+### ค.2 Rank System (10 ระดับ)
 
-| ระดับ | ชื่อ | XP ขั้นต่ำ | ไอคอน | สี |
-|---|---|---|---|---|
-| 1 | ไข่โปรแกรม | 0 | 🥚 | เทา |
-| 2 | โค้ดเดอร์มือใหม่ | 200 | 🐣 | เขียวอ่อน |
-| 3 | นักแก้บัค | 500 | 🐛 | เขียว Emerald |
-| 4 | ผู้เชี่ยวชาญลูป | 1,000 | 🔄 | ฟ้า |
-| 5 | จอมเวทย์ Logic | 2,000 | 🧙 | Indigo |
-| 6 | อินทรีอัลกอริทึม | 3,500 | 🦅 | ม่วง |
-| 7 | สถาปนิกโค้ด | 5,500 | 🏗️ | ชมพู |
-| 8 | ดาวสยาม | 8,500 | ⭐ | ทอง Amber |
-| 9 | ราชันโปรแกรม | 13,000 | 👑 | ส้ม |
-| 10 | เทพเจ้า AI | 20,000 | 🤖 | แดง |
-
-### 4.3 สกุลเงินในระบบ
-
-| สกุลเงิน | สัญลักษณ์ | การได้มา | การใช้ (ปัจจุบัน) |
+| ระดับ | ชื่อ | XP ขั้นต่ำ | ไอคอน |
 |---|---|---|---|
-| **CodeCoin** | 🪙 | ส่งงาน, เล่นเกม, Streak | แสดงบน Profile/Leaderboard |
-| **Crystal** | 💎 | First Solve, Streak 7+, Achievement พิเศษ | แสดงบน Profile/Leaderboard |
-
-### 4.4 ระบบ Streak (ต่อเนื่องการเข้าใช้งาน)
-
-- นับจาก Login วันแรก
-- ถ้า Login ติดต่อกัน → `streakDays++`
-- ถ้าขาดวัน → รีเซ็ตเป็น 1
-- `handleDailyStreak(uid)` ถูกเรียกใน `onAuthStateChanged` ทุกครั้งที่ Login
-- `dailyXP` รีเซ็ตทุกเที่ยงคืน, `weeklyXP` รีเซ็ตทุกวันจันทร์
-
-### 4.5 Leaderboard
-
-- **แยกตามรายวิชา (courseId):** นักเรียนเห็นเฉพาะเพื่อนในวิชาเดียวกัน
-- **3 ช่วงเวลา:** Daily (XP วันนี้) / Weekly (XP สัปดาห์นี้) / All-time (XP ทั้งหมด)
-- **Snapshot:** อัพเดทใน `leaderboardSnapshots` ทุกครั้งที่มี XP เข้า
-- **Doc ID Format:** `{courseId}_alltime`, `{courseId}_weekly`, `{courseId}_daily`
+| 1 | ไข่โปรแกรม | 0 | 🥚 |
+| 2 | โค้ดเดอร์มือใหม่ | 200 | 🐣 |
+| 3 | นักแก้บัค | 500 | 🐛 |
+| 4 | ผู้เชี่ยวชาญลูป | 1,000 | 🔄 |
+| 5 | จอมเวทย์ Logic | 2,000 | 🧙 |
+| 6 | อินทรีอัลกอริทึม | 3,500 | 🦅 |
+| 7 | สถาปนิกโค้ด | 5,500 | 🏗️ |
+| 8 | ดาวสยาม | 8,500 | ⭐ |
+| 9 | ราชันโปรแกรม | 13,000 | 👑 |
+| 10 | เทพเจ้า AI | 20,000 | 🤖 |
 
 ---
 
-## 5. ระบบ AI Coaching (5Es)
+## ง. ระบบ AI Coaching
 
-ระบบใช้ **Google Gemini API (gemini-2.0-flash)** ทำหน้าที่เป็น AI Coach 5 บทบาท ตามกรอบ 5Es
-
-### 5.1 บทบาท Coach ทั้ง 5
+### ง.1 AI Coach 6 บทบาท
 
 #### 1. Mindset Coach (Engage)
-- **Trigger:** นักเรียนส่งงานผิด 3 ครั้งติดต่อกันในโจทย์เดิม
-- **บทบาท:** ให้กำลังใจ สร้างแรงจูงใจ ไม่ให้ท้อถอย
-- **รูปแบบ Output:** ข้อความภาษาไทย 4 ประโยค พร้อม emoji อบอุ่น
-- **บันทึกใน:** `coachInteractions` (coachRole: 'mindset')
+- **Trigger:** ล้มเหลว 3 ครั้งติดในโจทย์เดิม
+- **Output:** ข้อความกำลังใจภาษาไทย 4 ประโยค + emoji อบอุ่น
 
 #### 2. Socratic Coach (Explore)
-- **Trigger:** นักเรียนกดขอ Hint ในหน้า CodingWorkspace
-- **บทบาท:** ให้ Hint แบบ Socratic **4 ระดับ** (ถามคำถาม → Concept → Pseudocode → วิเคราะห์โค้ด)
-- **ระดับ Hint:**
-  - Level 1: ตั้งคำถามชวนคิด (Socratic) — ห้ามบอกคำตอบหรือให้โค้ด
+- **Trigger:** กดขอ Hint
+- **Hint 4 ระดับ:**
+  - Level 1: คำถามชวนคิด (Socratic) — ห้ามบอกคำตอบ
   - Level 2: อธิบาย Concept + ตัวอย่างคล้ายกันแต่ไม่ใช่โจทย์นั้น
-  - Level 3: Pseudocode / โครงสร้าง algorithm ทีละขั้น
-  - Level 4: วิเคราะห์โค้ดนักเรียน — บอก error pattern (off-by-one, wrong condition ฯลฯ)
-- **จำกัด:** max 180 คำต่อ Hint
-- **บันทึกใน:** `coachInteractions` (coachRole: 'socratic')
+  - Level 3: Pseudocode / โครงสร้าง Algorithm
+  - Level 4: วิเคราะห์โค้ดนักเรียน — บอก error pattern ที่พบ
+- **จำกัด:** max 180 คำ/Hint
 
 #### 3. Diagnostic Coach (Evaluate)
-- **Trigger:** ครูหรือนักเรียนกดปุ่ม "วิเคราะห์จุดอ่อน" บน Dashboard
-- **บทบาท:** วิเคราะห์ Pattern ของ Submission ล่าสุด 30 รายการ หาจุดอ่อน
-- **Output:** รายงานสรุป จุดแข็ง/จุดอ่อน + แนะนำโจทย์ที่ควรฝึก
-- **บันทึกใน:** `coachInteractions` (coachRole: 'diagnostic')
+- **Trigger:** กดปุ่ม "วิเคราะห์จุดอ่อน"
+- **Output:** รายงานจุดแข็ง/อ่อน จาก Submission ล่าสุด 30 รายการ
 
 #### 4. Analytics Coach (Explain)
-- **Trigger:** กดดู Weekly Insight บน Dashboard
-- **บทบาท:** สรุป XP Trend, Game Activity, ความสม่ำเสมอ
-- **Output:** รายงานสัปดาห์ + คำแนะนำ
-- **บันทึกใน:** `coachInteractions` (coachRole: 'analytics')
+- **Trigger:** กดดู Weekly Insight
+- **Output:** สรุป XP Trend, Game Activity + คำแนะนำ
 
 #### 5. Challenge Coach (Elaborate)
-- **Trigger:** นักเรียนได้คะแนน ≥ 90% ต่อเนื่อง
-- **บทบาท:** แนะนำโจทย์ยากขึ้น, Concept ที่ควรเรียนต่อ
-- **บันทึกใน:** `coachInteractions` (coachRole: 'challenge')
+- **Trigger:** คะแนน ≥ 90% ต่อเนื่อง
+- **Output:** แนะนำโจทย์ยากขึ้น + Concept ที่ควรเรียนต่อ
 
-#### Predictive Risk Alert (เพิ่มเติม)
-- **Trigger:** อัตโนมัติ — ตรวจ pattern ความเสี่ยงจาก Submission ล่าสุด 15 ครั้ง
-- **เงื่อนไข:** คะแนน 3 ครั้งล่าสุดต่ำกว่า 60% / คะแนนมีแนวโน้มลดลง / ล้มเหลวซ้ำโจทย์เดิม ≥ 3 ครั้ง
-- **บทบาท:** แจ้งเตือนนักเรียนเชิงรุก + แนะนำ action ที่ทำได้ทันที
-- **บันทึกใน:** `coachInteractions` (coachRole: 'predictive')
-
-### 5.2 Prompt Template ที่ใช้
-
-ทุก Coach ใช้ Gemini ด้วย System Instruction ภาษาไทย ระบุ:
-- บทบาทของ Coach
-- ข้อมูลของนักเรียน (XP, Rank, ประวัติการส่งงาน)
-- เนื้อหาโจทย์ที่เกี่ยวข้อง
-- ข้อจำกัดความยาวของคำตอบ
-- รูปแบบ Output ที่ต้องการ
-
-### 5.3 การบันทึก coachInteractions (Research)
-
-ทุก Coach Call บันทึกข้อมูลเพื่องานวิจัย:
-- **uid:** นักเรียนที่ได้รับ Coaching
-- **coachRole:** ประเภท Coach
-- **triggerEvent:** เหตุการณ์ที่ทำให้เกิด Coach
-- **relatedId:** โจทย์ที่เกี่ยวข้อง
-- **prompt:** สิ่งที่ส่งให้ AI (ไม่เกิน 500 chars)
-- **response:** คำตอบจาก AI (ไม่เกิน 1000 chars)
-- **createdAt:** Timestamp
+#### 6. Predictive Risk Alert
+- **Trigger:** อัตโนมัติ — ตรวจ Pattern จาก Submission ล่าสุด 15 ครั้ง
+- **เงื่อนไข:** คะแนน 3 ครั้งล่าสุด < 60% / คะแนนลดลงต่อเนื่อง / ล้มเหลวซ้ำ ≥ 3 ครั้ง
+- **Output:** แจ้งเตือนเชิงรุก + แนะนำ action ที่ทำได้ทันที
 
 ---
 
-## 6. Mini-Games
+## จ. Mini-Games
 
-### 6.1 เกมทั้ง 3 ประเภท
+### จ.1 เกมทั้ง 3 ประเภท
 
-#### Quiz Blitz (ควิซซ์แบบจับเวลา)
-- **รูปแบบ:** Multiple Choice 5 ข้อ เกี่ยวกับภาษา C
-- **เวลา:** 30 วินาที/ข้อ (countdown timer)
-- **เนื้อหา:** สร้างโดย Gemini หรือ Fallback content (เนื้อหา C พื้นฐาน)
-- **URL:** `#/student/games/quiz?unit=1`
-- **XP:** First play today: +25 XP +10 Coin | Repeat: +10 XP +3 Coin | Perfect bonus: +15 XP
-
-#### Code Autopsy (วิเคราะห์โค้ด)
-- **รูปแบบ:** อ่านโค้ด C แล้วทายผลลัพธ์ (4 ตัวเลือก)
-- **จำนวน:** 5 โจทย์ต่อ Session
-- **เนื้อหา:** โค้ด C สั้นๆ พร้อมคำอธิบายหลังตอบ
-- **URL:** `#/student/games/autopsy?unit=1`
-- **XP:** First: +20 XP +8 Coin | Repeat: +8 XP +2 Coin | Perfect bonus: +10 XP
-
-#### Bug Hunt (ตามล่าบัค)
-- **รูปแบบ:** โค้ด C ที่มีบัค → นักเรียนพิมพ์แก้ไข → AI ตรวจ Fuzzy
-- **จำนวน:** 5 โจทย์ต่อ Session
-- **ตัวอย่าง:** Missing semicolon, Division by zero, Wrong loop condition
-- **URL:** `#/student/games/bughunt?unit=1`
-- **XP:** First: +30 XP +12 Coin | Repeat: +5 XP +1 Coin | Perfect bonus: +20 XP
-
-### 6.2 ระบบ Cache เนื้อหาเกม
-
-- เนื้อหาเกมสร้างโดย Gemini เพียงครั้งเดียวต่อวัน
-- Cache ไว้ใน `miniGameContent/{gameType}_{unitId}_{date}`
-- ถ้า Cache มีอยู่แล้ว → ใช้ Cache (ไม่เรียก Gemini ซ้ำ ประหยัด quota)
-- ถ้า Gemini ล้มเหลว → ใช้ Fallback content (hardcoded)
-
-### 6.3 Mini-Game Hub
-
-หน้า `#/student/games` แสดง:
-- 3 เกม Card พร้อมสถานะวันนี้ (เล่นแล้วหรือยัง, XP ที่ได้วันนี้)
-- Unit Selector เลือกหน่วยเนื้อหา
-- XP รวมที่ได้จากเกมวันนี้
-
----
-
-## 7. ระบบ Achievement
-
-### 7.1 Achievement ทั้งหมด
-
-| Achievement ID | ชื่อ | เงื่อนไข | Rarity | XP | Coin | Crystal |
-|---|---|---|---|---|---|---|
-| first_blood | First Blood 🩸 | ผ่านโจทย์ครั้งแรก | common | 50 | 10 | 0 |
-| perfect_score | Perfectionist 💯 | ผ่าน 100% ทุก Test Case | uncommon | 100 | 20 | 1 |
-| no_hint_hero | No Hint Hero 🧠 | ผ่านโจทย์ Hard โดยไม่ขอ Hint | rare | 200 | 30 | 2 |
-| speed_demon | Speed Demon ⚡ | ผ่านโจทย์ Medium ใน < 5 นาที | uncommon | 150 | 20 | 0 |
-| comeback_kid | Comeback Kid 🦋 | ล้มเหลว 5+ ครั้งแล้วผ่าน | uncommon | 120 | 15 | 1 |
-| streak_3 | Hot Streak 🔥 | Login 3 วันติด | common | 60 | 10 | 0 |
-| streak_7 | Weekly Warrior 🏆 | Login 7 วันติด | rare | 150 | 25 | 2 |
-| all_assignments | Completionist 📚 | ทำโจทย์ครบทุกข้อในวิชา | epic | 500 | 100 | 5 |
-| rank_up_5 | Mid-tier 🦅 | ขึ้นถึง Rank 5 | uncommon | 100 | 20 | 1 |
-| rank_up_10 | AI God 🤖 | ขึ้นถึง Rank 10 | legendary | 1000 | 200 | 10 |
-| quiz_master | Quiz Master 🧩 | เล่น Quiz Blitz ครบ 10 ครั้ง | common | 80 | 15 | 0 |
-| bug_exterminator | Bug Exterminator 🐛 | เล่น Bug Hunt ครบ 10 ครั้ง | uncommon | 100 | 20 | 1 |
-| autopsy_expert | Code Surgeon 🔬 | เล่น Code Autopsy ครบ 10 ครั้ง | uncommon | 100 | 20 | 1 |
-
-### 7.2 การแสดงผล Achievement
-
-- **Achievement Gallery:** `#/student/achievements`
-- Achievement ที่ได้แล้ว → สีเต็ม + วันที่ได้รับ
-- Achievement ที่ยังไม่ได้ → เทา + เงื่อนไข
-- จัดกลุ่มตาม Category (Skill, Streak, Games, Special)
-
----
-
-## 8. คู่มือผู้ดูแลระบบ (Admin)
-
-### 8.1 การเข้าถึง
-
-- URL: `https://koki-assawin.github.io/AI-Powered-C/#/admin/dashboard`
-- ต้องใช้บัญชีที่มี `role: 'admin'` ใน Firestore
-
-### 8.2 หน้าต่างๆ ของ Admin
-
-#### Admin Dashboard (`#/admin/dashboard`)
-- สถิติภาพรวมระบบ (จำนวนผู้ใช้, วิชา, การส่งงาน)
-- Quick links ไปยังเครื่องมือต่างๆ
-
-#### User Manager (`#/admin/users`)
-- ดูรายชื่อผู้ใช้ทั้งหมด
-- อนุมัติบัญชีใหม่ (`approvedByAdmin: true`)
-- เปลี่ยน Role ผู้ใช้ (student ↔ teacher ↔ admin)
-- ปิดใช้งานบัญชี
-
-#### System Settings (`#/admin/settings`)
-- **ตั้งค่า Gemini API Key** (บันทึกใน `config/gemini`)
-- ทดสอบ API Key ว่าทำงานได้หรือไม่
-- API Key จะถูกโหลดโดย `js/gemini.js` ทุกครั้งที่ระบบเริ่ม
-
-#### Research Data Seeder (`#/admin/seed`)
-
-**วัตถุประสงค์:** สร้างข้อมูล Gamification จำลองที่มีความสัมพันธ์กับคะแนน E1 สำหรับงานวิจัย
-
-**Engagement Tier (5 ระดับ):**
-| Tier | ระดับ | จำนวนนักเรียน | XP Range | E1 Score Range |
+| เกม | รูปแบบ | จำนวน | URL | XP (ครั้งแรก) |
 |---|---|---|---|---|
-| 1 | สูงมาก | 6 คน | 3,500–5,500 | 82–95% |
-| 2 | สูง | 8 คน | 1,800–3,500 | 72–85% |
-| 3 | ปานกลาง | 10 คน | 700–1,800 | 58–75% |
-| 4 | ต่ำ | 6 คน | 200–700 | 45–62% |
-| 5 | น้อยมาก | 2 คน | 50–200 | 35–52% |
+| **Quiz Blitz** | MCQ 5 ข้อ จับเวลา 30 วินาที/ข้อ | 5 ข้อ | `#/student/games/quiz?unit=N` | +25 XP +10🪙 |
+| **Code Autopsy** | อ่านโค้ด C → ทายผลลัพธ์ (4 ตัวเลือก) | 5 ข้อ | `#/student/games/autopsy?unit=N` | +20 XP +8🪙 |
+| **Bug Hunt** | โค้ด C มีบัค → พิมพ์การแก้ไข (AI ตรวจ Fuzzy) | 5 ข้อ | `#/student/games/bughunt?unit=N` | +30 XP +12🪙 |
 
-**ความสัมพันธ์ที่ออกแบบไว้ (r ที่คาดหวัง):**
-- XP สะสม ↔ E1 เฉลี่ย: r ≈ 0.72
-- Game sessions ↔ E1 เฉลี่ย: r ≈ 0.65
-- Quiz Blitz ↔ E1 Unit 1: r ≈ 0.68
-- Bug Hunt ↔ E1 Unit 3: r ≈ 0.63
-- Self-practice ↔ E1 Unit 2: r ≈ 0.60
-- Streak ↔ E1 เฉลี่ย: r ≈ 0.58
+เนื้อหาเกมสร้างโดย Gemini ครั้งเดียวต่อวัน และ Cache ใน `miniGameContent/{gameType}_{unitId}_{date}`
 
-**วิธี Seed:**
-1. ไปที่ `#/admin/seed`
-2. เลือกรายวิชา (optional — ถ้าไม่เลือก Seed ตาม studentCode 11669-11701)
-3. กด "🚀 เริ่ม Seed ข้อมูลวิจัย"
-4. รอจนครบ (Progress bar 100%)
-5. กด "📥 Export CSV (SPSS/R)" เพื่อดาวน์โหลดข้อมูล
+---
 
-**ข้อมูลที่ Seed ต่อนักเรียน:**
-- `playerStats` document (XP, Rank, Streak, ฯลฯ)
-- `xpLedger` 8-15 รายการ (transaction history)
-- `miniGameSessions` (สูงสุด 15 sessions รวม 3 เกม)
-- `studentAchievements` (ตาม Tier)
+## ฉ. ระบบ Achievement
 
-### 8.4 UsageAnalytics (`#/admin/usage`)
-- สถิติการใช้งานระบบโดยรวม
-- จำนวน Active Users, Submission rate, AI call frequency
+### ฉ.1 Achievement ทั้งหมด (13 รายการ)
 
-### 8.3 การ Deploy ระบบ
+| ID | ชื่อ | เงื่อนไข | Rarity | XP |
+|---|---|---|---|---|
+| first_blood | First Blood 🩸 | ผ่านโจทย์ครั้งแรก | common | 50 |
+| perfect_score | Perfectionist 💯 | ผ่าน 100% ทุก Test Case | uncommon | 100 |
+| no_hint_hero | No Hint Hero 🧠 | ผ่านโจทย์ Hard ไม่ขอ Hint | rare | 200 |
+| speed_demon | Speed Demon ⚡ | ผ่านโจทย์ Medium ใน < 5 นาที | uncommon | 150 |
+| comeback_kid | Comeback Kid 🦋 | ล้มเหลว 5+ ครั้งแล้วผ่าน | uncommon | 120 |
+| streak_3 | Hot Streak 🔥 | Login 3 วันติด | common | 60 |
+| streak_7 | Weekly Warrior 🏆 | Login 7 วันติด | rare | 150 |
+| all_assignments | Completionist 📚 | ทำโจทย์ครบทุกข้อในวิชา | epic | 500 |
+| rank_up_5 | Mid-tier 🦅 | ขึ้น Rank 5 | uncommon | 100 |
+| rank_up_10 | AI God 🤖 | ขึ้น Rank 10 | legendary | 1,000 |
+| quiz_master | Quiz Master 🧩 | เล่น Quiz Blitz ครบ 10 ครั้ง | common | 80 |
+| bug_exterminator | Bug Exterminator 🐛 | เล่น Bug Hunt ครบ 10 ครั้ง | uncommon | 100 |
+| autopsy_expert | Code Surgeon 🔬 | เล่น Code Autopsy ครบ 10 ครั้ง | uncommon | 100 |
 
-```bash
-# Deploy ทุกอย่าง
-firebase deploy
+---
 
-# Deploy เฉพาะ Hosting (เร็วกว่า)
-firebase deploy --only hosting
+## ช. Learning Hub และ Content CMS
 
-# Deploy เฉพาะ Firestore Rules
-firebase deploy --only firestore:rules
+### ช.1 Learning Hub (นักเรียน)
+
+URL: `#/student/tools?course=COURSEID`  
+เข้าถึงผ่านปุ่ม "🧪 Learning Tools" บน Course Card ของนักเรียน
+
+**วิชาภาษา C:** แสดง 25 Built-in Topics ใน 5 หน่วย + Teacher Topics จาก Firestore  
+**วิชาภาษาอื่น:** แสดงเฉพาะ Teacher Topics (Built-in C Topics ซ่อน)
+
+**โครงสร้างข้อมูลแต่ละ Topic (Built-in):**
+- `paras[]` — ย่อหน้าเนื้อหา
+- `code` — โค้ดตัวอย่าง
+- `steps[]` — คำอธิบายรายบรรทัดสำหรับ Step-through
+- `tips[]` — เคล็ดลับ
+- `warn` — คำเตือนที่ควรระวัง
+
+**Interactive Tool Map:**
+
+```javascript
+const _LH_TOOL_MAP = {
+    'u1t2': { comp: _DataTypeVisualizer, label: '📊 Data Type Visualizer' },
+    'u1t6': { comp: _FlowchartBuilder,   label: '📐 Flowchart → C Code'   },
+    'u2t1': { comp: _DecisionTreeViz,    label: '🌳 Decision Tree'         },
+    'u3t3': { comp: _PatternSandbox,     label: '🎨 Pattern Sandbox'       },
+    'u4t2': { comp: _MemoryMap,          label: '🗂️ Memory Map'            },
+};
+```
+
+### ช.2 Content CMS (ครู)
+
+URL: `#/teacher/content`  
+เข้าถึงผ่านปุ่ม "📖 เนื้อหา" บน Course Card หรือเมนู "จัดการเนื้อหา" ใน Navbar
+
+**Course Picker Mode** (ไม่มี `?course=` param):
+- โหลดวิชาของครูจาก `courses.teacherId == uid`
+- แสดง Card Grid → คลิก → `#/teacher/content?course=COURSEID`
+
+**Per-Course Mode** (`?course=COURSEID`):
+- Query: `learningTopics.where('courseId','==',courseId).where('isPublished','==',true)`
+- Sort: client-side ตาม `unitId` → `order` (หลีกเลี่ยง Composite Index)
+- วิชา C: แสดงแท็บหน่วย 1-5
+- วิชาอื่น: Flat List
+
+**การบันทึก Topic:**
+```javascript
+{
+    courseId,        // วิชา
+    unitId,          // หน่วย (C เท่านั้น)
+    title,           // ชื่อหัวข้อ
+    icon,            // emoji
+    content,         // เนื้อหา
+    resources: [],   // [{type, url, label}]
+    isPublished,     // สถานะ
+    order,           // ลำดับ
+    createdBy: uid,
+    createdAt, updatedAt
+}
 ```
 
 ---
 
-## 9. คู่มือครู (Teacher)
-
-### 9.1 การเข้าถึง
-
-- URL: `#/teacher/dashboard`
-- ต้องมี `role: 'teacher'` หรือ `role: 'admin'`
-
-### 9.2 Teacher Dashboard
-
-แสดงสรุป:
-- จำนวนวิชา, นักเรียนลงทะเบียน, การส่งงานทั้งหมด, อัตราผ่านรวม
-- Quick links: วิเคราะห์นักเรียน, จัดการนักเรียน, Gamification Admin
-- รายการวิชาทั้งหมดของครู
-
-### 9.3 จัดการรายวิชา (`#/teacher/courses`)
-
-**การสร้างวิชาใหม่:**
-1. กด "+ สร้างรายวิชาใหม่"
-2. กรอก: ชื่อวิชา, คำอธิบาย, ภาษาโปรแกรม (C/Python/Java/C++)
-3. กด "สร้างวิชา"
-4. ระบบสร้าง `classCode` อัตโนมัติ (ใช้ให้นักเรียนลงทะเบียน)
-
-**ปุ่มบน Course Card (Row 1 — 5 ปุ่ม):**
-
-| ปุ่ม | หน้าที่ |
-|---|---|
-| ✏️ แก้ไข | แก้ไขข้อมูลวิชา |
-| 📝 โจทย์ | จัดการ Assignment |
-| 🎯 กิจกรรม | ActivityBuilder |
-| 📊 สถิติ | Analytics |
-| 📖 เนื้อหา | Content Manager (เปิดตาม courseId) |
-
-**การจัดการโจทย์ (Assignment):**
-1. เข้าวิชา → กด "📝 โจทย์"
-2. สร้าง Assignment: ชื่อ, คำอธิบาย (Markdown), ระดับ, วันส่ง
-3. เพิ่ม Test Cases: Input + Expected Output
-4. Publish เมื่อพร้อมให้นักเรียนทำ
-
-### 9.10 จัดการเนื้อหา Learning Hub (`#/teacher/content`)
-
-**Course Picker** (URL ไม่มี `?course=` param):
-- แสดงการ์ดรายวิชาทั้งหมดของครู
-- คลิกการ์ด → เข้า Per-Course View
-
-**Per-Course Content View** (`#/teacher/content?course=COURSEID`):
-- ส่วนหัว: ชื่อวิชา + ปุ่ม "← กลับ"
-- **วิชาภาษา C:** แสดงแท็บหน่วย 1-5 ตาม ว31281
-- **วิชาภาษาอื่น:** หัวข้อแบบ Flat ไม่แบ่งหน่วย
-- สร้าง/แก้ไข/ลบหัวข้อ (title, icon, content, resources)
-- Toggle Publish/Unpublish
-- หัวข้อที่ Publish จะปรากฏใน Learning Hub ของนักเรียน
-
-**Firestore:** บันทึกใน `learningTopics` พร้อม `courseId` — นักเรียนเห็นเฉพาะหัวข้อของวิชาตนเอง
-
-### 9.4 วิเคราะห์นักเรียน (`#/teacher/analytics`)
-
-**7 แท็บข้อมูล:**
-
-| แท็บ | เนื้อหา |
-|---|---|
-| 📊 ภาพรวม | กราฟผ่าน/ไม่ผ่านแต่ละโจทย์, อัตราส่งงาน |
-| 👤 รายบุคคล | เลือกนักเรียน → ดูประวัติการส่งทุกครั้ง + รายงาน AI + Bulk Analysis |
-| 📋 สรุปคะแนนทุกคน | ตารางคะแนน Sort ได้ |
-| 🎯 คะแนนฝึกเอง | ข้อมูล Self-Practice ของนักเรียน |
-| 🤖 รายงาน AI | สร้างรายงานวิเคราะห์ทั้งชั้นด้วย Gemini |
-| 🎮 Gamification | XP/Rank/Coin/Streak ของทุกคน + Export JSON |
-| 🧩 กลุ่มผู้เรียน | จัดกลุ่มนักเรียนตาม Learning Profile |
-
-**Gamification Tab:**
-- กรองอัตโนมัติตามวิชาที่เลือกด้านบน (ไม่มี dropdown แยก)
-- ตารางเรียงตาม XP สูง→ต่ำ
-- Export JSON สำหรับ SPSS/R analysis
-
-### 9.5 จัดการนักเรียน (`#/teacher/students`)
-
-- ดูรายชื่อนักเรียนทุกคนในวิชา
-- ดูประวัติการส่งงานของแต่ละคน
-- อนุมัติการลงทะเบียน (ถ้าใช้ระบบ Manual Approval)
-
-### 9.7 ActivityBuilder (`#/teacher/activities`)
-
-- สร้าง Assignment + Test Cases แบบรวดเร็วในหน้าเดียว
-- เหมาะสำหรับสร้างโจทย์จำนวนมากอย่างรวดเร็ว
-
-### 9.8 RealtimeDashboard (`#/teacher/realtime`)
-
-- Monitor การส่งงานแบบ Real-time
-- เห็นสถานะนักเรียนทุกคนในเวลาจริง
-
-### 9.9 FreeEditor (`#/teacher/editor`)
-
-- Code editor อิสระที่ไม่ผูกกับโจทย์ใดๆ
-- รองรับหลาย Theme (Dracula, Monokai, One Dark ฯลฯ) และหลาย Font
-- ใช้สาธิตโค้ดหน้าชั้นเรียน หรือทดสอบโค้ดก่อนออกโจทย์
-
-### 9.6 Gamification Admin (`#/teacher/gamification`)
-
-**4 แท็บ:**
-
-**Season (แท็บแรก):**
-- ดู Season ที่ Active อยู่
-- สร้าง Season ใหม่: ชื่อ, วันสิ้นสุด, XP Multiplier
-- Season ให้ XP bonus ทุกกิจกรรมตลอดช่วง Season
-
-**Export ข้อมูล:**
-- Export ข้อมูล Gamification เป็น JSON ครบทุก collection
-- ใช้สำหรับ SPSS/R analysis
-
-**Award XP:**
-- ให้ XP นักเรียนแบบ Manual (สำหรับกิจกรรมพิเศษ)
-- บันทึกใน `xpLedger` อัตโนมัติ
-
-**Game Stats:**
-- สถิติ Mini-game รวม (จำนวน Session, คะแนนเฉลี่ย)
-
-**อัพเดท Leaderboard:**
-- เลือกรายวิชา → กด "Refresh Leaderboard"
-- อัพเดท Snapshot ทั้ง 3 ช่วงเวลา (Daily/Weekly/Alltime)
-
----
-
-## 10. คู่มือนักเรียน (Student)
-
-### 10.1 การลงทะเบียน
-
-1. ไปที่ `#/register`
-2. กรอก: ชื่อ, Email, Password, รหัสนักเรียน, เลขที่
-3. รอครู/Admin อนุมัติ (`approvedByAdmin: true`)
-4. Login ด้วย Email/Password
-
-### 10.2 Student Dashboard (`#/student/dashboard`)
-
-แสดง:
-- **XP Bar:** Progress ไปยัง Rank ถัดไป
-- **Rank Card:** Rank ปัจจุบัน + XP + Coin + Crystal
-- **Streak Card:** ต่อเนื่องกี่วัน + กำลังใจจาก AI Coach (ถ้ามี)
-- **วิชาที่ลงทะเบียน:** รายการวิชาพร้อมสถานะ
-- **Mini-game shortcuts:** ลิงก์ด่วนไปเกมวันนี้
-- **Top 5 Leaderboard preview**
-
-### 10.3 ทำโจทย์ (CodingWorkspace)
-
-1. เลือกวิชา → เลือกโจทย์
-2. อ่านโจทย์ด้านซ้าย, เขียนโค้ดด้านขวา (CodeMirror)
-3. กด "▶ Run" → ดูผล Test Cases
-4. กด "💡 ขอ Hint" → AI Socratic Coach ให้ Hint 3 ระดับ
-5. ผ่านทุก Test Case → ได้ XP อัตโนมัติ + Toast แจ้ง
-6. ถ้าล้มเหลว 3 ครั้งติด → Mindset Coach ปรากฏ
-
-**XP ที่ได้จากการส่งงาน:**
-- Score 100%: +50 XP +10 Coin
-- Score 80-99%: +30 XP +5 Coin
-- Score 50-79%: +15 XP +2 Coin
-- Score <50%: +5 XP
-- ครั้งแรกที่ผ่าน (First Solve): +20 XP เพิ่มเติม
-
-### 10.4 Leaderboard (`#/student/leaderboard`)
-
-- เลือกวิชาจาก Dropdown (ถ้าลงทะเบียนหลายวิชา)
-- เปลี่ยนแท็บ: วันนี้ / สัปดาห์นี้ / ตลอดกาล
-- ตนเองจะถูก Highlight สีพิเศษ
-- แสดง Season Banner (ถ้ามี Season Active)
-
-### 10.5 Mini-Games (`#/student/games`)
-
-**วิธีเล่น Quiz Blitz:**
-1. เลือก Unit → กด "เล่น Quiz Blitz"
-2. ตอบ 5 ข้อ (30 วินาที/ข้อ)
-3. ดูคะแนน + XP ที่ได้
-
-**วิธีเล่น Code Autopsy:**
-1. อ่านโค้ด C → เลือก Output ที่ถูกต้องจาก 4 ตัวเลือก
-2. ดูคำอธิบายหลังตอบแต่ละข้อ
-
-**วิธีเล่น Bug Hunt:**
-1. อ่านโค้ดที่มีบัค → พิมพ์การแก้ไข
-2. AI ตรวจคำตอบแบบ Fuzzy (ไม่ต้อง exact match)
-
-### 10.6 Achievement (`#/student/achievements`)
-
-- ดู Badge ทั้งหมดที่มีในระบบ
-- Achievement ที่ได้แล้ว: สีเต็ม + วันที่
-- ที่ยังไม่ได้: สีเทา + เงื่อนไข
-- เมื่อ Unlock → Toast แจ้งพร้อม XP Bonus
-
-### 10.7 ประวัติการส่งงาน (`#/student/history`)
-
-- รายการส่งงานทั้งหมด เรียงตามวันที่
-- คลิกดูโค้ดและ Feedback ของแต่ละครั้ง
-
-### 10.8 ฝึกเขียนโค้ดเอง (`#/student/practice`)
-
-- ฝึกโจทย์นอกเหนือจาก Assignment
-- ไม่มีผลต่อเกรด แต่ได้ XP
-- ข้อมูลบันทึกใน `selfPracticeSubmissions`
-
-### 10.8 Learning Hub / ศูนย์การเรียนรู้ (`#/student/tools?course=COURSEID`)
-
-เข้าถึงผ่านปุ่ม **"🧪 Learning Tools"** บน Course Card ของนักเรียน (ส่งผ่าน `?course=` อัตโนมัติ)
-
-**วิชาภาษา C:**
-- แสดง 25 หัวข้อ Built-in ใน 5 หน่วย (ว31281)
-- แต่ละหัวข้อ: คำอธิบาย, ตัวอย่างโค้ดแบบ Step-through, Tips, คำเตือน
-- ฝัง Interactive Tools ใน Topic ที่เกี่ยวข้อง:
-  - 📊 Data Type Visualizer (หน่วย 1 · แผน 3)
-  - 📐 Flowchart → C Code (หน่วย 1 · แผน 1)
-  - 🌳 Decision Tree (หน่วย 2 · แผน 10)
-  - 🎨 Pattern Sandbox (หน่วย 3 · แผน 24)
-  - 🗂️ Memory Map (หน่วย 4 · แผน 29)
-- หัวข้อเพิ่มเติมจากครู (Firestore `learningTopics` scoped ตาม courseId) แสดงร่วมในแต่ละหน่วย
-
-**วิชาภาษาอื่น (Python/Java/C++ ฯลฯ):**
-- ซ่อน Built-in C content
-- แสดงเฉพาะหัวข้อที่ครูสร้างใน ContentManager สำหรับวิชานั้นๆ
-
-### 10.9 FreeEditor (`#/student/editor`)
-
-- Code editor อิสระ — เขียน/รันโค้ดได้โดยไม่ต้องมีโจทย์
-- รองรับหลาย Theme และหลาย Font
-- มีฟีเจอร์ Drawing/Annotation Canvas overlay
-
-### 10.10 Activity Timeline (`#/student/activity`)
-
-- ดูประวัติกิจกรรมทั้งหมดของตนเอง
-- ครูและ Admin ก็เข้าดูได้
-
----
-
-## 11. ข้อมูลสำหรับงานวิจัย
-
-### 11.1 ตัวแปรที่เก็บได้จากระบบ
-
-**ตัวแปรต้น (Independent Variables — Gamification):**
-| ตัวแปร | Collection | Field |
-|---|---|---|
-| XP สะสม | playerStats | xp |
-| ระดับ Rank | playerStats | rank |
-| Streak (วันติดต่อกัน) | playerStats | streakDays |
-| Streak ยาวสุด | playerStats | longestStreak |
-| จำนวน Session Quiz Blitz | playerStats | quizBlitzSessions |
-| จำนวน Session Code Autopsy | playerStats | codeAutopsySessions |
-| จำนวน Session Bug Hunt | playerStats | bugHuntSessions |
-| จำนวน Self-Practice | playerStats | selfPracticeCount |
-| จำนวน Achievement | studentAchievements | count per uid |
-| Engagement Tier (seed data) | playerStats | engagementTier |
-
-**ตัวแปรตาม (Dependent Variables — ผลการเรียน):**
-| ตัวแปร | Collection | Field |
-|---|---|---|
-| คะแนน E1 Unit 1-4 | playerStats | e1ScoreUnit1-4 (seed) |
-| คะแนนเฉลี่ย E1 | playerStats | e1Average (seed) |
-| Score การส่งงานจริง | submissions | score |
-| อัตราผ่าน Assignment | submissions | passed |
-| คะแนน Self-Practice เฉลี่ย | playerStats | selfPracticeAvgScore |
-
-**ตัวแปรกลาง (Mediating — AI Coaching):**
-| ตัวแปร | Collection | Field |
-|---|---|---|
-| จำนวน Coach Interactions รวม | coachInteractions | count per uid |
-| จำนวน Mindset Coach | coachInteractions | coachRole='mindset' |
-| จำนวน Socratic Coach (Hint) | coachInteractions | coachRole='socratic' |
-| จำนวน Diagnostic Coach | coachInteractions | coachRole='diagnostic' |
-
-### 11.2 การ Export ข้อมูลสำหรับวิเคราะห์
-
-**วิธีที่ 1: Export CSV (จาก ResearchDataSeeder)**
-- ไปที่ `#/admin/seed` → กด "📥 Export CSV (SPSS/R)"
-- ได้ไฟล์ `research_data_YYYY-MM-DD.csv`
-- รวม: uid, displayName, engagementTier, xp, streakDays, totalGameSessions, quizBlitzSessions, codeAutopsySessions, bugHuntSessions, selfPracticeCount, selfPracticeAvgScore, e1ScoreUnit1-4, e1Average
-
-**วิธีที่ 2: Export JSON (จาก GamificationAdmin)**
-- ไปที่ `#/teacher/gamification` → Tab "Export ข้อมูล"
-- กด "📥 Export JSON"
-- ได้ไฟล์ `gamification_export_TIMESTAMP.json`
-- รวม: playerStats ทั้งหมด + coachInteractions ล่าสุด 50 รายการ
-
-**วิธีที่ 3: Firestore Console**
-- ดึงข้อมูลดิบจาก Firebase Console → Firestore → Export
-
-### 11.3 การคำนวณค่าสหสัมพันธ์ที่ออกแบบไว้
-
-ข้อมูลจาก Seeder ถูกออกแบบให้มีความสัมพันธ์:
-
-```
-Spearman's rho (ค่าที่คาดหวัง):
-- XP ↔ E1 เฉลี่ย:           r ≈ 0.72 (p < .001)
-- Game sessions ↔ E1 เฉลี่ย: r ≈ 0.65 (p < .001)
-- Quiz Blitz ↔ E1 Unit 1:    r ≈ 0.68 (p < .001)
-- Bug Hunt ↔ E1 Unit 3:      r ≈ 0.63 (p < .001)
-- Self-practice ↔ E1 Unit 2: r ≈ 0.60 (p < .001)
-- Streak ↔ E1 เฉลี่ย:        r ≈ 0.58 (p < .001)
-```
-
-### 11.4 จุดเก็บข้อมูลวิจัย (Data Collection Points)
-
-| จุดเก็บข้อมูล | Collection | เหตุการณ์ที่ Trigger |
-|---|---|---|
-| ทุก XP Award | xpLedger | ส่งงาน, เล่นเกม, Streak, Achievement |
-| ทุก Coach Call | coachInteractions | ขอ Hint, ล้มเหลว 3 ครั้ง, กดวิเคราะห์ |
-| ทุก Game Session | miniGameSessions | จบเกม 1 รอบ |
-| ทุก Achievement | studentAchievements | Unlock Achievement |
-| ทุกการส่งงาน | submissions | กด Submit ในโค้ดเอดิเตอร์ |
-| ทุก Streak | playerStats | Login ทุกวัน |
-
----
-
-## 12. Security Rules
-
-### 12.1 หลักการสิทธิ์การเข้าถึง
+## ซ. ความปลอดภัยและสิทธิ์การเข้าถึง
 
 | Collection | นักเรียน | ครู | Admin |
 |---|---|---|---|
@@ -944,144 +848,130 @@ Spearman's rho (ค่าที่คาดหวัง):
 | courses | อ่าน | สร้าง/แก้ไขวิชาตน | อ่าน/แก้ไขทั้งหมด |
 | assignments | อ่าน | สร้าง/แก้ไข | อ่าน/แก้ไขทั้งหมด |
 | submissions | สร้าง/อ่าน (ตนเอง) | อ่านทั้งหมด | อ่าน/แก้ไขทั้งหมด |
-| enrollments | สร้าง/อ่าน (ตนเอง) | อ่านทั้งหมด | อ่าน/แก้ไขทั้งหมด |
+| learningTopics | อ่าน (isPublished=true) | สร้าง/แก้ไข/ลบ | อ่าน/แก้ไขทั้งหมด |
 | xpLedger | สร้าง/อ่าน (ตนเอง) | อ่านทั้งหมด | อ่าน/แก้ไขทั้งหมด |
 | coachInteractions | สร้าง/อ่าน (ตนเอง) | อ่านทั้งหมด | อ่าน/แก้ไขทั้งหมด |
 | miniGameSessions | สร้าง/อ่าน (ตนเอง) | อ่านทั้งหมด | อ่าน/แก้ไขทั้งหมด |
 | achievements | อ่าน | อ่าน | อ่าน/แก้ไข |
-| studentAchievements | สร้าง/อ่าน (ตนเอง) | อ่านทั้งหมด | อ่าน/แก้ไขทั้งหมด |
 | seasons | อ่าน | อ่าน/สร้าง/แก้ไข | อ่าน/แก้ไขทั้งหมด |
 | config | อ่าน | อ่าน | อ่าน/แก้ไข |
 
-> **หมายเหตุ:** `playerStats` อนุญาตให้ทุก Authenticated User อ่านได้ทั้งหมด (เพื่อให้ Leaderboard ทำงานได้) แต่แก้ไขได้เฉพาะของตนเองหรือ Admin
-
 ---
 
-## 13. โครงสร้างไฟล์ระบบ
+## ฌ. โครงสร้างไฟล์ระบบ
 
 ```
 AI-Powered-C/
-├── index.html                          ← Entry point, load scripts ทั้งหมด
-├── firestore.rules                     ← Security rules
-├── firestore.indexes.json              ← Composite indexes
-├── firebase.json                       ← Firebase Hosting config
-├── .firebaserc                         ← Firebase project config
-│
-├── functions/
-│   └── index.js                        ← Cloud Function: adminSetPassword
+├── index.html                           ← Entry point, load ทุก script
+├── firestore.rules                      ← Security rules
+├── firestore.indexes.json               ← Composite indexes
+├── firebase.json                        ← Hosting config
 │
 ├── js/
-│   ├── firebase.js                     ← Firebase init (db, auth, firebase)
-│   ├── gemini.js                       ← Gemini API wrapper (LMS functions)
-│   ├── grader.js                       ← Auto-grader: Wandbox → Piston → Judge0
-│   ├── gamification.js                 ← XP/Rank/Streak/Leaderboard engine
-│   ├── achievementEngine.js            ← Achievement definitions (13) + checker
-│   ├── aiCoach.js                      ← 5 AI Coach roles + Predictive Risk Alert
-│   ├── miniGameGenerator.js            ← Mini-game content generator
-│   ├── context.js                      ← React AuthContext + handleDailyStreak
-│   ├── app.js                          ← Hash Router (root)
+│   ├── firebase.js                      ← Firebase init
+│   ├── gemini.js                        ← Gemini API wrapper
+│   ├── grader.js                        ← Auto-grader: Piston → Judge0
+│   ├── gamification.js                  ← XP/Rank/Streak engine
+│   ├── achievementEngine.js             ← Achievement (13) + checker
+│   ├── aiCoach.js                       ← AI Coach 6 roles
+│   ├── miniGameGenerator.js             ← Mini-game content generator
+│   ├── context.js                       ← React AuthContext
+│   ├── app.js                           ← Hash Router
 │   │
 │   ├── components/
-│   │   ├── Navbar.js                   ← Navigation bar (per-role)
-│   │   ├── XPBar.js                    ← XP progress bar component
-│   │   ├── CodeEditor.js               ← CodeMirror wrapper
-│   │   ├── RadarChart.js               ← Radar chart (analytics)
-│   │   ├── Spinner.js                  ← Loading spinner
-│   │   └── ProtectedRoute.js           ← Role-based route guard
+│   │   ├── Navbar.js                    ← Navigation (per-role)
+│   │   ├── XPBar.js                     ← XP progress bar
+│   │   ├── CodeEditor.js                ← CodeMirror wrapper
+│   │   ├── RadarChart.js                ← Analytics radar chart
+│   │   ├── Spinner.js                   ← Loading spinner
+│   │   └── ProtectedRoute.js            ← Role-based guard
 │   │
-│   ├── pages/
-│   │   ├── LoginPage.js                ← หน้า Login
-│   │   ├── RegisterPage.js             ← หน้า Register
-│   │   ├── GuestLandingPage.js         ← หน้า Demo (ไม่ต้อง login) #/demo
-│   │   ├── PrivacyPolicy.js            ← นโยบายความเป็นส่วนตัว #/privacy
-│   │   │
-│   │   ├── shared/
-│   │   │   └── FreeEditor.js           ← Code editor อิสระ (ครู + นักเรียน)
-│   │   │
-│   │   ├── student/
-│   │   │   ├── StudentDashboard.js     ← Dashboard: XP, Rank, วิชา, Shortcuts
-│   │   │   ├── CourseViewer.js v5.0    ← รายการวิชา + โจทย์ (Learning Tools ส่ง ?course=)
-│   │   │   ├── CodingWorkspace.js      ← โค้ดเอดิเตอร์ + Grader + AI Coach
-│   │   │   ├── Gradebook.js v5.2       ← E1-style scorecard, unit groups, filter 3 แบบ
-│   │   │   ├── SubmissionHistory.js    ← ประวัติการส่ง + โค้ดและ Feedback
-│   │   │   ├── SelfPractice.js         ← ฝึกโค้ดเอง (ได้ XP)
-│   │   │   ├── StudentProfile.js       ← โปรไฟล์ + Game Stats + Achievement
-│   │   │   ├── Leaderboard.js          ← อันดับตามวิชา (Daily/Weekly/Alltime)
-│   │   │   ├── AchievementsPage.js     ← Badge Gallery (13 Achievement)
-│   │   │   ├── MiniGameHub.js          ← หน้าเลือกเกม + สถานะวันนี้
-│   │   │   ├── LearningTools.js        ← (legacy — ยังโหลดอยู่เพื่อ export tool components)
-│   │   │   ├── LearningHub.js v1.1     ← ศูนย์การเรียนรู้ per-course (25 built-in + Firestore)
-│   │   │   ├── StudentActivityView.js  ← Activity timeline
-│   │   │   └── games/
-│   │   │       ├── QuizBlitz.js        ← เกม MCQ 5 ข้อ จับเวลา 30 วินาที
-│   │   │       ├── CodeAutopsy.js      ← เกมทาย Output โค้ด C
-│   │   │       └── BugHunt.js          ← เกมหาและแก้ Bug
-│   │   │
-│   │   ├── teacher/
-│   │   │   ├── TeacherDashboard.js     ← Dashboard ครู
-│   │   │   ├── CourseBuilder.js v5.1   ← สร้าง/จัดการวิชา + ปุ่ม "📖 เนื้อหา"
-│   │   │   ├── AssignmentManager.js    ← สร้าง/จัดการโจทย์
-│   │   │   ├── TestCaseEditor.js       ← ออก Test Cases (visible + hidden)
-│   │   │   ├── StudentAnalytics.js     ← วิเคราะห์นักเรียน (7 แท็บ)
-│   │   │   ├── GamificationAdmin.js    ← Season, Award XP, Export, Leaderboard
-│   │   │   ├── StudentManagement.js    ← จัดการนักเรียน + อนุมัติ
-│   │   │   ├── ActivityBuilder.js      ← สร้าง Activity + Test Cases รวดเร็ว
-│   │   │   ├── RealtimeDashboard.js    ← Real-time submission monitoring
-│   │   │   ├── ContentManager.js v1.1  ← CMS เนื้อหา Learning Hub แบบ per-course
-│   │   │   └── ClassManager.js         ← (deprecated — ไม่ใช้แล้ว)
-│   │   │
-│   │   └── admin/
-│   │       ├── AdminDashboard.js       ← Dashboard Admin
-│   │       ├── UserManager.js          ← จัดการผู้ใช้ + อนุมัติบัญชี
-│   │       ├── SystemSettings.js       ← ตั้งค่า Gemini API Key
-│   │       ├── ResearchDataSeeder.js   ← Seed ข้อมูลวิจัย + Export CSV
-│   │       └── UsageAnalytics.js       ← สถิติการใช้งานระบบ
+│   └── pages/
+│       ├── LoginPage.js
+│       ├── RegisterPage.js
+│       ├── GuestLandingPage.js          ← Demo (#/demo)
+│       │
+│       ├── shared/
+│       │   └── FreeEditor.js            ← Code editor อิสระ (ครู + นักเรียน)
+│       │
+│       ├── student/
+│       │   ├── StudentDashboard.js      ← XP, Rank, วิชา, Shortcuts
+│       │   ├── CourseViewer.js v5.0     ← รายการวิชา + โจทย์
+│       │   ├── CodingWorkspace.js       ← Editor + Grader + AI Coach
+│       │   ├── Gradebook.js v5.2        ← E1-style, unit groups, 3-way filter
+│       │   ├── SubmissionHistory.js     ← ประวัติการส่ง
+│       │   ├── SelfPractice.js          ← ฝึกเอง (ได้ XP)
+│       │   ├── StudentProfile.js        ← โปรไฟล์ + Stats + Achievement
+│       │   ├── Leaderboard.js           ← อันดับ (Daily/Weekly/Alltime)
+│       │   ├── AchievementsPage.js      ← Badge Gallery (13)
+│       │   ├── MiniGameHub.js           ← เลือกเกม + สถานะวันนี้
+│       │   ├── LearningTools.js         ← 5 Interactive Tool components
+│       │   ├── LearningHub.js v1.1      ← ศูนย์การเรียนรู้ per-course
+│       │   ├── StudentActivityView.js   ← Activity timeline
+│       │   └── games/
+│       │       ├── QuizBlitz.js         ← MCQ 5 ข้อ 30 วินาที
+│       │       ├── CodeAutopsy.js       ← ทาย Output โค้ด C
+│       │       └── BugHunt.js           ← หาและแก้ Bug
+│       │
+│       ├── teacher/
+│       │   ├── TeacherDashboard.js      ← Dashboard ครู
+│       │   ├── CourseBuilder.js v5.1    ← จัดการวิชา + ปุ่ม "📖 เนื้อหา"
+│       │   ├── AssignmentManager.js     ← จัดการโจทย์
+│       │   ├── TestCaseEditor.js        ← ออก Test Cases
+│       │   ├── StudentAnalytics.js      ← วิเคราะห์นักเรียน (7 แท็บ)
+│       │   ├── GamificationAdmin.js     ← Season, Award XP, Export
+│       │   ├── StudentManagement.js     ← จัดการนักเรียน + อนุมัติ
+│       │   ├── ActivityBuilder.js       ← สร้าง Activity รวดเร็ว
+│       │   ├── RealtimeDashboard.js     ← Real-time submission monitor
+│       │   └── ContentManager.js v1.1  ← CMS เนื้อหา per-course
+│       │
+│       └── admin/
+│           ├── AdminDashboard.js        ← Dashboard Admin
+│           ├── UserManager.js           ← จัดการผู้ใช้ + อนุมัติ
+│           └── SystemSettings.js        ← ตั้งค่า Gemini API Key
 ```
 
 ---
 
-## ภาคผนวก
+## ญ. เวอร์ชัน History
 
-### A. สรุปสถิติระบบ
+| เวอร์ชัน | Feature | ช่วงเวลา |
+|---|---|---|
+| v4.6 | LMS พื้นฐาน: วิชา, โจทย์, ส่งงาน, Grader, AI Hint | ก.พ. 2568 |
+| v5.0 | + Gamification (XP/Rank/Streak/Leaderboard/Achievement) | มี.ค. 2568 |
+| v5.0 | + AI Coaching 5 บทบาท (5Es Framework) | มี.ค. 2568 |
+| v5.0 | + Mini-games (Quiz Blitz, Code Autopsy, Bug Hunt) | มี.ค. 2568 |
+| v5.1 | + Achievement System (13 badges), AchievementsPage | เม.ย. 2568 |
+| v5.2 | + Predictive Risk Alert Coach, StudentActivityView | เม.ย. 2568 |
+| v5.3 | + ActivityBuilder, RealtimeDashboard, FreeEditor | เม.ย. 2568 |
+| v5.4 | + Socratic Hint Level 4, Bug fixes per-course isolation | พ.ค. 2568 |
+| v5.5 | + LearningHub v1.1 (25 built-in topics, 5 interactive tools) | มิ.ย. 2568 |
+| v5.5 | + ContentManager v1.1 (per-course CMS, course picker) | มิ.ย. 2568 |
+| v5.5 | + Gradebook v5.2 (E1-style, unit groups, 3-way filter) | มิ.ย. 2568 |
+| v5.5 | + Grader parallel execution, 8s timeout, Piston-only | มิ.ย. 2568 |
+
+---
+
+## ภาคผนวกสรุป
 
 | รายการ | จำนวน |
 |---|---|
-| ไฟล์ JS ทั้งหมด | ~52 ไฟล์ |
-| Firestore Collections | 24 Collections |
-| Student Routes | 16 Routes |
-| Teacher Routes | 11 Routes |
-| Admin Routes | 5 Routes |
-| Rank Tiers | 10 ระดับ (0–20,000 XP) |
-| AI Coach Roles | 5 บทบาท + 1 Predictive Risk |
-| Hint Levels (Socratic) | 4 ระดับ |
-| Mini-game ประเภท | 3 ประเภท |
-| Achievement | 13 รายการ |
-| Built-in Learning Topics | 25 หัวข้อ (5 หน่วย ว31281) |
-| Engagement Tiers (วิจัย) | 5 ระดับ |
+| ไฟล์ JS | ~52 ไฟล์ |
+| Firestore Collections | 24 |
+| Student Routes | 16 |
+| Teacher Routes | 11 |
+| Admin Routes | 3 |
+| Rank Tiers | 10 (0–20,000 XP) |
+| AI Coach Roles | 6 |
+| Hint Levels (Socratic) | 4 |
+| Mini-game ประเภท | 3 |
+| Achievement | 13 |
+| Built-in Learning Topics | 25 (5 หน่วย ว31281) |
+| Interactive Learning Tools | 5 |
 
-### B. ติดต่อและ Repository
+### ที่อยู่ Repository และ ระบบ
 
 - **GitHub Repository:** https://github.com/koki-assawin/AI-Powered-C
 - **Production URL:** https://koki-assawin.github.io/AI-Powered-C/
 - **Firebase Project:** ai-powered-coding-596ed
-- **Firebase Console:** https://console.firebase.google.com/project/ai-powered-coding-596ed
-
-### C. เวอร์ชัน History
-
-| เวอร์ชัน | Feature หลัก |
-|---|---|
-| v4.6 | LMS พื้นฐาน: วิชา, โจทย์, ส่งงาน, Grader, AI Hint |
-| v5.0 | + Gamification (XP/Rank/Streak/Leaderboard/Achievement) |
-| v5.0 | + AI Coaching 5 บทบาท (5Es Framework) |
-| v5.0 | + Mini-games (Quiz Blitz, Code Autopsy, Bug Hunt) |
-| v5.0 | + GamificationAdmin, ResearchDataSeeder |
-| v5.1 | + Achievement System (13 badges), AchievementsPage |
-| v5.2 | + Predictive Risk Alert Coach, StudentActivityView |
-| v5.3 | + ActivityBuilder, RealtimeDashboard, UsageAnalytics, FreeEditor |
-| v5.3 | + StudentAnalytics แท็บที่ 7 (กลุ่มผู้เรียน), Bulk AI Analysis |
-| v5.4 | + Socratic Hint Level 4, Bug fixes: Leaderboard permission, Course-enrollment isolation |
-| v5.5 | + LearningHub v1.1 (25 built-in topics, 5 interactive tools, Firestore per-course) |
-| v5.5 | + ContentManager v1.1 (per-course CMS, course picker, unit tabs สำหรับ C) |
-| v5.5 | + CourseBuilder v5.1 (ปุ่ม "📖 เนื้อหา" บน course card) |
-| v5.5 | + Gradebook v5.2 (E1-style scorecard, unit groups, filter ทุกข้อ/ทำแล้ว/ยังไม่ทำ) |
-| v5.5 | + Grader: parallel test execution, Wandbox ถูกตัดออก, 8s timeout/test |
+- **ติดต่อผู้พัฒนา:** อัศวิน จุลมูล — aitus@triamudomsouth.ac.th
