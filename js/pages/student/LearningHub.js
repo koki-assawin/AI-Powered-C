@@ -760,9 +760,15 @@ function _LH_VideoEmbed({ url, title }) {
 function _LH_PdfViewer({ url, title }) {
     const [show, setShow] = React.useState(false);
     if (!url) return null;
-    const viewUrl = url.endsWith('.pdf')
-        ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`
-        : url;
+    const getViewUrl = (u) => {
+        // Google Drive: /view or /view?usp=sharing → /preview (allows iframe)
+        const gdrive = u.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+        if (gdrive) return `https://drive.google.com/file/d/${gdrive[1]}/preview`;
+        // Plain .pdf file: wrap with Google Docs viewer
+        if (u.toLowerCase().endsWith('.pdf')) return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(u)}`;
+        return u;
+    };
+    const viewUrl = getViewUrl(url);
     return (
         <div style={{marginTop:12}}>
             <button onClick={() => setShow(!show)}
