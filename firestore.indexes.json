@@ -120,6 +120,30 @@
         { "fieldPath": "role", "order": "ASCENDING" },
         { "fieldPath": "studentCode", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "learningTopics",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "courseId", "order": "ASCENDING" },
+        { "fieldPath": "order", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "learningTopics",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "courseId", "order": "ASCENDING" },
+        { "fieldPath": "isPublished", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "learningTopics",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "courseId", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

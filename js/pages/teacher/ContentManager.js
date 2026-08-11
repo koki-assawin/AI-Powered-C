@@ -162,9 +162,11 @@ function _CM_TopicForm({ topic, courseId, isC, unitId: defaultUnitId, onSave, on
                 createdBy:     userDoc?.id || '',
             };
             if (isNew) {
+                // Get all topics for course, sort client-side to find max order (avoids composite index)
                 const snap = await db.collection('learningTopics')
-                    .where('courseId','==',courseId).orderBy('order','desc').limit(1).get();
-                data.order = snap.empty ? 1 : (snap.docs[0].data().order || 0) + 1;
+                    .where('courseId','==',courseId).get();
+                const maxOrder = snap.empty ? 0 : Math.max(...snap.docs.map(d => d.data().order || 0));
+                data.order = maxOrder + 1;
                 data.createdAt = serverTimestamp();
                 await db.collection('learningTopics').add(data);
             } else {
