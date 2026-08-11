@@ -1057,9 +1057,18 @@ const StudentAnalytics = () => {
                                                     <thead>
                                                         {/* Unit group header */}
                                                         <tr style={{ background: '#FFF0F5' }}>
-                                                            <th className="py-2 px-2 border border-pink-100 text-center sticky left-0 bg-pink-50 whitespace-nowrap" rowSpan={2}>#</th>
-                                                            <th className="py-2 px-2 border border-pink-100 text-center bg-pink-50 whitespace-nowrap" rowSpan={2}>รหัส</th>
-                                                            <th className="py-2 px-2 border border-pink-100 text-left bg-pink-50 whitespace-nowrap" rowSpan={2} style={{minWidth:'120px'}}>ชื่อ-สกุล</th>
+                                                            <th className="py-2 px-2 border border-pink-100 text-center whitespace-nowrap" rowSpan={2}
+                                                                style={{position:'sticky',left:0,zIndex:4,background:'#FFF0F5',width:'36px'}}>
+                                                                #
+                                                            </th>
+                                                            <th className="py-2 px-2 border border-pink-100 text-center whitespace-nowrap" rowSpan={2}
+                                                                style={{position:'sticky',left:'36px',zIndex:4,background:'#FFF0F5',width:'70px'}}>
+                                                                รหัส
+                                                            </th>
+                                                            <th className="py-2 px-2 border border-pink-100 text-left whitespace-nowrap" rowSpan={2}
+                                                                style={{position:'sticky',left:'106px',zIndex:4,background:'#FFF0F5',minWidth:'130px'}}>
+                                                                ชื่อ-สกุล
+                                                            </th>
                                                             {unitNames.map(u => (
                                                                 <th key={u} className="py-2 px-2 border border-pink-100 text-center font-bold whitespace-nowrap"
                                                                     colSpan={unitMap[u].length + 1}
@@ -1132,10 +1141,16 @@ const StudentAnalytics = () => {
                                                             return (
                                                                 <tr key={sid} className="hover:bg-pink-50"
                                                                     style={{ borderBottom: '1px solid #fce7f3' }}>
-                                                                    <td className="py-1 px-2 text-center text-gray-600 font-medium sticky left-0 bg-white">{st?.number || '-'}</td>
-                                                                    <td className="py-1 px-2 text-center text-gray-500 whitespace-nowrap" style={{ fontSize:'11px' }}>{code}</td>
+                                                                    <td className="py-1 px-2 text-center text-gray-600 font-medium whitespace-nowrap"
+                                                                        style={{position:'sticky',left:0,zIndex:2,background:'white',width:'36px'}}>
+                                                                        {st?.number || '-'}
+                                                                    </td>
+                                                                    <td className="py-1 px-2 text-center text-gray-500 whitespace-nowrap"
+                                                                        style={{position:'sticky',left:'36px',zIndex:2,background:'white',fontSize:'11px',width:'70px'}}>
+                                                                        {code}
+                                                                    </td>
                                                                     <td className="py-1 px-2 font-medium text-gray-800 whitespace-nowrap"
-                                                                        style={{ background: 'white', minWidth: '120px' }}>
+                                                                        style={{position:'sticky',left:'106px',zIndex:2,background:'white',minWidth:'130px'}}>
                                                                         {st?.displayName || sid.slice(0,8)}
                                                                     </td>
                                                                     {cells}
@@ -1166,9 +1181,12 @@ const StudentAnalytics = () => {
                                                             const n = enrollments.length;
                                                             return (
                                                                 <tr style={{ background: '#FFF0F5', fontWeight: 600, borderTop: '2px solid #fce7f3' }}>
-                                                                    <td className="py-2 px-2 sticky left-0" style={{ background:'#FFF0F5' }}></td>
-                                                                    <td className="py-2 px-2" style={{ background:'#FFF0F5' }}></td>
-                                                                    <td className="py-2 px-2 whitespace-nowrap" style={{ background:'#FFF0F5', color:'#AD1457' }}>
+                                                                    <td className="py-2 px-2"
+                                                                        style={{position:'sticky',left:0,zIndex:2,background:'#FFF0F5',width:'36px'}}></td>
+                                                                    <td className="py-2 px-2"
+                                                                        style={{position:'sticky',left:'36px',zIndex:2,background:'#FFF0F5',width:'70px'}}></td>
+                                                                    <td className="py-2 px-2 whitespace-nowrap"
+                                                                        style={{position:'sticky',left:'106px',zIndex:2,background:'#FFF0F5',color:'#AD1457'}}>
                                                                         ค่าเฉลี่ย (x̄)
                                                                     </td>
                                                                     {unitNames.flatMap(u => [
