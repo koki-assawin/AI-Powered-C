@@ -677,7 +677,7 @@ const CodingWorkspace = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
             <Navbar title="AI-Powered Coding Coach (APCC)"
                 subtitle={course?.title
                     ? `${course.title}${course.grade ? ` ${course.grade}` : ''}${course.room ? `/ห้อง ${course.room}` : ''} · ${LANGUAGES[selectedLanguage]?.name}`
@@ -947,7 +947,7 @@ const CodingWorkspace = () => {
                 {/* Main area */}
                 <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                     {/* Code Editor Panel */}
-                    <div className="flex-1 flex flex-col p-4 min-w-0">
+                    <div className="flex-1 flex flex-col p-4 min-w-0 min-h-0 overflow-hidden">
                         {/* Toolbar row 1: Language + actions */}
                         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -1057,13 +1057,13 @@ const CodingWorkspace = () => {
                             )}
                         </div>
 
-                        <div className="flex-1">
+                        <div className="flex-1 min-h-0 overflow-hidden">
                             <CodeEditor
                                 value={code}
                                 onChange={setCode}
                                 language={selectedLanguage}
                                 placeholder={`// เขียนโค้ด ${LANGUAGES[selectedLanguage].name} ที่นี่...`}
-                                minHeight="calc(100vh - 310px)"
+                                minHeight="100%"
                                 fontSize={fontSize}
                                 theme={editorTheme}
                                 fontFamily={fontFamily}
@@ -1074,7 +1074,7 @@ const CodingWorkspace = () => {
                     </div>
 
                     {/* Right Panel */}
-                    <div className="w-full lg:w-96 border-l border-gray-200 bg-white flex flex-col overflow-y-auto">
+                    <div className="w-full lg:w-96 border-l border-gray-200 bg-white flex flex-col min-h-0">
                         {/* Tab bar */}
                         <div className="flex border-b border-gray-200">
                             {[

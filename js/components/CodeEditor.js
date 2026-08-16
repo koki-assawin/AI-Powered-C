@@ -419,6 +419,7 @@ const CodeEditor = ({ value, onChange, language, placeholder, minHeight = '400px
         <div
             ref={containerRef}
             style={{
+                height: '100%',
                 minHeight,
                 borderRadius: '0.75rem',
                 overflow: 'hidden',
