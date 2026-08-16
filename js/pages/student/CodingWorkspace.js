@@ -156,8 +156,11 @@ const CodingWorkspace = () => {
             setSelectedLanguage(c.language || 'c');
             setCode(localStorage.getItem(`draft_${courseId}`) || LANGUAGES[c.language || 'c'].defaultCode);
 
-            // Load assignments (critical - must not block on lesson index error)
-            const assignSnap = await db.collection('assignments').where('courseId', '==', courseId).get();
+            // Load assignments: only published ones (isPublished=true)
+            const assignSnap = await db.collection('assignments')
+                .where('courseId', '==', courseId)
+                .where('isPublished', '==', true)
+                .get();
             const assigns = assignSnap.docs.map(d => ({ id: d.id, ...d.data() }));
             setAssignments(assigns);
 

@@ -83,6 +83,7 @@ const AssignmentManager = () => {
     const [generating, setGenerating] = React.useState(false);
     const [msg, setMsg] = React.useState('');
     const [tab, setTab] = React.useState('list'); // 'list' | 'directory' | 'edit'
+    const [showHidden, setShowHidden] = React.useState(false);
 
     React.useEffect(() => { if (courseId) loadData(); }, [courseId]);
 
@@ -257,6 +258,12 @@ const AssignmentManager = () => {
         setAssignments(as => as.map(a => a.id === id ? { ...a, isPublished: !cur } : a));
     };
 
+    // toggleTeacherHide: ซ่อน/แสดงในรายการครูเท่านั้น — ไม่กระทบ isPublished (นักเรียนยังเห็น)
+    const toggleTeacherHide = async (id, cur) => {
+        await db.collection('assignments').doc(id).update({ teacherHide: !cur });
+        setAssignments(as => as.map(a => a.id === id ? { ...a, teacherHide: !cur } : a));
+    };
+
     const publishAll = async () => {
         const hidden = assignments.filter(a => !a.isPublished);
         if (hidden.length === 0) { setMsg('✅ โจทย์ทุกข้อเปิดอยู่แล้ว'); return; }
@@ -307,83 +314,116 @@ const AssignmentManager = () => {
 
                 {/* ── LIST TAB ──────────────────────────────────── */}
                 {tab === 'list' && (
-                    loading ? <Spinner /> : (
-                        <div className="space-y-3">
-                            {assignments.length > 0 && (
-                                <div className="flex items-center justify-between rounded-xl px-4 py-3 mb-2"
-                                    style={{ background: '#FFF5F7', border: '1px solid #FFD1DC' }}>
-                                    <span className="text-sm" style={{ color: '#C2185B' }}>
-                                        เปิดอยู่ {assignments.filter(a => a.isPublished).length}/{assignments.length} ข้อ
-                                    </span>
-                                    <button onClick={publishAll} className="k-btn-pink px-4 py-1.5 text-sm">
-                                        🟢 เปิดทั้งหมด
+                    loading ? <Spinner /> : (() => {
+                        const sortFn = (a, b) => {
+                            const ua = parseInt((a.unitName || '').match(/\d+/)?.[0] || '0');
+                            const ub = parseInt((b.unitName || '').match(/\d+/)?.[0] || '0');
+                            if (ua !== ub) return ua - ub;
+                            return (a.title || '').localeCompare(b.title || '', 'th');
+                        };
+                        const visibleList = [...assignments].filter(a => !a.teacherHide).sort(sortFn);
+                        const hiddenList  = [...assignments].filter(a =>  a.teacherHide).sort(sortFn);
+
+                        const AssignCard = ({ a, faded }) => (
+                            <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between"
+                                style={faded ? { opacity: 0.65 } : {}}>
+                                <div className="flex-1 min-w-0 mr-4">
+                                    {(a.unitName || a.topicName) && (
+                                        <div className="text-xs mb-1" style={{ color: '#F48FB1' }}>
+                                            📂 {[a.unitName, a.topicName].filter(Boolean).join(' › ')}
+                                        </div>
+                                    )}
+                                    <div className="flex items-center flex-wrap gap-2 mb-1">
+                                        <h4 className="font-bold text-gray-800">{a.title}</h4>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                            a.difficulty === 'ง่าย' ? 'bg-green-100 text-green-700' :
+                                            a.difficulty === 'ปานกลาง' ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-red-100 text-red-700'}`}>
+                                            {a.difficulty}
+                                        </span>
+                                        {a.assignmentType === 'exam' && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
+                                                🏆 ข้อสอบ {a.examDurationMinutes || 30} นาที
+                                            </span>
+                                        )}
+                                        {a.teacherHide && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">🙈 ซ่อนจากรายการครู</span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-gray-500 truncate">{a.description}</p>
+                                    <div className="flex space-x-3 text-xs text-gray-400 mt-1">
+                                        <span>⏱ {(a.timeLimit || 5000) / 1000}s</span>
+                                        <span>💾 {a.memoryLimit || 256}MB</span>
+                                        <span>{LANGUAGES[a.language || 'c']?.icon} {LANGUAGES[a.language || 'c']?.name}</span>
+                                        {a.rawScore > 0 && <span style={{ color: '#be185d', fontWeight: 600 }}>📊 {a.rawScore} คะแนนดิบ</span>}
+                                        {a.isPublished
+                                            ? <span style={{ color: '#16a34a', fontWeight: 600 }}>✅ เผยแพร่ให้นักเรียนแล้ว</span>
+                                            : <span className="text-gray-300">○ ยังไม่เผยแพร่</span>}
+                                    </div>
+                                </div>
+                                <div className="flex items-center flex-wrap gap-2 flex-shrink-0">
+                                    <a href={`#/teacher/testcases?assignment=${a.id}&course=${courseId}`}
+                                        className="px-3 py-1.5 rounded-lg text-xs"
+                                        style={{ background: '#F3E5F5', color: '#7B1FA2', textDecoration: 'none' }}>
+                                        Test Cases
+                                    </a>
+                                    <button onClick={() => startEdit(a)}
+                                        className="px-3 py-1.5 rounded-lg text-xs"
+                                        style={{ background: '#FFF5F7', color: '#C2185B', border: '1px solid #FFD1DC' }}>
+                                        แก้ไข
                                     </button>
+                                    <button onClick={() => toggleTeacherHide(a.id, !!a.teacherHide)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium ${!a.teacherHide ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                                        title={!a.teacherHide ? 'คลิกเพื่อซ่อนจากรายการนี้ (นักเรียนยังเห็นตามการตั้งค่าเผยแพร่)' : 'คลิกเพื่อแสดงในรายการอีกครั้ง'}>
+                                        {!a.teacherHide ? '🟢 เปิดอยู่' : '⭕ ซ่อน'}
+                                    </button>
+                                    <button onClick={() => deleteAssignment(a.id)}
+                                        className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs hover:bg-red-100">ลบ</button>
                                 </div>
-                            )}
-                            {msg && <div className={`p-3 rounded-lg text-sm border ${msg.includes('❌') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{msg}</div>}
-                            {assignments.length === 0 && (
-                                <div className="text-center py-12 text-gray-400 bg-white rounded-xl border border-gray-100">
-                                    <div className="text-4xl mb-3">📝</div>
-                                    <p>ยังไม่มีโจทย์ กด "สร้างโจทย์ใหม่" เพื่อเริ่มต้น</p>
-                                </div>
-                            )}
-                            {[...assignments].sort((a, b) => {
-                                const ua = parseInt((a.unitName || '').match(/\d+/)?.[0] || '0');
-                                const ub = parseInt((b.unitName || '').match(/\d+/)?.[0] || '0');
-                                if (ua !== ub) return ua - ub;
-                                return (a.title || '').localeCompare(b.title || '', 'th');
-                            }).map(a => (
-                                <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between">
-                                    <div className="flex-1 min-w-0 mr-4">
-                                        {(a.unitName || a.topicName) && (
-                                            <div className="text-xs mb-1" style={{ color: '#F48FB1' }}>
-                                                📂 {[a.unitName, a.topicName].filter(Boolean).join(' › ')}
+                            </div>
+                        );
+
+                        return (
+                            <div className="space-y-3">
+                                {assignments.length > 0 && (
+                                    <div className="flex items-center justify-between rounded-xl px-4 py-3 mb-2"
+                                        style={{ background: '#FFF5F7', border: '1px solid #FFD1DC' }}>
+                                        <span className="text-sm" style={{ color: '#C2185B' }}>
+                                            เผยแพร่ให้นักเรียน {assignments.filter(a => a.isPublished).length}/{assignments.length} ข้อ
+                                            {hiddenList.length > 0 && <span className="ml-3 text-gray-400">· ซ่อนจากรายการครู {hiddenList.length} ข้อ</span>}
+                                        </span>
+                                        <button onClick={publishAll} className="k-btn-pink px-4 py-1.5 text-sm">
+                                            🟢 เผยแพร่ทั้งหมด
+                                        </button>
+                                    </div>
+                                )}
+                                {msg && <div className={`p-3 rounded-lg text-sm border ${msg.includes('❌') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{msg}</div>}
+                                {assignments.length === 0 && (
+                                    <div className="text-center py-12 text-gray-400 bg-white rounded-xl border border-gray-100">
+                                        <div className="text-4xl mb-3">📝</div>
+                                        <p>ยังไม่มีโจทย์ กด "สร้างโจทย์ใหม่" เพื่อเริ่มต้น</p>
+                                    </div>
+                                )}
+                                {visibleList.map(a => <AssignCard key={a.id} a={a} faded={false} />)}
+
+                                {/* Hidden section */}
+                                {hiddenList.length > 0 && (
+                                    <div>
+                                        <button onClick={() => setShowHidden(s => !s)}
+                                            className="w-full text-left px-4 py-2 rounded-xl text-sm font-medium"
+                                            style={{ background: '#F9FAFB', border: '1px dashed #D1D5DB', color: '#6B7280' }}>
+                                            {showHidden ? '▲' : '▼'} โจทย์ที่ซ่อนจากรายการครู ({hiddenList.length} ข้อ) — นักเรียนยังเห็นได้ตามสถานะเผยแพร่
+                                        </button>
+                                        {showHidden && (
+                                            <div className="space-y-3 mt-2">
+                                                {hiddenList.map(a => <AssignCard key={a.id} a={a} faded={true} />)}
                                             </div>
                                         )}
-                                        <div className="flex items-center flex-wrap gap-2 mb-1">
-                                            <h4 className="font-bold text-gray-800">{a.title}</h4>
-                                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                                a.difficulty === 'ง่าย' ? 'bg-green-100 text-green-700' :
-                                                a.difficulty === 'ปานกลาง' ? 'bg-yellow-100 text-yellow-700' :
-                                                'bg-red-100 text-red-700'}`}>
-                                                {a.difficulty}
-                                            </span>
-                                            {a.assignmentType === 'exam' && (
-                                                <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
-                                                    🏆 ข้อสอบ {a.examDurationMinutes || 30} นาที
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-xs text-gray-500 truncate">{a.description}</p>
-                                        <div className="flex space-x-3 text-xs text-gray-400 mt-1">
-                                            <span>⏱ {(a.timeLimit || 5000) / 1000}s</span>
-                                            <span>💾 {a.memoryLimit || 256}MB</span>
-                                            <span>{LANGUAGES[a.language || 'c']?.icon} {LANGUAGES[a.language || 'c']?.name}</span>
-                                            {a.rawScore > 0 && <span style={{ color: '#be185d', fontWeight: 600 }}>📊 {a.rawScore} คะแนนดิบ</span>}
-                                        </div>
                                     </div>
-                                    <div className="flex items-center flex-wrap gap-2 flex-shrink-0">
-                                        <a href={`#/teacher/testcases?assignment=${a.id}&course=${courseId}`}
-                                            className="px-3 py-1.5 rounded-lg text-xs"
-                                            style={{ background: '#F3E5F5', color: '#7B1FA2', textDecoration: 'none' }}>
-                                            Test Cases
-                                        </a>
-                                        <button onClick={() => startEdit(a)}
-                                            className="px-3 py-1.5 rounded-lg text-xs"
-                                            style={{ background: '#FFF5F7', color: '#C2185B', border: '1px solid #FFD1DC' }}>
-                                            แก้ไข
-                                        </button>
-                                        <button onClick={() => togglePublish(a.id, a.isPublished)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium ${a.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                            {a.isPublished ? '🟢 เปิดอยู่' : '⭕ ซ่อน'}
-                                        </button>
-                                        <button onClick={() => deleteAssignment(a.id)}
-                                            className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs hover:bg-red-100">ลบ</button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )
+                                )}
+                            </div>
+                        );
+                    })()
                 )}
 
                 {/* ── DIRECTORY TAB ──────────────────────────────── */}
