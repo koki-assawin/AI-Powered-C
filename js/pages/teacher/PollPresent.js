@@ -35,7 +35,10 @@ const PollPresent = () => {
     const counts = options.map(o => responses.filter(r => r.r1?.optionId === o.id).length);
     const correctOptionId = session.snapshot?.correctOptionId;
 
-    const labels = options.map(o => `${o.id.toUpperCase()}. ${o.text}`);
+    const correctOption = options.find(o => o.id === correctOptionId);
+    const labels = options.map(o =>
+        `${revealed && o.id === correctOptionId ? '✓ ' : ''}${o.id.toUpperCase()}. ${o.text}`
+    );
     const backgroundColor = options.map(o =>
         revealed && o.id === correctOptionId ? 'rgba(16,185,129,0.85)' : 'rgba(59,130,246,0.75)'
     );
@@ -75,6 +78,14 @@ const PollPresent = () => {
                     </button>
                 )}
             </div>
+
+            {revealed && correctOption && (
+                <div className="mt-6 bg-green-900/40 border-2 border-green-500 rounded-xl p-5 text-center">
+                    <p style={{ fontSize: '22pt' }} className="font-black text-green-400">
+                        ✅ เฉลย: {correctOption.id.toUpperCase()}. {correctOption.text}
+                    </p>
+                </div>
+            )}
         </div>
     );
 };
