@@ -24,6 +24,13 @@ const db   = firebase.firestore();
 const auth = firebase.auth();
 const rtdb = firebase.database();
 
+// Offline persistence — required by QuickPoll (§9): answers sent while offline
+// must sync automatically once the connection returns. Fails silently in
+// unsupported contexts (multiple tabs, private browsing) — app still works online.
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+    console.warn('⚠️ Firestore offline persistence not enabled:', err.code);
+});
+
 // Google Auth Provider
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 

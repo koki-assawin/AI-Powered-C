@@ -271,5 +271,38 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
     }
+
+    // Poll templates (QuickPoll question bank) — authenticated read; teachers/admins write
+    match /pollTemplates/{templateId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // Poll sessions (QuickPoll one-time use) — authenticated read; teachers/admins write
+    match /pollSessions/{sessionId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+
+      // Responses — students write only their own doc, only while round 1 is open; teachers/admins read all
+      match /responses/{uid} {
+        allow read: if request.auth != null && (
+          request.auth.uid == uid ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        );
+        allow create, update: if request.auth != null && request.auth.uid == uid &&
+          get(/databases/$(database)/documents/pollSessions/$(sessionId)).data.status == 'round1_open';
+        allow delete: if request.auth != null && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        );
+      }
+    }
   }
 }

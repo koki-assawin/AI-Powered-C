@@ -144,6 +144,15 @@
         { "fieldPath": "isPublished", "order": "ASCENDING" },
         { "fieldPath": "courseId", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "pollSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "taughtOn", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

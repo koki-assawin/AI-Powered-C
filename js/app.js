@@ -64,6 +64,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(FreeEditor));
         if (route.startsWith('#/student/activity'))
             return React.createElement(ProtectedRoute, { allowedRoles: ['student', 'teacher', 'admin'] }, React.createElement(StudentActivityView));
+        if (route === '#/student/poll')
+            return guard(React.createElement(PollStudent));
 
         // Default student route
         return guard(React.createElement(StudentDashboard));
@@ -96,6 +98,10 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(FreeEditor));
         if (route.startsWith('#/teacher/content'))
             return guard(React.createElement(ContentManager));
+        if (route.startsWith('#/teacher/poll/present'))
+            return guard(React.createElement(PollPresent));
+        if (route.startsWith('#/teacher/poll'))
+            return guard(React.createElement(PollControl));
 
         return guard(React.createElement(TeacherDashboard));
     }

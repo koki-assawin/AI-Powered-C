@@ -112,6 +112,9 @@ const Navbar = ({ title, subtitle }) => {
             // no children = simple link
         },
         {
+            hash: '#/student/poll', label: 'Quick Poll', icon: '🗳️',
+        },
+        {
             label: 'เรียน', icon: '📖',
             children: [
                 { hash: '#/student/courses',  label: 'รายวิชา',        icon: '📚' },
@@ -143,6 +146,7 @@ const Navbar = ({ title, subtitle }) => {
             { hash: '#/teacher/dashboard',    label: 'แดชบอร์ด',         icon: '🏠' },
             { hash: '#/teacher/courses',      label: 'จัดการรายวิชา',     icon: '📚' },
             { hash: '#/teacher/content',      label: 'จัดการเนื้อหา',     icon: '📖' },
+            { hash: '#/teacher/poll',         label: 'Quick Poll',        icon: '🗳️' },
             { hash: '#/teacher/students',     label: 'จัดการนักเรียน',    icon: '👥' },
             { hash: '#/teacher/analytics',    label: 'วิเคราะห์นักเรียน', icon: '📊' },
             { hash: '#/teacher/gamification', label: 'Gamification',      icon: '🎮' },
