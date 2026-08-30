@@ -12,7 +12,7 @@ const SAMPLE_TEMPLATES = [
         media: { code: 'for(i=1; i>0; i++) { printf("%d ", i); }', language: 'c', imageUrl: null, text: null },
         options: [
             { id: 'a', text: 'แสดง 1 2 3 4 5 แล้วจบ' },
-            { id: 'b', text: 'แสดงเลข 1 ซ้ำไม่รู้จบ' },
+            { id: 'b', text: 'แสดงเลข 1 2 3 4 5 ... ไปเรื่อยๆ ไม่รู้จบ' },
             { id: 'c', text: 'ไม่แสดงอะไรเลย' },
             { id: 'd', text: 'คอมไพล์ไม่ผ่าน' },
         ],
