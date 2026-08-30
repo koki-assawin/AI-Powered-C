@@ -2,25 +2,44 @@
 // See Spec_QuickPoll_APCC.md §5.1. Never show room-wide totals here — that would
 // let late responders copy earlier answers, defeating the point of round 1.
 
+const POLL_ACTIVE_STATUSES = ['round1_open', 'round1_closed', 'revealed'];
+
 const PollStudent = () => {
     const { user, userDoc } = useAuth();
-    const [session, setSession] = React.useState(null);
+    const [sessionsByCourse, setSessionsByCourse] = React.useState({});
     const [myResponse, setMyResponse] = React.useState(null);
     const [submitting, setSubmitting] = React.useState(false);
 
-    // Latest non-draft session for my class
+    const enrolledCourses = userDoc?.enrolledCourses || [];
+
+    // Latest non-draft session per enrolled course — one listener each, since
+    // Firestore doesn't allow an 'in' filter on courseId together with one on status.
     React.useEffect(() => {
-        if (!userDoc?.classId) return;
-        const unsub = db.collection('pollSessions')
-            .where('classId', '==', userDoc.classId)
-            .where('status', 'in', ['round1_open', 'round1_closed', 'revealed'])
-            .orderBy('taughtOn', 'desc')
-            .limit(1)
-            .onSnapshot(snap => {
-                setSession(snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() });
-            }, console.error);
-        return unsub;
-    }, [userDoc?.classId]);
+        if (!enrolledCourses.length) { setSessionsByCourse({}); return; }
+        const unsubs = enrolledCourses.map(cid =>
+            db.collection('pollSessions')
+                .where('courseId', '==', cid)
+                .where('status', 'in', POLL_ACTIVE_STATUSES)
+                .orderBy('taughtOn', 'desc')
+                .limit(1)
+                .onSnapshot(snap => {
+                    setSessionsByCourse(prev => ({
+                        ...prev,
+                        [cid]: snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() },
+                    }));
+                }, console.error)
+        );
+        return () => unsubs.forEach(fn => fn());
+    }, [enrolledCourses.join(',')]);
+
+    // Pick the session to show: an open round wins; otherwise the most recent one
+    const session = React.useMemo(() => {
+        const candidates = Object.values(sessionsByCourse).filter(Boolean);
+        if (!candidates.length) return null;
+        const open = candidates.find(s => s.status === 'round1_open');
+        if (open) return open;
+        return candidates.sort((a, b) => (b.taughtOn?.toMillis?.() || 0) - (a.taughtOn?.toMillis?.() || 0))[0];
+    }, [sessionsByCourse]);
 
     // My own response for this session
     React.useEffect(() => {
@@ -45,10 +64,10 @@ const PollStudent = () => {
         setSubmitting(false);
     };
 
-    if (!userDoc?.classId) {
+    if (!enrolledCourses.length) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8 text-center">
-                <p className="text-gray-500">บัญชีของคุณยังไม่ถูกกำหนดห้องเรียน กรุณาแจ้งครูผู้สอน</p>
+                <p className="text-gray-500">คุณยังไม่ได้ลงทะเบียนรายวิชาใด กรุณาสมัครเรียนก่อน</p>
             </div>
         );
     }

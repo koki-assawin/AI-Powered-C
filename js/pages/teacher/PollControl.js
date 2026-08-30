@@ -73,8 +73,8 @@ const POLL_ADVICE = (rate) => {
 const PollControl = () => {
     const { user } = useAuth();
 
-    const [classes, setClasses] = React.useState([]);
-    const [classId, setClassId] = React.useState('');
+    const [courses, setCourses] = React.useState([]);
+    const [courseId, setCourseId] = React.useState('');
     const [expectedN, setExpectedN] = React.useState(0);
 
     const [templates, setTemplates] = React.useState([]);
@@ -87,22 +87,29 @@ const PollControl = () => {
     const [secondsLeft, setSecondsLeft] = React.useState(null);
     const timerRef = React.useRef(null);
 
-    // Load classes once
+    // Load courses this teacher owns or co-teaches
     React.useEffect(() => {
-        db.collection('classes').get().then(snap => {
-            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            setClasses(list);
-            if (list.length) setClassId(list[0].id);
+        if (!user) return;
+        Promise.all([
+            db.collection('courses').where('teacherId', '==', user.uid).get(),
+            db.collection('courses').where('coTeacherIds', 'array-contains', user.uid).get(),
+        ]).then(([ownSnap, coSnap]) => {
+            const byId = {};
+            ownSnap.docs.forEach(d => { byId[d.id] = { id: d.id, ...d.data() }; });
+            coSnap.docs.forEach(d => { byId[d.id] = { id: d.id, ...d.data() }; });
+            const list = Object.values(byId);
+            setCourses(list);
+            if (list.length) setCourseId(list[0].id);
         }).catch(console.error);
-    }, []);
+    }, [user]);
 
-    // Roster count when class changes
+    // Roster count when course changes — unique students via enrollments
     React.useEffect(() => {
-        if (!classId) { setExpectedN(0); return; }
-        db.collection('users').where('classId', '==', classId).get()
-            .then(snap => setExpectedN(snap.size))
+        if (!courseId) { setExpectedN(0); return; }
+        db.collection('enrollments').where('courseId', '==', courseId).get()
+            .then(snap => setExpectedN(new Set(snap.docs.map(d => d.data().studentId)).size))
             .catch(console.error);
-    }, [classId]);
+    }, [courseId]);
 
     // Load question bank for plan 19
     React.useEffect(() => {
@@ -159,12 +166,12 @@ const PollControl = () => {
     };
 
     const startSession = async (template) => {
-        if (!classId) return;
+        if (!courseId) return;
         try {
             const ref = await db.collection('pollSessions').add({
                 templateId: template.id,
                 snapshot: template,
-                classId,
+                courseId,
                 teacherUid: user.uid,
                 taughtOn: serverTimestamp(),
                 status: 'draft',
@@ -214,16 +221,16 @@ const PollControl = () => {
             <main className="max-w-4xl mx-auto px-4 py-8">
                 <h2 className="text-2xl font-black text-gray-800 mb-6">🗳️ Quick Poll — หน้าควบคุมครู</h2>
 
-                {/* Class selector */}
+                {/* Course selector */}
                 <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">ห้องเรียน</label>
-                    <select value={classId} onChange={e => setClassId(e.target.value)} disabled={!!sessionId}
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">รายวิชา</label>
+                    <select value={courseId} onChange={e => setCourseId(e.target.value)} disabled={!!sessionId}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                        {classes.map(c => (
-                            <option key={c.id} value={c.id}>{c.name} ({c.grade}/{c.room})</option>
+                        {courses.map(c => (
+                            <option key={c.id} value={c.id}>{c.title} ({c.grade}/{c.room} เทอม {c.semester}/{c.academicYear})</option>
                         ))}
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">นักเรียนในห้องนี้ {expectedN} คน</p>
+                    <p className="text-xs text-gray-500 mt-1">นักเรียนในวิชานี้ {expectedN} คน</p>
                 </div>
 
                 {!sessionId && (
@@ -247,7 +254,7 @@ const PollControl = () => {
                                             <p className="text-sm font-semibold text-gray-800">#{t.seq} {t.prompt}</p>
                                             <p className="text-xs text-gray-500">{t.stage} • {t.loCode} • {t.bloom}</p>
                                         </div>
-                                        <button onClick={() => startSession(t)} disabled={!classId}
+                                        <button onClick={() => startSession(t)} disabled={!courseId}
                                             className="bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 shrink-0">
                                             เริ่มคำถามนี้
                                         </button>

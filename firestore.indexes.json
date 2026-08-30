@@ -149,7 +149,7 @@
       "collectionGroup": "pollSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "courseId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "taughtOn", "order": "DESCENDING" }
       ]
