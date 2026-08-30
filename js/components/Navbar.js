@@ -140,31 +140,38 @@ const Navbar = ({ title, subtitle }) => {
         },
     ];
 
-    // Teacher / Admin: flat links (few enough, no grouping needed)
-    const flatLinks = {
-        teacher: [
-            { hash: '#/teacher/dashboard',    label: 'แดชบอร์ด',         icon: '🏠' },
-            { hash: '#/teacher/courses',      label: 'จัดการรายวิชา',     icon: '📚' },
-            { hash: '#/teacher/content',      label: 'จัดการเนื้อหา',     icon: '📖' },
-            { hash: '#/teacher/poll',         label: 'Quick Poll',        icon: '🗳️' },
-            { hash: '#/teacher/students',     label: 'จัดการนักเรียน',    icon: '👥' },
-            { hash: '#/teacher/analytics',    label: 'วิเคราะห์นักเรียน', icon: '📊' },
-            { hash: '#/teacher/gamification', label: 'Gamification',      icon: '🎮' },
-            { hash: '#/teacher/editor',       label: 'Code Editor',       icon: '💻' },
-        ],
-        admin: [
-            { hash: '#/admin/dashboard', label: 'แดชบอร์ด',      icon: '🏠' },
-            { hash: '#/admin/users',     label: 'จัดการผู้ใช้',   icon: '👥' },
-            { hash: '#/admin/settings',  label: 'ตั้งค่าระบบ',    icon: '⚙️' },
-        ],
-    };
+    // Teacher: grouped nav (same dropdown pattern as student — flat list of
+    // 8 items previously overflowed narrower viewports once Quick Poll was added)
+    const teacherGroups = [
+        { hash: '#/teacher/dashboard', label: 'แดชบอร์ด', icon: '🏠' },
+        { hash: '#/teacher/poll',      label: 'Quick Poll', icon: '🗳️' },
+        {
+            label: 'จัดการ', icon: '📁',
+            children: [
+                { hash: '#/teacher/courses',  label: 'จัดการรายวิชา',  icon: '📚' },
+                { hash: '#/teacher/content',  label: 'จัดการเนื้อหา',  icon: '📖' },
+                { hash: '#/teacher/students', label: 'จัดการนักเรียน', icon: '👥' },
+            ],
+        },
+        {
+            label: 'เครื่องมือ', icon: '🛠️',
+            children: [
+                { hash: '#/teacher/analytics',    label: 'วิเคราะห์นักเรียน', icon: '📊' },
+                { hash: '#/teacher/gamification', label: 'Gamification',      icon: '🎮' },
+                { hash: '#/teacher/editor',        label: 'Code Editor',      icon: '💻' },
+            ],
+        },
+    ];
 
-    // Flat list for mobile hamburger (all items flattened)
-    const mobileLinks = role === 'student'
-        ? studentGroups.flatMap(g => g.children
-            ? g.children
-            : [{ hash: g.hash, label: g.label, icon: g.icon }])
-        : (flatLinks[role] || []);
+    // Admin: few enough items, no grouping needed
+    const adminGroups = [
+        { hash: '#/admin/dashboard', label: 'แดชบอร์ด',      icon: '🏠' },
+        { hash: '#/admin/users',     label: 'จัดการผู้ใช้',   icon: '👥' },
+        { hash: '#/admin/settings',  label: 'ตั้งค่าระบบ',    icon: '⚙️' },
+    ];
+
+    const navGroups = { student: studentGroups, teacher: teacherGroups, admin: adminGroups };
+    const currentGroups = navGroups[role] || [];
 
     const currentHash = window.location.hash;
     const roleMeta = {
@@ -207,7 +214,7 @@ const Navbar = ({ title, subtitle }) => {
                     {/* ── Desktop Nav ── */}
                     <nav style={{ display: 'flex', gap: '2px', alignItems: 'center' }} className="hidden md:flex">
 
-                        {role === 'student' && studentGroups.map(group => {
+                        {currentGroups.map(group => {
                             // Simple link (no children)
                             if (!group.children) {
                                 const active = currentHash.startsWith(group.hash);
@@ -234,26 +241,6 @@ const Navbar = ({ title, subtitle }) => {
                             return (
                                 <_NavGroup key={group.label} group={group} currentHash={currentHash}
                                     closeAll={closeAll} openGroup={openGroup} setOpenGroup={setOpenGroup} />
-                            );
-                        })}
-
-                        {role !== 'student' && (flatLinks[role] || []).map(link => {
-                            const active = currentHash.startsWith(link.hash);
-                            return (
-                                <a key={link.hash} href={link.hash} onClick={closeAll}
-                                    style={{
-                                        padding: '7px 13px', borderRadius: '20px', fontSize: '13px',
-                                        fontWeight: active ? 600 : 400,
-                                        background: active ? 'linear-gradient(135deg,#f472b6,#ec4899)' : 'transparent',
-                                        color: active ? '#fff' : '#9d174d',
-                                        textDecoration: 'none', transition: 'all .2s',
-                                        border: active ? 'none' : '1px solid transparent', whiteSpace: 'nowrap',
-                                    }}
-                                    onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#fdf2f8'; e.currentTarget.style.borderColor = '#fce7f3'; } }}
-                                    onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; } }}
-                                >
-                                    {link.icon} {link.label}
-                                </a>
                             );
                         })}
                     </nav>
@@ -413,8 +400,8 @@ const Navbar = ({ title, subtitle }) => {
                 {menuOpen && (
                     <div style={{ borderTop: '1px solid #fce7f3', paddingBottom: '12px', paddingTop: '8px' }}
                          className="md:hidden">
-                        {/* Group headers for student */}
-                        {role === 'student' && studentGroups.map(group => {
+                        {/* Group headers (all roles use the same grouped shape) */}
+                        {currentGroups.map(group => {
                             if (!group.children) {
                                 const active = currentHash.startsWith(group.hash);
                                 return (
@@ -458,23 +445,6 @@ const Navbar = ({ title, subtitle }) => {
                                         );
                                     })}
                                 </div>
-                            );
-                        })}
-
-                        {role !== 'student' && mobileLinks.map(link => {
-                            const active = currentHash.startsWith(link.hash);
-                            return (
-                                <a key={link.hash} href={link.hash} onClick={closeAll}
-                                    style={{
-                                        display: 'block', padding: '10px 16px', borderRadius: '12px',
-                                        margin: '3px 0', fontSize: '14px', textDecoration: 'none',
-                                        fontWeight: active ? 600 : 400,
-                                        background: active ? '#fdf2f8' : 'transparent',
-                                        color: active ? '#ec4899' : '#6b7280',
-                                        borderLeft: active ? '3px solid #ec4899' : '3px solid transparent',
-                                    }}>
-                                    {link.icon} {link.label}
-                                </a>
                             );
                         })}
 
