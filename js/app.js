@@ -98,6 +98,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(FreeEditor));
         if (route.startsWith('#/teacher/content'))
             return guard(React.createElement(ContentManager));
+        if (route.startsWith('#/teacher/classes'))
+            return guard(React.createElement(ClassManager));
         if (route.startsWith('#/teacher/poll/present'))
             return guard(React.createElement(PollPresent));
         if (route.startsWith('#/teacher/poll'))
