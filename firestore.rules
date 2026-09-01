@@ -289,7 +289,7 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
 
-      // Responses — students write only their own doc, only while round 1 is open; teachers/admins read all
+      // Responses — students write only their own doc, only while a round is open; teachers/admins read all
       match /responses/{uid} {
         allow read: if request.auth != null && (
           request.auth.uid == uid ||
@@ -297,7 +297,7 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
         );
         allow create, update: if request.auth != null && request.auth.uid == uid &&
-          get(/databases/$(database)/documents/pollSessions/$(sessionId)).data.status == 'round1_open';
+          get(/databases/$(database)/documents/pollSessions/$(sessionId)).data.status in ['round1_open', 'round2_open'];
         allow delete: if request.auth != null && (
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
