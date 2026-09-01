@@ -34,13 +34,15 @@ const PollStudent = () => {
         return () => unsubs.forEach(fn => fn());
     }, [enrolledCourses.join(',')]);
 
-    // Pick the session to show: an open round wins; otherwise the most recent one
+    // Pick the session to show: the most recently opened round wins (in case an
+    // older test session was left open); otherwise the most recent one overall.
     const session = React.useMemo(() => {
         const candidates = Object.values(sessionsByCourse).flat().filter(Boolean);
         if (!candidates.length) return null;
-        const open = candidates.find(s => s.status === 'round1_open' || s.status === 'round2_open');
-        if (open) return open;
-        return candidates.sort((a, b) => (b.taughtOn?.toMillis?.() || 0) - (a.taughtOn?.toMillis?.() || 0))[0];
+        const byRecency = (a, b) => (b.taughtOn?.toMillis?.() || 0) - (a.taughtOn?.toMillis?.() || 0);
+        const open = candidates.filter(s => s.status === 'round1_open' || s.status === 'round2_open');
+        if (open.length) return open.sort(byRecency)[0];
+        return candidates.sort(byRecency)[0];
     }, [sessionsByCourse]);
 
     // My own response for this session
