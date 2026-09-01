@@ -291,7 +291,6 @@ const PollControl = () => {
     const round1AnsweredCount = responses.filter(r => r.r1).length;
     const round1CorrectRate = round1AnsweredCount ? round1CorrectCount / round1AnsweredCount : 0;
     const advice = isChoice && session?.status === 'round1_closed' ? POLL_ADVICE(round1CorrectRate) : null;
-    const isClosedPhase = session?.status === 'round1_closed' || session?.status === 'round2_closed';
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -568,12 +567,10 @@ const PollControl = () => {
                                     ⏹ ปิดรอบ 2
                                 </button>
                             )}
-                            {isClosedPhase && (
-                                <button onClick={openPresentWindow}
-                                    className="bg-purple-600 text-white font-bold px-5 py-2.5 rounded-lg hover:bg-purple-700">
-                                    📽️ เปิดหน้าฉายผล
-                                </button>
-                            )}
+                            <button onClick={openPresentWindow}
+                                className="bg-purple-600 text-white font-bold px-5 py-2.5 rounded-lg hover:bg-purple-700">
+                                📽️ เปิดหน้าฉายผล
+                            </button>
                         </div>
 
                         {advice && (
