@@ -13,20 +13,21 @@ const PollStudent = () => {
 
     const enrolledCourses = userDoc?.enrolledCourses || [];
 
-    // Latest non-draft session per enrolled course — one listener each, since
+    // All active-status sessions per enrolled course — one listener each, since
     // Firestore doesn't allow an 'in' filter on courseId together with one on status.
+    // Deliberately NOT limit(1)-by-recency: if an older session got reopened or a
+    // stray newer test session is closed, taking "just the latest by timestamp"
+    // can pick a closed session over a genuinely open one for the same course.
     React.useEffect(() => {
         if (!enrolledCourses.length) { setSessionsByCourse({}); return; }
         const unsubs = enrolledCourses.map(cid =>
             db.collection('pollSessions')
                 .where('courseId', '==', cid)
                 .where('status', 'in', POLL_ACTIVE_STATUSES)
-                .orderBy('taughtOn', 'desc')
-                .limit(1)
                 .onSnapshot(snap => {
                     setSessionsByCourse(prev => ({
                         ...prev,
-                        [cid]: snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() },
+                        [cid]: snap.docs.map(d => ({ id: d.id, ...d.data() })),
                     }));
                 }, console.error)
         );
@@ -35,7 +36,7 @@ const PollStudent = () => {
 
     // Pick the session to show: an open round wins; otherwise the most recent one
     const session = React.useMemo(() => {
-        const candidates = Object.values(sessionsByCourse).filter(Boolean);
+        const candidates = Object.values(sessionsByCourse).flat().filter(Boolean);
         if (!candidates.length) return null;
         const open = candidates.find(s => s.status === 'round1_open' || s.status === 'round2_open');
         if (open) return open;
