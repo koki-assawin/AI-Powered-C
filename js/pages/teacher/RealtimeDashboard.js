@@ -9,6 +9,7 @@ const RealtimeDashboard = () => {
     const [subs, setSubs] = React.useState([]);
     const [assignments, setAssignments] = React.useState([]);
     const [lastUpdate, setLastUpdate] = React.useState(null);
+    const [riskAlerts, setRiskAlerts] = React.useState({}); // studentId -> {riskLevel, message, avg5, last3Scores} | null
     const chartRef = React.useRef(null);
     const chartInst = React.useRef(null);
 
@@ -70,6 +71,24 @@ const RealtimeDashboard = () => {
 
         return () => unsubs.forEach(fn => fn());
     }, [courseId]);
+
+    // Predictive Risk Alert (js/aiCoach.js) — analyzes each enrolled student's
+    // submission trend (declining scores, repeated failures on the same
+    // assignment) so the teacher can coach at-risk students proactively,
+    // instead of only reacting to the instant-trigger runtime alerts above.
+    // Re-run whenever the roster changes (course switch); results populate
+    // incrementally as each student's history comes back.
+    React.useEffect(() => {
+        setRiskAlerts({});
+        if (!students.length || typeof getPredictiveRiskAlert !== 'function') return;
+        let cancelled = false;
+        students.forEach(stu => {
+            getPredictiveRiskAlert(stu.id).then(result => {
+                if (!cancelled) setRiskAlerts(prev => ({ ...prev, [stu.id]: result }));
+            }).catch(() => { if (!cancelled) setRiskAlerts(prev => ({ ...prev, [stu.id]: null })); });
+        });
+        return () => { cancelled = true; };
+    }, [students]);
 
     // Rebuild bar chart when data changes
     React.useEffect(() => {
@@ -166,11 +185,12 @@ const RealtimeDashboard = () => {
                 </div>
 
                 {/* Stats bar */}
-                <div className="grid grid-cols-4 gap-3 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
                     {[
                         { label: 'นักเรียนทั้งหมด', val: students.length, icon: '👥', color: '#8b5cf6' },
                         { label: 'ส่งงานแล้ว', val: new Set(subs.map(s => s.studentId)).size, icon: '📨', color: '#06b6d4' },
                         { label: 'แจ้งเตือนฉุกเฉิน', val: alerts.length, icon: '🚨', color: alerts.length > 0 ? '#ef4444' : '#10b981' },
+                        { label: 'เสี่ยงตกกลุ่ม (พยากรณ์)', val: Object.values(riskAlerts).filter(Boolean).length, icon: '🔮', color: Object.values(riskAlerts).some(Boolean) ? '#f59e0b' : '#10b981' },
                         { label: 'Submissions', val: subs.length, icon: '📊', color: '#f59e0b' },
                     ].map(s => (
                         <div key={s.label} className="bg-gray-900/80 border rounded-xl p-4 text-center"
@@ -220,6 +240,52 @@ const RealtimeDashboard = () => {
                     )}
                 </div>
 
+                {/* ── Predictive Risk Alert (trend-based, from js/aiCoach.js) ── */}
+                <div className="mb-6">
+                    {(() => {
+                        const atRisk = students
+                            .map(stu => ({ stu, risk: riskAlerts[stu.id] }))
+                            .filter(x => x.risk)
+                            .sort((a, b) => (a.risk.riskLevel === 'high' ? 0 : 1) - (b.risk.riskLevel === 'high' ? 0 : 1));
+                        return (
+                            <>
+                                <h3 className="font-black text-lg mb-3 flex items-center gap-2" style={{ color: atRisk.length ? '#f59e0b' : '#10b981' }}>
+                                    {atRisk.length > 0 ? (
+                                        <>🔮 นักเรียนเสี่ยงตกกลุ่ม — คาดการณ์จากแนวโน้มคะแนน ({atRisk.length})</>
+                                    ) : (
+                                        <><span className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></span> ✅ ยังไม่มีนักเรียนที่มีแนวโน้มเสี่ยงตกกลุ่ม</>
+                                    )}
+                                </h3>
+                                {atRisk.length > 0 && (
+                                    <div className="space-y-2">
+                                        {atRisk.map(({ stu, risk }) => (
+                                            <div key={stu.id} className={`rounded-xl p-4 border-2 flex items-start justify-between gap-4 ${
+                                                risk.riskLevel === 'high' ? 'border-red-500' : 'border-yellow-500'}`}
+                                                style={{ background: risk.riskLevel === 'high' ? 'rgba(239,68,68,0.08)' : 'rgba(234,179,8,0.08)' }}>
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-2xl shrink-0">{risk.riskLevel === 'high' ? '🔴' : '🟡'}</span>
+                                                    <div>
+                                                        <p className={`font-black text-sm ${risk.riskLevel === 'high' ? 'text-red-200' : 'text-yellow-200'}`}>
+                                                            {stu.displayName || stu.email} — คะแนนเฉลี่ย 5 ครั้งล่าสุด {risk.avg5}%
+                                                        </p>
+                                                        <p className={`text-xs mt-1 ${risk.riskLevel === 'high' ? 'text-red-400' : 'text-yellow-400'}`}>
+                                                            {risk.message}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className={`shrink-0 text-xs font-bold px-2 py-1 rounded-lg border whitespace-nowrap ${
+                                                    risk.riskLevel === 'high' ? 'text-red-400 border-red-700/60 bg-red-900/30' : 'text-yellow-400 border-yellow-700/60 bg-yellow-900/30'}`}>
+                                                    {risk.riskLevel === 'high' ? 'เสี่ยงสูง' : 'เสี่ยงปานกลาง'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        );
+                    })()}
+                </div>
+
                 {/* ── Pre/Post Bar Chart ── */}
                 <div className="bg-gray-900/80 border border-purple-800/40 rounded-xl p-5 mb-6">
                     <h3 className="text-purple-300 font-black mb-4">📊 Pre-test vs Post-test เปรียบเทียบรายบุคคล (สำหรับฉายโปรเจคเตอร์)</h3>
@@ -245,14 +311,14 @@ const RealtimeDashboard = () => {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-gray-800">
-                                    {['นักเรียน', '🔬 Autopsy', '⚡ Quiz', '💻 Coding TC', '📈 Avg Score', '🚨 Runtime'].map(h => (
+                                    {['นักเรียน', '🔬 Autopsy', '⚡ Quiz', '💻 Coding TC', '📈 Avg Score', '🔮 เสี่ยง (พยากรณ์)', '🚨 Runtime'].map(h => (
                                         <th key={h} className={`px-4 py-3 text-xs font-semibold text-gray-400 ${h === 'นักเรียน' ? 'text-left' : 'text-center'}`}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-900">
                                 {students.length === 0 && (
-                                    <tr><td colSpan={6} className="text-center py-10 text-gray-600">
+                                    <tr><td colSpan={7} className="text-center py-10 text-gray-600">
                                         {courseId ? 'กำลังโหลดรายชื่อนักเรียน...' : 'เลือกวิชาก่อน'}
                                     </td></tr>
                                 )}
@@ -312,6 +378,20 @@ const RealtimeDashboard = () => {
                                                 {avg !== null
                                                     ? <span className={`font-black text-sm ${avg >= 80 ? 'text-green-400' : avg >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{avg}%</span>
                                                     : <span className="text-gray-700 text-xs">—</span>}
+                                            </td>
+
+                                            {/* Predictive risk */}
+                                            <td className="px-4 py-3 text-center">
+                                                {riskAlerts[stu.id] ? (
+                                                    <span className={`text-xs font-bold px-2 py-1 rounded-lg border whitespace-nowrap ${
+                                                        riskAlerts[stu.id].riskLevel === 'high'
+                                                            ? 'text-red-300 bg-red-950/60 border-red-800/50'
+                                                            : 'text-yellow-300 bg-yellow-950/60 border-yellow-800/50'}`}>
+                                                        {riskAlerts[stu.id].riskLevel === 'high' ? '🔴 สูง' : '🟡 ปานกลาง'}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-700 text-xs">—</span>
+                                                )}
                                             </td>
 
                                             {/* Runtime */}

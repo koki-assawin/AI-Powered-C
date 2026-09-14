@@ -145,6 +145,7 @@ const Navbar = ({ title, subtitle }) => {
     const teacherGroups = [
         { hash: '#/teacher/dashboard', label: 'แดชบอร์ด', icon: '🏠' },
         { hash: '#/teacher/poll',      label: 'Quick Poll', icon: '🗳️' },
+        { hash: '#/teacher/realtime',  label: 'Realtime Dashboard', icon: '📡' },
         {
             label: 'จัดการ', icon: '📁',
             children: [
