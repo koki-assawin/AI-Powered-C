@@ -34,6 +34,139 @@ const TEACHER_TOPIC_PRESETS = {
     ],
 };
 
+// ── Unit 5: Mini Project + AI Ethics — seed content ──────────────────────────
+// Matches the static topic content in js/pages/student/LearningHub.js (u5t1-u5t3).
+// Only the "Mini Project" topic (u5t1) is auto-gradable via Piston test cases;
+// "AI ช่วยเขียนโปรแกรม" and "จริยธรรม AI และ Peer Review" are reflective content
+// better served by a QuickPoll open-text question or a Loop-Autopsy-style activity.
+const UNIT5_UNIT_NAME = 'หน่วยที่ 5';
+const UNIT5_TOPIC_NAMES = ['Mini Project', 'AI ช่วยเขียนโปรแกรม', 'จริยธรรม AI และ Peer Review'];
+
+const UNIT5_ASSIGNMENTS = [
+    {
+        title: 'กิจกรรม 5-A: ระบบคำนวณเกรดเฉลี่ย',
+        difficulty: 'ยาก',
+        rawScore: 50,
+        description: `โครงการ Mini Project: ระบบคำนวณเกรดเฉลี่ยของนักเรียนในห้อง
+
+รับจำนวนนักเรียน N ตามด้วยคะแนนของนักเรียนแต่ละคน (จำนวนเต็ม 0-100) จำนวน N ค่า ให้คำนวณค่าเฉลี่ยของคะแนนทั้งหมด แล้วตัดเกรดตามเกณฑ์
+
+เกณฑ์การตัดเกรด: เฉลี่ย >= 80 ได้ A, >= 70 ได้ B, >= 60 ได้ C, >= 50 ได้ D, ต่ำกว่า 50 ได้ F
+
+รูปแบบการพิมพ์ผลลัพธ์ (ต้องตรงเป๊ะ):
+บรรทัดที่ 1: เฉลี่ย: X.XX (ทศนิยม 2 ตำแหน่ง)
+บรรทัดที่ 2: เกรด: X
+
+ตัวอย่าง
+Input:
+3
+80 85 90
+
+Output:
+เฉลี่ย: 85.00
+เกรด: A
+
+คำแนะนำ: เขียนแยกเป็นฟังก์ชัน calcAvg(int arr[], int n) และ getGrade(float avg) ตามตัวอย่างในบทเรียนหน่วยที่ 5`,
+        testCases: [
+            { input: '3\n80 85 90', expectedOutput: 'เฉลี่ย: 85.00\nเกรด: A\n', isHidden: false, points: 25 },
+            { input: '4\n60 65 70 75', expectedOutput: 'เฉลี่ย: 67.50\nเกรด: C\n', isHidden: false, points: 25 },
+            { input: '2\n45 40', expectedOutput: 'เฉลี่ย: 42.50\nเกรด: F\n', isHidden: true, points: 25 },
+            { input: '2\n70 70', expectedOutput: 'เฉลี่ย: 70.00\nเกรด: B\n', isHidden: true, points: 25 },
+        ],
+    },
+    {
+        title: 'กิจกรรม 5-B: คลังคะแนน',
+        difficulty: 'ปานกลาง',
+        rawScore: 15,
+        description: `โครงการ Mini Project: คลังคะแนน — สรุปคะแนนสูงสุด ต่ำสุด และผลรวม
+
+รับจำนวนข้อมูล N ตามด้วยจำนวนเต็ม N ค่า (มีทั้งบวกและลบได้) ให้หาค่าสูงสุด ต่ำสุด และผลรวมของค่าทั้งหมด
+
+รูปแบบการพิมพ์ผลลัพธ์:
+สูงสุด: X
+ต่ำสุด: X
+รวม: X
+
+ตัวอย่าง
+Input:
+3
+5 9 2
+
+Output:
+สูงสุด: 9
+ต่ำสุด: 2
+รวม: 16
+
+คำแนะนำ: ใช้ตัวแปรเก็บค่า max, min เริ่มต้นด้วยค่าตัวแรกของข้อมูล แล้ววนเปรียบเทียบทีละตัว`,
+        testCases: [
+            { input: '3\n5 9 2', expectedOutput: 'สูงสุด: 9\nต่ำสุด: 2\nรวม: 16\n', isHidden: false, points: 25 },
+            { input: '1\n7', expectedOutput: 'สูงสุด: 7\nต่ำสุด: 7\nรวม: 7\n', isHidden: false, points: 25 },
+            { input: '5\n-3 10 0 4 -8', expectedOutput: 'สูงสุด: 10\nต่ำสุด: -8\nรวม: 3\n', isHidden: true, points: 25 },
+            { input: '4\n100 100 100 100', expectedOutput: 'สูงสุด: 100\nต่ำสุด: 100\nรวม: 400\n', isHidden: true, points: 25 },
+        ],
+    },
+    {
+        title: 'กิจกรรม 5-C: จำลองเกมทายเลข',
+        difficulty: 'ปานกลาง',
+        rawScore: 15,
+        description: `โครงการ Mini Project: จำลองเกมทายเลข
+
+โปรแกรมรับ "เลขลับ" หนึ่งค่า ตามด้วยจำนวนครั้งที่ทาย K และตัวเลขที่ทายทั้ง K ค่าตามลำดับ ให้ประมวลผลทีละครั้งตามกติกา
+- ถ้าค่าที่ทายน้อยกว่าเลขลับ ให้พิมพ์ ต่ำไป
+- ถ้าค่าที่ทายมากกว่าเลขลับ ให้พิมพ์ สูงไป
+- ถ้าค่าที่ทายตรงกับเลขลับ ให้พิมพ์ ถูกต้อง! ทายถูกในครั้งที่ X (X คือลำดับครั้งที่ทายถูก นับจาก 1) แล้วหยุดโปรแกรมทันที ไม่ต้องประมวลผลค่าที่เหลือ
+- ถ้าทายครบ K ครั้งแล้วยังไม่ถูก ให้พิมพ์ หมดโอกาสทาย เฉลยคือ X (X คือเลขลับ)
+
+ตัวอย่าง
+Input:
+50
+3
+30 70 50
+
+Output:
+ต่ำไป
+สูงไป
+ถูกต้อง! ทายถูกในครั้งที่ 3
+
+คำแนะนำ: ใช้ลูป for วนตามจำนวนครั้ง K แต่ใช้ break เมื่อทายถูก`,
+        testCases: [
+            { input: '50\n3\n30 70 50', expectedOutput: 'ต่ำไป\nสูงไป\nถูกต้อง! ทายถูกในครั้งที่ 3\n', isHidden: false, points: 30 },
+            { input: '10\n1\n10', expectedOutput: 'ถูกต้อง! ทายถูกในครั้งที่ 1\n', isHidden: false, points: 30 },
+            { input: '5\n2\n1 2', expectedOutput: 'ต่ำไป\nต่ำไป\nหมดโอกาสทาย เฉลยคือ 5\n', isHidden: true, points: 40 },
+        ],
+    },
+    {
+        title: 'กิจกรรม 5-D: เมนูโปรแกรมบูรณาการ',
+        difficulty: 'ยาก',
+        rawScore: 20,
+        description: `โครงการ Mini Project: เมนูโปรแกรมบูรณาการ
+
+สร้างโปรแกรมเมนูที่วนรับคำสั่งจากผู้ใช้จนกว่าจะเลือกออกจากโปรแกรม
+- เลือก 1: รับอุณหภูมิองศาเซลเซียส แล้วแปลงเป็นฟาเรนไฮต์ ด้วยสูตร F = C*9/5+32 พิมพ์ F = X.XX
+- เลือก 2: รับรัศมีวงกลม แล้วคำนวณพื้นที่วงกลมด้วยสูตร พื้นที่ = 3.14159 * r * r พิมพ์ พื้นที่ = X.XX
+- เลือก 3: พิมพ์ จบโปรแกรม แล้วจบการทำงานทันที (ไม่ต้องอ่านคำสั่งเพิ่ม)
+
+Input เป็นชุดคำสั่งเรียงต่อกัน (เลขเมนู ตามด้วยค่าที่เกี่ยวข้องถ้ามี) จนจบด้วยคำสั่ง 3 เสมอ
+
+ตัวอย่าง
+Input:
+1
+0
+3
+
+Output:
+F = 32.00
+จบโปรแกรม
+
+คำแนะนำ: แยกการแปลงหน่วยและการคำนวณพื้นที่เป็นฟังก์ชันของตัวเอง แล้ววนลูปรับเมนูด้วย while(1) ร่วมกับ switch-case`,
+        testCases: [
+            { input: '1\n0\n3', expectedOutput: 'F = 32.00\nจบโปรแกรม\n', isHidden: false, points: 35 },
+            { input: '2\n10\n1\n100\n3', expectedOutput: 'พื้นที่ = 314.16\nF = 212.00\nจบโปรแกรม\n', isHidden: false, points: 35 },
+            { input: '3', expectedOutput: 'จบโปรแกรม\n', isHidden: true, points: 30 },
+        ],
+    },
+];
+
 // Migrate old tree format (with groups) to new flat format
 const migrateTree = (tree) => {
     if (!Array.isArray(tree)) return [];
@@ -84,6 +217,7 @@ const AssignmentManager = () => {
     const [msg, setMsg] = React.useState('');
     const [tab, setTab] = React.useState('list'); // 'list' | 'directory' | 'edit'
     const [showHidden, setShowHidden] = React.useState(false);
+    const [seedingUnit5, setSeedingUnit5] = React.useState(false);
 
     React.useEffect(() => { if (courseId) loadData(); }, [courseId]);
 
@@ -273,6 +407,66 @@ const AssignmentManager = () => {
         setTimeout(() => setMsg(''), 3000);
     };
 
+    // Seed the 4 auto-gradable Unit 5 "Mini Project" assignments (+ test cases)
+    // for the currently-open course. Created as isPublished:false so the teacher
+    // reviews before publishing. Safe to click more than once — skips any
+    // assignment whose title already exists for this course.
+    const seedUnit5 = async () => {
+        setSeedingUnit5(true);
+        setMsg('');
+        try {
+            if (!directoryTree.some(u => u.name === UNIT5_UNIT_NAME)) {
+                const newTree = [...directoryTree, { name: UNIT5_UNIT_NAME, topics: UNIT5_TOPIC_NAMES }];
+                await db.collection('courses').doc(courseId).update({ directoryTree: newTree });
+                setDirectoryTree(newTree);
+                setCourse(c => ({ ...c, directoryTree: newTree }));
+            }
+
+            const existingTitles = new Set(assignments.map(a => a.title));
+            let created = 0;
+            for (const spec of UNIT5_ASSIGNMENTS) {
+                if (existingTitles.has(spec.title)) continue;
+                const ref = await db.collection('assignments').add({
+                    title: spec.title,
+                    description: spec.description,
+                    difficulty: spec.difficulty,
+                    rawScore: spec.rawScore,
+                    language: 'c',
+                    unitName: UNIT5_UNIT_NAME,
+                    topicName: 'Mini Project',
+                    timeLimit: 5000,
+                    memoryLimit: 256,
+                    isPublished: false,
+                    assignmentType: 'practice',
+                    examDurationMinutes: 30,
+                    courseId,
+                    totalPoints: 0,
+                    createdAt: serverTimestamp(),
+                });
+                const batch = db.batch();
+                let total = 0;
+                spec.testCases.forEach((tc, i) => {
+                    batch.set(db.collection('testCases').doc(), {
+                        assignmentId: ref.id, input: tc.input, expectedOutput: tc.expectedOutput,
+                        isHidden: tc.isHidden, points: tc.points, order: i + 1,
+                    });
+                    total += tc.points;
+                });
+                await batch.commit();
+                await db.collection('assignments').doc(ref.id).update({ totalPoints: total });
+                created++;
+            }
+            setMsg(created > 0
+                ? `✅ เพิ่มโจทย์หน่วยที่ 5 สำเร็จ ${created} ข้อ (ยังไม่เผยแพร่ — ตรวจสอบเนื้อหาก่อนกดเผยแพร่)`
+                : 'ℹ️ โจทย์หน่วยที่ 5 มีอยู่แล้วครบทุกข้อ ไม่มีการเพิ่มซ้ำ');
+            loadData();
+        } catch (err) {
+            setMsg('❌ เพิ่มโจทย์ไม่สำเร็จ: ' + err.message);
+        } finally {
+            setSeedingUnit5(false);
+        }
+    };
+
     const deleteAssignment = async (id) => {
         if (!confirm('ยืนยันการลบโจทย์นี้?')) return;
         await db.collection('assignments').doc(id).delete();
@@ -385,6 +579,17 @@ const AssignmentManager = () => {
 
                         return (
                             <div className="space-y-3">
+                                <div className="flex items-center justify-between rounded-xl px-4 py-3 mb-2"
+                                    style={{ background: '#FEF3C7', border: '1px solid #FDE68A' }}>
+                                    <span className="text-sm" style={{ color: '#92400E' }}>
+                                        🚀 โจทย์หน่วยที่ 5 (Mini Project) 4 ข้อ พร้อม test case — สร้างเป็นแบบร่าง (ยังไม่เผยแพร่)
+                                    </span>
+                                    <button onClick={seedUnit5} disabled={seedingUnit5}
+                                        className="px-4 py-1.5 rounded-lg text-sm font-bold text-white disabled:opacity-50"
+                                        style={{ background: '#D97706' }}>
+                                        {seedingUnit5 ? 'กำลังเพิ่ม...' : '➕ เพิ่มโจทย์หน่วยที่ 5'}
+                                    </button>
+                                </div>
                                 {assignments.length > 0 && (
                                     <div className="flex items-center justify-between rounded-xl px-4 py-3 mb-2"
                                         style={{ background: '#FFF5F7', border: '1px solid #FFD1DC' }}>
