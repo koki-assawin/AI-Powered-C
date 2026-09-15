@@ -608,8 +608,14 @@ const StudentActivityView = () => {
         if (!assignmentId || assignmentId === 'activity') { setLoading(false); return; }
         db.collection('assignments_v2').doc(assignmentId).get()
             .then(doc => {
-                if (doc.exists) setAssignment({ id: doc.id, ...doc.data() });
-                else setError('ไม่พบกิจกรรมนี้');
+                // Students can't reach an unpublished activity even by guessing its ID;
+                // teachers/admins still can, since this page doubles as their preview.
+                const isStudent = userDoc?.role === 'student';
+                if (doc.exists && (!isStudent || doc.data().isPublished !== false)) {
+                    setAssignment({ id: doc.id, ...doc.data() });
+                } else {
+                    setError('ไม่พบกิจกรรมนี้');
+                }
             })
             .catch(err => setError(err.message))
             .finally(() => setLoading(false));

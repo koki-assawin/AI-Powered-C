@@ -47,6 +47,7 @@ const Gradebook = () => {
             ]);
             const assigns = assignSnap.docs
                 .map(d => ({ id: d.id, ...d.data() }))
+                .filter(a => a.isPublished !== false) // hidden assignments must never reach the student
                 .sort((a, b) => {
                     const ud = unitNo(a.unitName) - unitNo(b.unitName);
                     return ud !== 0 ? ud : (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);

@@ -20,7 +20,7 @@ const _SelfRadarSection = ({ uid }) => {
         ]).then(([subSnap, assignSnap]) => {
             if (!alive) return;
             setSubs(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-            setTotalAssign(assignSnap.size);
+            setTotalAssign(assignSnap.docs.filter(d => d.data().isPublished !== false).length);
             setLoading(false);
         }).catch(() => { if (alive) setLoading(false); });
         return () => { alive = false; };
