@@ -960,7 +960,10 @@ const StudentAnalytics = () => {
                                     // Exclude unpublished (hidden) assignments/activities — a teacher who
                                     // hides a question from students shouldn't still see its column, nor
                                     // have its points still counted in the grand-total denominator.
-                                    const visibleAssignments = assignments.filter(a => a.isPublished !== false);
+                                    // Also exclude items with no unitName set: this table is a per-unit
+                                    // raw-score breakdown, so an activity without a unit (e.g. a pre/post
+                                    // test scored out of 100) doesn't belong in the "ไม่ระบุหน่วย" bucket here.
+                                    const visibleAssignments = assignments.filter(a => a.isPublished !== false && a.unitName);
                                     const unitNames = [];
                                     const unitMap = {};
                                     [...visibleAssignments]
