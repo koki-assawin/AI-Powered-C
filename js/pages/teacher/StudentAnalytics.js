@@ -957,9 +957,13 @@ const StudentAnalytics = () => {
                                 {/* ─── TAB 3: SUMMARY SCORES ─── */}
                                 {activeTab === 'summary' && (() => {
                                     // Group assignments by unitName sorted by unit number
+                                    // Exclude unpublished (hidden) assignments/activities — a teacher who
+                                    // hides a question from students shouldn't still see its column, nor
+                                    // have its points still counted in the grand-total denominator.
+                                    const visibleAssignments = assignments.filter(a => a.isPublished !== false);
                                     const unitNames = [];
                                     const unitMap = {};
-                                    [...assignments]
+                                    [...visibleAssignments]
                                         .sort((a, b) => {
                                             const d = unitNo(a.unitName) - unitNo(b.unitName);
                                             return d !== 0 ? d : (a.title||'').localeCompare(b.title||'', 'th');
@@ -992,8 +996,8 @@ const StudentAnalytics = () => {
                                         if ((sub.score || 0) > cur) bestScore[sub.studentId][sub.assignmentId] = sub.score || 0;
                                     });
 
-                                    const hasRawScore = assignments.some(a => a.rawScore > 0);
-                                    const totalRaw = assignments.reduce((s, a) => s + (a.rawScore || 0), 0);
+                                    const hasRawScore = visibleAssignments.some(a => a.rawScore > 0);
+                                    const totalRaw = visibleAssignments.reduce((s, a) => s + (a.rawScore || 0), 0);
 
                                     // Export CSV
                                     const exportCSV = () => {
@@ -1035,7 +1039,7 @@ const StudentAnalytics = () => {
                                                 <div>
                                                     <h3 className="font-bold text-gray-700">📋 สรุปคะแนนดิบทุกคน (E1)</h3>
                                                     {hasRawScore
-                                                        ? <p className="text-xs text-gray-400 mt-0.5">คะแนนเต็มรวม {totalRaw} คะแนน · {enrollments.length} คน · {assignments.length} โจทย์</p>
+                                                        ? <p className="text-xs text-gray-400 mt-0.5">คะแนนเต็มรวม {totalRaw} คะแนน · {enrollments.length} คน · {visibleAssignments.length} โจทย์</p>
                                                         : <p className="text-xs text-orange-500 mt-0.5">⚠️ ยังไม่มีข้อมูลคะแนนดิบ</p>
                                                     }
                                                 </div>
@@ -1168,10 +1172,10 @@ const StudentAnalytics = () => {
                                                         {/* Average row */}
                                                         {enrollments.length > 0 && (() => {
                                                             const totals = {};
-                                                            assignments.forEach(a => { totals[a.id] = 0; });
+                                                            visibleAssignments.forEach(a => { totals[a.id] = 0; });
                                                             let grandSum = 0;
                                                             enrollments.forEach(e => {
-                                                                assignments.forEach(a => {
+                                                                visibleAssignments.forEach(a => {
                                                                     const pct = bestScore[e.studentId]?.[a.id] || 0;
                                                                     const earned = a.rawScore > 0 ? Math.round(pct * a.rawScore / 100) : 0;
                                                                     totals[a.id] += earned;
