@@ -91,10 +91,15 @@ ${levels[level]}
 - ตอบเป็นภาษาไทย กระชับ ไม่เกิน 150 คำ ใช้ emoji ได้ 1-2 ตัว`;
 
     try {
-        let response = await callGeminiApi(prompt);
-        if (level === 4 && diagnosis && typeof buildLocalHint === 'function') {
-            // Guarantee a precise pointer even if the AI phrasing stays general
-            response = `${response.trim()}\n\n${buildLocalHint(4, diagnosis, { code, language, title: assignmentTitle })}`;
+        let response = (await callGeminiApi(prompt)).trim();
+        if (diagnosis && localHint) {
+            if (level === 4) {
+                // Guarantee a precise pointer even if the AI phrasing stays general
+                response = `${response}\n\n${buildLocalHint(4, diagnosis, { code, language, title: assignmentTitle })}`;
+            } else {
+                // Same "which test failed" header as the local hint, so every hint is visibly tied to this failure
+                response = `${localHint.split('\n')[0]}\n\n${response}`;
+            }
         }
         await _logCoachInteraction(uid, 'socratic', `hint_level_${level}`, assignmentTitle,
             `title: ${assignmentTitle}, level: ${level}, diag: ${diagnosis ? diagnosis.category : 'none'}`, response);
