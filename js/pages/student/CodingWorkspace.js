@@ -37,6 +37,8 @@ const CodingWorkspace = () => {
     const [scaffoldHint, setScaffoldHint] = React.useState('');
     const [hintLoading, setHintLoading] = React.useState(false);
     const [hintLevel, setHintLevel] = React.useState(0); // 0=no hint yet, 1/2/3=level shown
+    const hintSourceRef = React.useRef(null);        // gradeResult the current hint was built from
+    const submittedCodeRef = React.useRef('');       // code as submitted, so hint line numbers match
 
     // Exam Mode state
     const [examTimeLeft, setExamTimeLeft] = React.useState(null); // seconds
@@ -183,20 +185,23 @@ const CodingWorkspace = () => {
         }
     };
 
-    const handleHint = async () => {
+    // reanalyze=true: same level again, for the latest submission (after the student fixed something)
+    const handleHint = async (reanalyze) => {
         if (!currentAssignment) return;
-        const nextLevel = Math.min(hintLevel + 1, 4);
+        const nextLevel = reanalyze === true ? Math.max(hintLevel, 1) : Math.min(hintLevel + 1, 4);
         setHintLevel(nextLevel);
         if (typeof logUsageEvent === 'function') logUsageEvent(userDoc?.id, 'ai_hint', { courseId, assignmentId: currentAssignment.id, hintLevel: nextLevel, userType: userDoc?.role || 'student' });
         setHintLoading(true);
         setScaffoldHint('');
+        hintSourceRef.current = gradeResult;
         try {
             // Use Socratic Coach (Phase 2) if available, else fall back to legacy
             let hint;
             if (typeof getSocraticHint === 'function') {
                 hint = await getSocraticHint(
                     userDoc?.id, currentAssignment.title, currentAssignment.description,
-                    code, selectedLanguage, nextLevel
+                    submittedCodeRef.current || code, selectedLanguage, nextLevel,
+                    gradeResult?.testResults || []
                 );
             } else {
                 const failedTests = (gradeResult?.testResults || []).filter(r => !r.passed);
@@ -221,6 +226,8 @@ const CodingWorkspace = () => {
         setAiResult(null);
         setScaffoldHint('');
         setHintLevel(0);
+        hintSourceRef.current = null;
+        submittedCodeRef.current = '';
         setExamStarted(false);
         setExamTimeLeft(null);
         setExamFinished(false);
@@ -283,6 +290,7 @@ const CodingWorkspace = () => {
         setSubmitting(true);
         setGradeResult(null);
         setView('grade');
+        submittedCodeRef.current = code;
         try {
             const result = userDoc.isGuest
                 ? await gradeForGuest(currentAssignment.id, code, selectedLanguage)
@@ -1496,6 +1504,14 @@ const CodingWorkspace = () => {
                                                                         style={{ fontSize: '11px', color: '#ec4899', background: 'none',
                                                                                  border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
                                                                         ขอระดับ {hintLevel + 1} →
+                                                                    </button>
+                                                                )}
+                                                                {hintSourceRef.current !== gradeResult && (
+                                                                    <button onClick={() => handleHint(true)}
+                                                                        title="วิเคราะห์ผลการส่งครั้งล่าสุดอีกครั้ง ที่ระดับเดิม"
+                                                                        style={{ fontSize: '11px', color: '#2563eb', background: 'none',
+                                                                                 border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                                                                        🔄 วิเคราะห์โค้ดที่ส่งล่าสุด
                                                                     </button>
                                                                 )}
                                                             </div>

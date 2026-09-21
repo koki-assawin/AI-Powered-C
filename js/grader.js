@@ -170,6 +170,7 @@ const runSingleTest = async (code, language, testCase) => {
                     executionTime: Date.now() - startTime,
                     errorLog: `Compile service unavailable: ${pistonErr.message}`,
                     isCompileError: false,
+                    input: testCase.input || '', isHidden: !!testCase.isHidden,
                 };
             }
         }
@@ -184,7 +185,10 @@ const runSingleTest = async (code, language, testCase) => {
     const errorLog       = compilerError || runtimeError || null;
     const isCompileError = !!compilerError && !data.program_output;
 
-    return { testCaseId: testCase.id, passed, actualOutput, expectedOutput, executionTime: execTime, errorLog, isCompileError };
+    return {
+        testCaseId: testCase.id, passed, actualOutput, expectedOutput, executionTime: execTime, errorLog, isCompileError,
+        input: testCase.input || '', isHidden: !!testCase.isHidden,
+    };
 };
 
 // Run code against visible test cases only (for student preview)

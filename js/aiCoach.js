@@ -44,41 +44,66 @@ async function getMindsetCoach(uid, assignmentTitle, failCount) {
 }
 
 // ── 2. SOCRATIC COACH (Explore) ───────────────────────────────────────────────
-// 4-level progressive hints: Question → Concept → Scaffold → Error Pattern
-async function getSocraticHint(uid, assignmentTitle, assignmentDescription, code, language, hintLevel) {
+// 4-level progressive hints: Question → Concept → Scaffold → Error Pattern.
+// Every level is grounded in the student's actual failing test (js/hintEngine.js):
+// which output line differs, expected vs actual, compiler/runtime error, and static
+// findings in their code. Gemini phrases the Socratic hint around that diagnosis; if
+// Gemini is unavailable (e.g. rate-limited with a whole class asking at once), the
+// local engine's problem-specific hint is used instead of a generic canned message.
+async function getSocraticHint(uid, assignmentTitle, assignmentDescription, code, language, hintLevel, testResults) {
+    const level = Math.min(Math.max(hintLevel || 1, 1), 4);
+    const diagnosis = typeof diagnoseFailure === 'function' ? diagnoseFailure(code, language, testResults) : null;
+    const localHint = typeof buildLocalHint === 'function'
+        ? buildLocalHint(level, diagnosis, { code, language, title: assignmentTitle })
+        : null;
+
     const levels = {
-        1: `ตั้งคำถามกระตุ้นความคิด (Socratic) อย่างน้อย 2 คำถาม ห้ามบอกคำตอบหรือให้โค้ดเด็ดขาด เช่น "ลองคิดดูว่า loop ควรหยุดเมื่อไหร่?" "อะไรจะเกิดขึ้นถ้า input เป็น 0?"`,
-        2: `อธิบาย concept หลักที่จำเป็นสำหรับโจทย์นี้ พร้อมตัวอย่างที่คล้ายแต่ไม่ใช่โจทย์นี้เลย ห้ามบอกคำตอบโจทย์`,
-        3: `ให้ pseudocode หรือโครงสร้าง algorithm ทีละขั้นตอน เช่น "1.รับค่า → 2.วนซ้ำ → 3.เก็บผลลัพธ์" แต่ยังไม่ใช่โค้ดสมบูรณ์`,
-        4: `วิเคราะห์โค้ดของนักเรียนที่ส่งมา บอก error pattern ที่พบ (เช่น off-by-one, wrong condition, missing initialization) อธิบายว่าตรรกะผิดพลาดตรงไหนและควรคิดอย่างไร ไม่ต้องแก้โค้ดให้ทั้งหมด`,
+        1: `ระดับ 1 (คำถาม): ตั้งคำถามแบบโสเครติส 1-2 คำถามที่ชี้ความสนใจไปยังจุดผิดพลาดที่ระบบตรวจพบด้านล่าง "โดยตรง" (ระบุบรรทัดผลลัพธ์/บรรทัดโค้ดได้) ให้นักเรียนค้นพบเอง ห้ามบอกวิธีแก้ ห้ามให้โค้ด`,
+        2: `ระดับ 2 (Concept): อธิบายหลักการ/แนวคิดที่อยู่เบื้องหลังข้อผิดพลาดประเภทนี้ พร้อมตัวอย่างสั้นที่ไม่ใช่โจทย์ข้อนี้ แล้วชวนให้นำไปตรวจโค้ดตัวเอง ห้ามเฉลยโจทย์`,
+        3: `ระดับ 3 (Scaffold): ให้ขั้นตอนเป็นข้อๆ (หรือ pseudocode / ตารางติดตามค่าด้วย input ของเคสที่ผิด) ที่นักเรียนทำตามแล้วจะหาจุดผิดเจอเอง ยังไม่ใช่โค้ดที่แก้เสร็จ`,
+        4: `ระดับ 4 (Error Pattern): ระบุจุดผิดอย่างเจาะจง — บรรทัดโค้ดที่เป็นสาเหตุ ผลลัพธ์ที่ควรได้กับที่ได้ ชื่อรูปแบบข้อผิดพลาด (เช่น off-by-one, integer division, case mismatch, uninitialized variable) และเหตุผลว่าทำไมผิด แต่ไม่เขียนโค้ดที่แก้เสร็จแล้วให้`,
     };
 
-    const prompt = `คุณคือ Socratic Coach ผู้เชี่ยวชาญ Zone of Proximal Development สอนโปรแกรมภาษา ${language}
+    const numbered = (code || '').split('\n').map((l, i) => `${i + 1}| ${l}`).join('\n').slice(0, 1500);
+    const diagText = typeof describeDiagnosisForPrompt === 'function'
+        ? describeDiagnosisForPrompt(diagnosis, code, language)
+        : 'ไม่มีข้อมูลการตรวจ';
+
+    const prompt = `คุณคือ Socratic Coach สอนเขียนโปรแกรมภาษา ${language} ให้นักเรียน ม.4 ตามหลัก Zone of Proximal Development (ช่วยพอดีระดับที่ติดขัด ไม่เฉลย)
 
 โจทย์: "${assignmentTitle}"
-รายละเอียด: ${(assignmentDescription || '').slice(0, 300)}
-โค้ดนักเรียน:
+รายละเอียดโจทย์: ${(assignmentDescription || '').slice(0, 700)}
+
+โค้ดของนักเรียน (ตัวเลขหน้าบรรทัดคือหมายเลขบรรทัด):
 \`\`\`${language}
-${(code || '').slice(0, 800)}
+${numbered}
 \`\`\`
 
-ระดับ Hint ${hintLevel}/4: ${levels[hintLevel] || levels[1]}
+ผลการตรวจอัตโนมัติจากระบบ (ข้อเท็จจริงที่ตรวจแล้ว ใช้เป็นหลักในการใบ้):
+${diagText}
 
-ตอบเป็นภาษาไทย ไม่เกิน 180 คำ ${hintLevel < 3 ? 'ห้ามให้โค้ดสมบูรณ์' : ''}`;
+${levels[level]}
+
+กฎ:
+- ต้องอ้างถึงจุดผิดพลาดที่ระบบตรวจพบข้างต้นของโจทย์ข้อนี้โดยเฉพาะ ห้ามให้คำแนะนำกว้างๆ ที่ใช้ได้กับทุกโจทย์
+- ถ้าเป็นเคสซ่อน ห้ามเปิดเผย input หรือผลลัพธ์ที่ถูกต้องทั้งหมดของเคสนั้น
+- ห้ามเขียนโค้ดที่แก้เสร็จแล้ว
+- ตอบเป็นภาษาไทย กระชับ ไม่เกิน 150 คำ ใช้ emoji ได้ 1-2 ตัว`;
 
     try {
-        const response = await callGeminiApi(prompt);
-        await _logCoachInteraction(uid, 'socratic', `hint_level_${hintLevel}`, assignmentTitle,
-            `title: ${assignmentTitle}, level: ${hintLevel}`, response);
+        let response = await callGeminiApi(prompt);
+        if (level === 4 && diagnosis && typeof buildLocalHint === 'function') {
+            // Guarantee a precise pointer even if the AI phrasing stays general
+            response = `${response.trim()}\n\n${buildLocalHint(4, diagnosis, { code, language, title: assignmentTitle })}`;
+        }
+        await _logCoachInteraction(uid, 'socratic', `hint_level_${level}`, assignmentTitle,
+            `title: ${assignmentTitle}, level: ${level}, diag: ${diagnosis ? diagnosis.category : 'none'}`, response);
         return response;
     } catch (err) {
-        const fallbacks = {
-            1: `💡 ลองคิดดูว่า: โปรแกรมควรหยุดทำงานเมื่อไหร่? ตัวแปรใดที่เปลี่ยนแปลงในแต่ละรอบ?`,
-            2: `💡 แนวคิดที่เกี่ยวข้อง: แบ่งปัญหาออกเป็นขั้นตอนย่อยๆ แล้วแก้ทีละส่วน`,
-            3: `💡 โครงสร้าง: 1.รับ input → 2.ประมวลผล (loop/condition) → 3.แสดงผล`,
-            4: `💡 ตรวจสอบ: เงื่อนไข loop, การ initialize ตัวแปร, และ format ผลลัพธ์`,
-        };
-        return fallbacks[hintLevel] || fallbacks[1];
+        const fallback = localHint || '💡 ลองส่งงานใหม่อีกครั้ง ระบบจะวิเคราะห์ผลการทดสอบเพื่อให้คำใบ้ที่ตรงจุด';
+        await _logCoachInteraction(uid, 'socratic', `hint_level_${level}_local`, assignmentTitle,
+            `title: ${assignmentTitle}, level: ${level}, diag: ${diagnosis ? diagnosis.category : 'none'}, ai_error: ${err.message}`, fallback);
+        return fallback;
     }
 }
 

@@ -10,6 +10,9 @@ const _GEMINI_ENDPOINTS = [
     { endpoint: 'v1',     model: 'gemini-2.5-flash' },
     { endpoint: 'v1beta', model: 'gemini-2.5-flash-lite' },
     { endpoint: 'v1',     model: 'gemini-2.5-flash-lite' },
+    // Rolling aliases Google points at the current Flash models — survive future model retirements
+    { endpoint: 'v1beta', model: 'gemini-flash-latest' },
+    { endpoint: 'v1beta', model: 'gemini-flash-lite-latest' },
 ];
 
 const _extractJSON = (text) =>
