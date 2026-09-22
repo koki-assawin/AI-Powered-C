@@ -31,7 +31,7 @@ const ACHIEVEMENTS = [
         nameTh: 'No Hint Hero',
         nameEn: 'No Hint Hero',
         icon: '🧠',
-        desc: 'ผ่านโจทย์ Hard โดยไม่ใช้ Hint',
+        desc: 'ผ่านโจทย์ Hard โดยไม่ใช้ AI Scaffolding (คำใบ้)',
         category: 'skill',
         rarity: 'rare',
         xpReward: 200, coinReward: 30, crystalReward: 2,

@@ -36,7 +36,7 @@ const CodingWorkspace = () => {
     // AI Scaffolding state
     const [scaffoldHint, setScaffoldHint] = React.useState('');
     const [hintLoading, setHintLoading] = React.useState(false);
-    const [hintLevel, setHintLevel] = React.useState(0); // 0=no hint yet, 1/2/3=level shown
+    const [hintLevel, setHintLevel] = React.useState(0); // 0=no hint yet, 1-4=level shown
     const hintSourceRef = React.useRef(null);        // gradeResult the current hint was built from
     const submittedCodeRef = React.useRef('');       // code as submitted, so hint line numbers match
 
@@ -213,7 +213,7 @@ const CodingWorkspace = () => {
             }
             setScaffoldHint(hint);
         } catch (err) {
-            setScaffoldHint('ขออภัย ไม่สามารถขอคำใบ้ได้: ' + err.message);
+            setScaffoldHint('ขออภัย ไม่สามารถขอ AI Scaffolding (คำใบ้) ได้: ' + err.message);
         } finally {
             setHintLoading(false);
         }
@@ -1447,10 +1447,13 @@ const CodingWorkspace = () => {
                                                             💡 AI Scaffolding (คำใบ้)
                                                         </span>
                                                         <span className="text-xs text-gray-400">
-                                                            {hintLevel > 0 ? `ใบ้แล้ว ${hintLevel}/4 ระดับ` : 'ยังไม่ได้ขอใบ้'}
+                                                            {hintLevel > 0 ? `ใช้แล้ว ${hintLevel}/4 ระดับ` : 'ยังไม่ได้ขอคำใบ้'}
                                                             {runCount > 0 && <span style={{ marginLeft: 8, color: '#60a5fa' }}>▶ Run {runCount}×</span>}
                                                         </span>
                                                     </div>
+                                                    <p className="text-xs text-gray-500 mb-2">
+                                                        คำใบ้ไล่ระดับแบบโสเครติส 4 ระดับ — เริ่มจากคำถามชวนคิด แล้วค่อยเพิ่มความช่วยเหลือทีละขั้น
+                                                    </p>
 
                                                     {/* Hint level progress */}
                                                     <div className="flex gap-2 mb-3">
@@ -1479,13 +1482,13 @@ const CodingWorkspace = () => {
                                                     {hintLevel === 0 && !hintLoading && (
                                                         <button onClick={handleHint} className="k-btn-pink"
                                                             style={{ width: '100%', padding: '10px', fontSize: '13px' }}>
-                                                            💡 ขอคำใบ้ระดับที่ 1
+                                                            💡 ขอ AI Scaffolding (คำใบ้) ระดับที่ 1
                                                         </button>
                                                     )}
 
                                                     {hintLoading && (
                                                         <div className="text-center py-4">
-                                                            <Spinner text="AI กำลังสร้างคำใบ้..." />
+                                                            <Spinner text="AI Scaffolding กำลังสร้างคำใบ้..." />
                                                         </div>
                                                     )}
 

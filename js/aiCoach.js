@@ -29,7 +29,7 @@ async function getMindsetCoach(uid, assignmentTitle, failCount) {
 เขียนข้อความให้กำลังใจเป็นภาษาไทยที่:
 1. เป็นมิตร อบอุ่น ไม่ตัดสิน (1-2 ประโยค)
 2. บอกว่า "ผิดพลาดคือส่วนหนึ่งของการเรียนรู้" (1 ประโยค)
-3. แนะนำให้ลองวิธีใหม่ เช่น อ่านโจทย์ใหม่ หรือลองใช้ Hint (1 ประโยค)
+3. แนะนำให้ลองวิธีใหม่ เช่น อ่านโจทย์ใหม่ หรือลองใช้ "AI Scaffolding (คำใบ้)" (1 ประโยค) — เรียกชื่อนี้ตรงตัว
 
 ความยาวรวม: ไม่เกิน 4 ประโยค ใช้ emoji 1-2 ตัว`;
 
@@ -39,7 +39,7 @@ async function getMindsetCoach(uid, assignmentTitle, failCount) {
             `assignment: ${assignmentTitle}, failCount: ${failCount}`, response);
         return response;
     } catch (err) {
-        return `💪 อย่าท้อนะ! การพยายามทำซ้ำคือสิ่งที่ทำให้โปรแกรมเมอร์เก่งขึ้น ลองอ่านโจทย์ช้าๆ อีกครั้งหรือลองใช้ Hint ดูนะ`;
+        return `💪 อย่าท้อนะ! การพยายามทำซ้ำคือสิ่งที่ทำให้โปรแกรมเมอร์เก่งขึ้น ลองอ่านโจทย์ช้าๆ อีกครั้งหรือลองใช้ AI Scaffolding (คำใบ้) ดูนะ`;
     }
 }
 
@@ -88,6 +88,7 @@ ${levels[level]}
 - ต้องอ้างถึงจุดผิดพลาดที่ระบบตรวจพบข้างต้นของโจทย์ข้อนี้โดยเฉพาะ ห้ามให้คำแนะนำกว้างๆ ที่ใช้ได้กับทุกโจทย์
 - ถ้าเป็นเคสซ่อน ห้ามเปิดเผย input หรือผลลัพธ์ที่ถูกต้องทั้งหมดของเคสนั้น
 - ห้ามเขียนโค้ดที่แก้เสร็จแล้ว
+- ถ้าจะเอ่ยชื่อระบบคำใบ้ ให้เรียกว่า "AI Scaffolding (คำใบ้)" เท่านั้น ห้ามเรียกตัวเองว่า Socratic Coach
 - ตอบเป็นภาษาไทย กระชับ ไม่เกิน 150 คำ ใช้ emoji ได้ 1-2 ตัว`;
 
     try {
@@ -105,7 +106,7 @@ ${levels[level]}
             `title: ${assignmentTitle}, level: ${level}, diag: ${diagnosis ? diagnosis.category : 'none'}`, response);
         return response;
     } catch (err) {
-        const fallback = localHint || '💡 ลองส่งงานใหม่อีกครั้ง ระบบจะวิเคราะห์ผลการทดสอบเพื่อให้คำใบ้ที่ตรงจุด';
+        const fallback = localHint || '💡 ลองส่งงานใหม่อีกครั้ง ระบบจะวิเคราะห์ผลการทดสอบเพื่อให้ AI Scaffolding (คำใบ้) ที่ตรงจุด';
         await _logCoachInteraction(uid, 'socratic', `hint_level_${level}_local`, assignmentTitle,
             `title: ${assignmentTitle}, level: ${level}, diag: ${diagnosis ? diagnosis.category : 'none'}, ai_error: ${err.message}`, fallback);
         return fallback;
@@ -155,7 +156,7 @@ async function getPredictiveRiskAlert(uid) {
 
 สร้าง alert สั้นๆ ภาษาไทย (2-3 ประโยค) ที่:
 1. บอกสถานการณ์ตรงๆ ไม่ตัดสิน
-2. แนะนำ 1-2 action ที่ทำได้ทันที (เช่น ลองใช้ Hint ระดับ 2, เล่น Quiz Blitz, ขอให้ครูอธิบาย)
+2. แนะนำ 1-2 action ที่ทำได้ทันที (เช่น ลองใช้ "AI Scaffolding (คำใบ้)" ระดับ 2, เล่น Quiz Blitz, ขอให้ครูอธิบาย) — ถ้าพูดถึงคำใบ้ให้เรียกชื่อ "AI Scaffolding (คำใบ้)" ตรงตัว
 ใช้ emoji 1 ตัว`;
 
         try {
@@ -165,7 +166,7 @@ async function getPredictiveRiskAlert(uid) {
             return { riskLevel, message: response, avg5: Math.round(avg5), last3Scores };
         } catch (_) {
             const msg = riskLevel === 'high'
-                ? `⚠️ คะแนน 3 ครั้งล่าสุดต่ำกว่า 60% ลองใช้ Hint ระดับ 2-3 หรือขอให้ครูอธิบายก่อนส่งงานใหม่`
+                ? `⚠️ คะแนน 3 ครั้งล่าสุดต่ำกว่า 60% ลองใช้ AI Scaffolding (คำใบ้) ระดับ 2-3 หรือขอให้ครูอธิบายก่อนส่งงานใหม่`
                 : `📉 คะแนนมีแนวโน้มลดลง ลองเล่น Quiz Blitz ทบทวน concept ก่อนทำโจทย์ต่อ`;
             return { riskLevel, message: msg, avg5: Math.round(avg5), last3Scores };
         }

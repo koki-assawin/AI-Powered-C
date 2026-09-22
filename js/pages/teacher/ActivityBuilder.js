@@ -430,7 +430,7 @@ const ActivityBuilder = () => {
                     <div className="flex flex-wrap gap-x-6 gap-y-2">
                         {[
                             [isPublished, v => setIsPublished(v), 'เผยแพร่ทันที'],
-                            [aiCoach.allowHint, v => setAiCoach(p => ({ ...p, allowHint: v })), 'อนุญาต AI Hint'],
+                            [aiCoach.allowHint, v => setAiCoach(p => ({ ...p, allowHint: v })), 'อนุญาต AI Scaffolding (คำใบ้)'],
                             [aiCoach.allowAnalysis, v => setAiCoach(p => ({ ...p, allowAnalysis: v })), 'อนุญาต AI Analysis'],
                         ].map(([val, setter, label]) => (
                             <label key={label} className="flex items-center gap-2 cursor-pointer">

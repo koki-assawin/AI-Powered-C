@@ -1719,13 +1719,13 @@ const GROUP_META = {
         color: '#d97706', bg: '#fffbeb', border: '#fcd34d',
         label: 'พยายามแต่ยังไม่แม่น', icon: '💪',
         desc: 'ครอบคลุมดี ความพยายามสูง แต่คะแนนเฉลี่ยและอัตราผ่านยังกลาง',
-        apcc: 'Socratic Coach + Trace Table ก่อน Code + เน้น Concept ก่อนปริมาณ',
+        apcc: 'AI Scaffolding (คำใบ้) + Trace Table ก่อน Code + เน้น Concept ก่อนปริมาณ',
     },
     D: {
         color: '#dc2626', bg: '#fef2f2', border: '#fca5a5',
         label: 'ต้องการแรงหนุน', icon: '🆘',
         desc: 'คะแนนต่ำ ผ่านน้อย ครอบคลุมต่ำ ความพยายามน้อย',
-        apcc: 'Mindset Coach + โจทย์ Easy + ครูช่วยรายบุคคล + Hint Lv.3',
+        apcc: 'Mindset Coach + โจทย์ Easy + ครูช่วยรายบุคคล + AI Scaffolding (คำใบ้) ระดับ 3',
     },
 };
 
@@ -2135,6 +2135,8 @@ const _GamificationTab = ({ selectedCourse, submissions = [], students = {} }) =
         mindset: '#f97316', socratic: '#60a5fa',
         analytics: '#a78bfa', diagnostic: '#34d399', challenge: '#fbbf24',
     };
+    // Display names only — coachRole values stored in Firestore stay unchanged
+    const COACH_LABELS = { socratic: 'AI Scaffolding (คำใบ้)' };
     const filteredLogs = coachFilter === 'all' ? coachLogs : coachLogs.filter(l => l.coachRole === coachFilter);
 
     return (
@@ -2456,7 +2458,7 @@ const _GamificationTab = ({ selectedCourse, submissions = [], students = {} }) =
                         color: coachFilter === role ? '#fff' : '#6b7280',
                         fontFamily: "'Prompt',sans-serif",
                     }}>
-                        {role === 'all' ? 'ทั้งหมด' : role}
+                        {role === 'all' ? 'ทั้งหมด' : (COACH_LABELS[role] || role)}
                     </button>
                 ))}
             </div>
@@ -2474,7 +2476,7 @@ const _GamificationTab = ({ selectedCourse, submissions = [], students = {} }) =
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                             <span style={{ fontWeight: 700, color: COACH_COLORS[log.coachRole] || '#6b7280' }}>
-                                {(log.coachRole || '').toUpperCase()}
+                                {COACH_LABELS[log.coachRole] || (log.coachRole || '').toUpperCase()}
                             </span>
                             <span style={{ color: '#9ca3af' }}>
                                 {log.createdAt?.toDate ? log.createdAt.toDate().toLocaleString('th-TH') : ''}

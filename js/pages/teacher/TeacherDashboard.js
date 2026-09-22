@@ -182,10 +182,10 @@ const _ResearchMetricsPanel = ({ courses = [] }) => {
                         <KPI icon="👤" label="Submissions เฉลี่ย/นักเรียน" color="#8b5cf6"
                             value={metrics.avgSubs}
                             sub={`รวม ${metrics.studentCount} คน`} />
-                        <KPI icon="💡" label="ขอ Hint Lv.3 — ต้นภาค" color="#f59e0b"
+                        <KPI icon="💡" label="ขอ AI Scaffolding (คำใบ้) ระดับ 3 — ต้นภาค" color="#f59e0b"
                             value={`${metrics.hintEarlyPct}%`}
                             sub={`${metrics.hintEarlyCount} คน / ก่อน ${new Date(midpoint).toLocaleDateString('th-TH')}`} />
-                        <KPI icon="💡" label="ขอ Hint Lv.3 — ปลายภาค" color="#ef4444"
+                        <KPI icon="💡" label="ขอ AI Scaffolding (คำใบ้) ระดับ 3 — ปลายภาค" color="#ef4444"
                             value={`${metrics.hintLatePct}%`}
                             sub={`${metrics.hintLateCount} คน / หลัง ${new Date(midpoint).toLocaleDateString('th-TH')}`} />
                         <KPI icon="🎮" label="Mini-Game Sessions" color="#10b981"

@@ -292,7 +292,7 @@ const StudentDashboard = () => {
                                     ) : (
                                         <p style={{ fontSize: 13, color: '#fef3c7', margin: 0 }}>
                                             {riskAlert.level === 'high'
-                                                ? 'ลองใช้ Hint ระดับ 2-3 ก่อนส่งงาน หรือถามครูเพื่อขอคำอธิบายเพิ่มเติม'
+                                                ? 'ลองใช้ AI Scaffolding (คำใบ้) ระดับ 2-3 ก่อนส่งงาน หรือถามครูเพื่อขอคำอธิบายเพิ่มเติม'
                                                 : 'ลองเล่น Quiz Blitz ทบทวน concept แล้วค่อยส่งงานใหม่'}
                                         </p>
                                     )}

@@ -891,7 +891,7 @@ const AssignmentManager = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">ประเภทโจทย์</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     {[
-                                        { v: 'practice', icon: '📝', label: 'แบบฝึกหัด', desc: 'AI ช่วยได้ มีการ hint' },
+                                        { v: 'practice', icon: '📝', label: 'แบบฝึกหัด', desc: 'AI ช่วยได้ มี AI Scaffolding (คำใบ้)' },
                                         { v: 'exam',     icon: '🏆', label: 'ข้อสอบ',   desc: 'ล็อก AI + จับเวลา' },
                                     ].map(opt => (
                                         <button key={opt.v} type="button"

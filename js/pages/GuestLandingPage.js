@@ -1,5 +1,5 @@
 // js/pages/GuestLandingPage.js — Demo/Guest Mode (v3.4)
-// AI features: วิเคราะห์โค้ด + คำใบ้ AI + แชทบอท (ทั้ง Workspace และ Free Editor)
+// AI features: วิเคราะห์โค้ด + AI Scaffolding (คำใบ้) + แชทบอท (ทั้ง Workspace และ Free Editor)
 // Multi-language: C · C++ · Python · Java
 // ไม่ต้องการ Firebase Auth — ทำงานอิสระโดยสมบูรณ์
 
@@ -281,7 +281,7 @@ const _GuestWorkspace = ({ problem, onBack }) => {
             if (typeof logUsageEvent === 'function')
                 logUsageEvent('demo', 'ai_hint', { problemId: problem.id, userType: 'demo', lang: language, hintLevel: level });
         } catch (_) {
-            setAiHintText('ไม่สามารถขอคำใบ้ได้ในขณะนี้');
+            setAiHintText('ไม่สามารถขอ AI Scaffolding (คำใบ้) ได้ในขณะนี้');
         }
         setAiLoading(false);
     };
@@ -428,7 +428,7 @@ const _GuestWorkspace = ({ problem, onBack }) => {
                     <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 10 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>🤖 AI Assistant</div>
                         <div style={{ display: 'flex', gap: 4, marginBottom: aiPanel ? 8 : 0, flexWrap: 'wrap' }}>
-                            {[['analyze','#7c3aed','🔍 วิเคราะห์'],['hint','#f59e0b','💡 คำใบ้ AI'],['chat','#3b82f6','💬 แชท']].map(([key,col,label]) => (
+                            {[['analyze','#7c3aed','🔍 วิเคราะห์'],['hint','#f59e0b','💡 AI Scaffolding (คำใบ้)'],['chat','#3b82f6','💬 แชท']].map(([key,col,label]) => (
                                 <button key={key} onClick={() => setAiPanel(aiPanel === key ? null : key)}
                                     style={{ padding: '4px 9px', borderRadius: 7, border: `1px solid ${col}44`, fontSize: 11, cursor: 'pointer', fontFamily: "'Prompt',sans-serif", fontWeight: 600,
                                         background: aiPanel === key ? col : '#f9fafb', color: aiPanel === key ? 'white' : col }}>
@@ -469,7 +469,7 @@ const _GuestWorkspace = ({ problem, onBack }) => {
                         {/* Hint panel */}
                         {aiPanel === 'hint' && (
                             <div>
-                                <div style={{ fontSize: 11, color: '#92400e', marginBottom: 6 }}>เลือกระดับคำใบ้:</div>
+                                <div style={{ fontSize: 11, color: '#92400e', marginBottom: 6 }}>AI Scaffolding (คำใบ้) — เวอร์ชันทดลอง 3 ระดับ (ในห้องเรียนเป็นคำใบ้ไล่ระดับแบบโสเครติส 4 ระดับ)</div>
                                 <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
                                     {[1,2,3].map(lv => (
                                         <button key={lv} onClick={() => doHint(lv)} disabled={aiLoading}

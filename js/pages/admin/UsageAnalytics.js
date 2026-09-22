@@ -33,7 +33,7 @@ const _EVENT_LABELS = {
     sample_test: 'ทดสอบ Sample',
     submission:  'ส่งงาน',
     ai_analyze:  'AI วิเคราะห์',
-    ai_hint:     'AI คำใบ้',
+    ai_hint:     'AI Scaffolding (คำใบ้)',
     ai_chat:     'AI Chat',
     demo_run:    'Demo Run',
 };
@@ -310,7 +310,7 @@ const _AITab = ({ events, loading }) => {
 
     const kpis = [
         { icon: '🔬', label: 'วิเคราะห์โค้ด', total: events.filter(e => e.event === 'ai_analyze').length, today: todayAI.filter(e => e.event === 'ai_analyze').length, color: '#f59e0b' },
-        { icon: '💡', label: 'ขอคำใบ้', total: events.filter(e => e.event === 'ai_hint').length, today: todayAI.filter(e => e.event === 'ai_hint').length, color: '#10b981' },
+        { icon: '💡', label: 'AI Scaffolding (คำใบ้)', total: events.filter(e => e.event === 'ai_hint').length, today: todayAI.filter(e => e.event === 'ai_hint').length, color: '#10b981' },
         { icon: '💬', label: 'AI Chat', total: events.filter(e => e.event === 'ai_chat').length, today: todayAI.filter(e => e.event === 'ai_chat').length, color: '#06b6d4' },
         { icon: '🤖', label: 'AI รวม', total: aiEvents.length, today: todayAI.length, color: '#6366f1' },
     ];
@@ -365,7 +365,7 @@ const _AITab = ({ events, loading }) => {
                     </div>
                 </div>
                 <div style={{ background: 'white', borderRadius: 16, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,.06)' }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#374151', marginBottom: 14 }}>💡 การใช้คำใบ้ตามระดับ</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#374151', marginBottom: 14 }}>💡 การใช้ AI Scaffolding (คำใบ้) ตามระดับ</div>
                     {Object.keys(hintLevels).length > 0 ? (
                         Object.entries(hintLevels).sort(([a],[b]) => a.localeCompare(b)).map(([lv, n]) => (
                             <div key={lv} style={{ marginBottom: 10 }}>
