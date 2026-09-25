@@ -39,3 +39,10 @@ functions/package-lock.json
 node_modules/
 package-lock.json
 package.json
+
+# Firebase Admin service account key (ห้าม commit เด็ดขาด)
+serviceAccountKey.json
+*serviceAccount*.json
+
+# ไฟล์สำรองข้อมูลจากสคริปต์ใน tools/
+backups/
