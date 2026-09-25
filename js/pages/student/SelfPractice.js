@@ -2,6 +2,14 @@
 // คลังโจทย์สำเร็จรูปอยู่ใน js/practiceBank.js — ใช้ได้โดยไม่ต้องเรียก AI และใช้เป็นตัวสำรองเมื่อโควตา AI หมด
 
 const BASE_SCORES = { 'ง่าย': 50, 'ปานกลาง': 75, 'ยาก': 100 };
+
+// XP/เหรียญสูงสุดต่อการฝึก 1 ข้อ (ได้ตามสัดส่วน test case ที่ผ่าน)
+// เพดานรวมต่อวันกำหนดไว้ที่ DAILY_XP_CAP_BY_SOURCE.self_practice ใน js/gamification.js
+const PRACTICE_XP = {
+    'ง่าย':     { xp: 10, coin: 2 },
+    'ปานกลาง': { xp: 15, coin: 3 },
+    'ยาก':      { xp: 25, coin: 5 },
+};
 const TC_COUNT = 5; // number of AI-generated test cases per submission
 
 // Topic presets per language
@@ -330,9 +338,25 @@ const SelfPractice = () => {
                 totalTests,
                 submittedAt:        serverTimestamp(),
             };
-            await db.collection('selfPracticeSubmissions').add(submission);
+            const spRef = await db.collection('selfPracticeSubmissions').add(submission);
 
-            setResult({ ...submission, testResults, actualScore, passedTests, totalTests });
+            // ── ให้ XP ตามสัดส่วนเคสที่ผ่าน (เดิมหน้านี้ไม่เคยให้ XP เลย) ──────
+            let xpEarned = 0, coinEarned = 0;
+            if (passedTests > 0 && typeof awardXP === 'function') {
+                const cfg = PRACTICE_XP[difficulty] || PRACTICE_XP['ง่าย'];
+                const ratio = totalTests > 0 ? passedTests / totalTests : 0;
+                xpEarned = Math.round(cfg.xp * ratio);
+                coinEarned = Math.round(cfg.coin * ratio);
+                if (xpEarned > 0) {
+                    try {
+                        const r = await awardXP(userDoc.id, xpEarned, coinEarned, 0, 'self_practice', spRef.id,
+                            { difficulty, topic: submission.topic, problemSource: submission.problemSource });
+                        if (r?.capped) { xpEarned = 0; coinEarned = 0; }
+                    } catch (_) { xpEarned = 0; coinEarned = 0; }
+                }
+            }
+
+            setResult({ ...submission, testResults, actualScore, passedTests, totalTests, xpEarned, coinEarned });
             loadHistory();
         } catch (err) {
             alert('เกิดข้อผิดพลาด: ' + err.message);
@@ -660,6 +684,11 @@ const SelfPractice = () => {
                                             +{result.actualScore} คะแนน
                                         </div>
                                         <div className="text-xs text-gray-400">ผ่าน {result.passedTests}/{result.totalTests} test cases</div>
+                                        {result.xpEarned > 0 && (
+                                            <div className="text-xs font-bold mt-1" style={{ color: '#C2185B' }}>
+                                                +{result.xpEarned} XP · +{result.coinEarned} เหรียญ
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 {/* Score bar */}

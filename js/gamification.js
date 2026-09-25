@@ -19,6 +19,7 @@ const RANK_TIERS = [
 // แหล่งที่ทำซ้ำได้ไม่จำกัดต้องมีเพดาน ส่วน minigame มีเพดานของตัวเองใน miniGameGenerator.js
 const DAILY_XP_CAP_BY_SOURCE = {
     submission_accepted: 300,
+    self_practice:       200,
     ethics_quiz:         160,
     task_done:            60,
     peer_feedback:        60,
