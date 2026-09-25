@@ -32,13 +32,45 @@ const db = admin.firestore();
 // ── argument ─────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 const argOf = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
-const uid = argOf('--uid');
+let uid = argOf('--uid');
+const numberArg = argOf('--number');
+const nameArg = argOf('--name');
 const maxPerMinute = parseInt(argOf('--max-per-minute') || '3', 10);
 const sources = (argOf('--sources') || '').split(',').map(s => s.trim()).filter(Boolean);
 const reason = argOf('--reason') || 'ตัด XP ส่วนเกินจากการกดรัวในนาทีเดียวกัน';
+// --daily-cap N : ตัดตามเพดาน XP ต่อวันของ source นั้น (ใช้แทนเกณฑ์รายนาที)
+//                 เช่น มินิเกมมีเพดาน 150 XP/วัน ตาม DAILY_GAME_XP_CAP ใน js/miniGameGenerator.js
+const dailyCap = argOf('--daily-cap') ? parseInt(argOf('--daily-cap'), 10) : null;
 const APPLY = args.includes('--apply');
 
-if (!uid) { console.error('ต้องระบุ --uid (หาได้จาก tools/xp-audit.js)'); process.exit(1); }
+if (!uid && !numberArg && !nameArg) {
+    console.error('ระบุนักเรียนด้วย --uid, --number หรือ --name');
+    process.exit(1);
+}
+
+// ── ค้นหานักเรียนจาก --uid / --number / --name ────────────────────────────────
+async function resolveUid(db, { uid, number, name }) {
+    if (uid) return uid;
+    if (number) {
+        const snap = await db.collection('users').where('number', '==', String(number)).limit(2).get();
+        if (snap.empty) throw new Error(`ไม่พบนักเรียนเลขประจำตัว ${number}`);
+        if (snap.size > 1) throw new Error(`เลขประจำตัว ${number} ซ้ำกันหลายคน ให้ระบุ --uid แทน`);
+        return snap.docs[0].id;
+    }
+    if (name) {
+        const snap = await db.collection('users').get();
+        const hits = snap.docs.filter(d => String(d.data().displayName || '').includes(name));
+        if (hits.length === 0) throw new Error(`ไม่พบนักเรียนที่ชื่อมีคำว่า "${name}"`);
+        if (hits.length > 1) {
+            console.log('พบหลายคน ให้ระบุ --uid:');
+            hits.forEach(h => console.log('  ', h.id, h.data().displayName, '| เลขที่', h.data().number));
+            throw new Error('ชื่อไม่เฉพาะเจาะจงพอ');
+        }
+        return hits[0].id;
+    }
+    return null;
+}
+
 
 // ตารางระดับ ต้องตรงกับ RANK_TIERS ใน js/gamification.js
 const RANK_TIERS = [
@@ -65,6 +97,7 @@ const weekStr = () => {
 };
 
 (async () => {
+    uid = await resolveUid(db, { uid, number: numberArg, name: nameArg });
     const userSnap = await db.collection('users').doc(uid).get();
     const name = userSnap.exists ? userSnap.data().displayName : '(ไม่ทราบชื่อ)';
 
@@ -92,10 +125,26 @@ const weekStr = () => {
     });
 
     const toVoid = [];
-    Object.values(byMinute).forEach(list => {
-        list.sort((a, b) => a._at - b._at);
-        toVoid.push(...list.slice(maxPerMinute));
-    });
+    if (dailyCap !== null) {
+        // โหมดเพดานรายวัน: ไล่ตามเวลา เก็บไว้จนครบเพดานของวันนั้น ที่เหลือตัดออก
+        const pool = rows
+            .filter(r => r.voided !== true && r._at)
+            .filter(r => !sources.length || sources.includes(r.source))
+            .sort((a, b) => a._at - b._at);
+        const usedByDay = {};
+        pool.forEach(r => {
+            const day = r._at.toISOString().slice(0, 10);
+            const used = usedByDay[day] || 0;
+            const xp = r.xpAwarded || 0;
+            if (used + xp <= dailyCap) usedByDay[day] = used + xp;
+            else toVoid.push(r);
+        });
+    } else {
+        Object.values(byMinute).forEach(list => {
+            list.sort((a, b) => a._at - b._at);
+            toVoid.push(...list.slice(maxPerMinute));
+        });
+    }
 
     const voidIds = new Set(toVoid.map(r => r.id));
     const keep = rows.filter(r => r.voided !== true && !voidIds.has(r.id));
@@ -115,7 +164,9 @@ const weekStr = () => {
     console.log('\n==================================================');
     console.log('นักเรียน:', name, '| uid', uid);
     console.log('โหมด    :', APPLY ? '⚠️  แก้ไขจริง (--apply)' : 'ทดลอง (ยังไม่เขียนข้อมูล)');
-    console.log('เกณฑ์   : เก็บไม่เกิน', maxPerMinute, 'รายการต่อนาที',
+    console.log('เกณฑ์   :', dailyCap !== null
+                    ? `เก็บไม่เกิน ${dailyCap} XP ต่อวัน`
+                    : `เก็บไม่เกิน ${maxPerMinute} รายการต่อนาที`,
                 sources.length ? `| เฉพาะ source: ${sources.join(', ')}` : '| ทุก source');
     console.log('สำรองไว้ที่:', backupFile);
     console.log('--------------------------------------------------');
@@ -164,7 +215,7 @@ const weekStr = () => {
     }, { merge: true });
 
     await db.collection('xpCorrections').add({
-        uid, displayName: name, reason, maxPerMinute,
+        uid, displayName: name, reason, maxPerMinute: dailyCap !== null ? null : maxPerMinute, dailyCap,
         sources: sources.length ? sources : null,
         voidedCount: toVoid.length,
         xpBefore: before.xp ?? null, xpAfter: newXP,

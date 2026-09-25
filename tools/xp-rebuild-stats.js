@@ -31,7 +31,9 @@ const db = admin.firestore();
 
 const args = process.argv.slice(2);
 const argOf = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
-const onlyUid = argOf('--uid');
+let onlyUid = argOf('--uid');
+const numberArg = argOf('--number');
+const nameArg = argOf('--name');
 const APPLY = args.includes('--apply');
 const ONLY_MISMATCH = args.includes('--only-mismatch');
 
@@ -45,7 +47,32 @@ const RANK_TIERS = [
 const rankFromXP = (xp) => RANK_TIERS.reduce((t, c) => (xp >= c.minXP ? c : t), RANK_TIERS[0]);
 const ts = (v) => (v && v.toDate ? v.toDate() : null);
 
+
+// ── ค้นหานักเรียนจาก --uid / --number / --name ────────────────────────────────
+async function resolveUid(db, { uid, number, name }) {
+    if (uid) return uid;
+    if (number) {
+        const snap = await db.collection('users').where('number', '==', String(number)).limit(2).get();
+        if (snap.empty) throw new Error(`ไม่พบนักเรียนเลขประจำตัว ${number}`);
+        if (snap.size > 1) throw new Error(`เลขประจำตัว ${number} ซ้ำกันหลายคน ให้ระบุ --uid แทน`);
+        return snap.docs[0].id;
+    }
+    if (name) {
+        const snap = await db.collection('users').get();
+        const hits = snap.docs.filter(d => String(d.data().displayName || '').includes(name));
+        if (hits.length === 0) throw new Error(`ไม่พบนักเรียนที่ชื่อมีคำว่า "${name}"`);
+        if (hits.length > 1) {
+            console.log('พบหลายคน ให้ระบุ --uid:');
+            hits.forEach(h => console.log('  ', h.id, h.data().displayName, '| เลขที่', h.data().number));
+            throw new Error('ชื่อไม่เฉพาะเจาะจงพอ');
+        }
+        return hits[0].id;
+    }
+    return null;
+}
+
 (async () => {
+    onlyUid = await resolveUid(db, { uid: onlyUid, number: numberArg, name: nameArg });
     let ledgerQuery = db.collection('xpLedger');
     if (onlyUid) ledgerQuery = ledgerQuery.where('uid', '==', onlyUid);
     const ledSnap = await ledgerQuery.get();
