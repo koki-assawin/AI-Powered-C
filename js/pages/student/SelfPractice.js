@@ -1,4 +1,5 @@
-// js/pages/student/SelfPractice.js - Student self-practice: AI-generated problems + auto-grading (v4.5)
+// js/pages/student/SelfPractice.js - Student self-practice: problem bank + AI-generated problems (v4.6)
+// คลังโจทย์สำเร็จรูปอยู่ใน js/practiceBank.js — ใช้ได้โดยไม่ต้องเรียก AI และใช้เป็นตัวสำรองเมื่อโควตา AI หมด
 
 const BASE_SCORES = { 'ง่าย': 50, 'ปานกลาง': 75, 'ยาก': 100 };
 const TC_COUNT = 5; // number of AI-generated test cases per submission
@@ -102,6 +103,8 @@ const SelfPractice = () => {
     const [hintDesc, setHintDesc] = React.useState('');
     const [problem, setProblem] = React.useState(null);
     const [generating, setGenerating] = React.useState(false);
+    const [usedBankIds, setUsedBankIds] = React.useState([]);   // เลี่ยงสุ่มซ้ำข้อเดิมติดกัน
+    const [bankNotice, setBankNotice] = React.useState('');     // ข้อความเมื่อสลับมาใช้คลังโจทย์
 
     const [code, setCode] = React.useState(LANGUAGES.c.defaultCode);
     const [submitting, setSubmitting] = React.useState(false);
@@ -184,20 +187,49 @@ const SelfPractice = () => {
         finally { setHistoryLoading(false); }
     };
 
+    // ── คลังโจทย์สำเร็จรูป (js/practiceBank.js) ───────────────────────
+    const bankAvailable = typeof pickPracticeBankProblem === 'function' && language === 'c';
+
+    // คืน true เมื่อหยิบโจทย์จากคลังได้ ใช้ทั้งกรณีนักเรียนกดเอง และกรณี AI ใช้ไม่ได้
+    const useBankProblem = (notice) => {
+        if (typeof pickPracticeBankProblem !== 'function') return false;
+        const picked = pickPracticeBankProblem({
+            topic: activeTopic.trim(),
+            difficulty,
+            excludeIds: usedBankIds,
+        });
+        if (!picked) return false;
+        setUsedBankIds(prev => [...prev, picked.id].slice(-20));
+        setProblem({ ...picked, _bank: true });
+        setResult(null);
+        setCode(LANGUAGES[language]?.defaultCode || '');
+        setBankNotice(notice || '');
+        return true;
+    };
+
+    const handleBankProblem = () => {
+        if (!selectedCourseId) { alert('กรุณาเลือกรายวิชาก่อน'); return; }
+        if (!useBankProblem('')) alert('ยังไม่มีโจทย์ในคลังสำหรับเงื่อนไขนี้');
+    };
+
     // ── Generate problem ──────────────────────────────────────────────
     const handleGenerate = async () => {
         if (!selectedCourseId) { alert('กรุณาเลือกรายวิชาก่อน'); return; }
         setGenerating(true);
         setProblem(null);
         setResult(null);
+        setBankNotice('');
         setCode(LANGUAGES[language]?.defaultCode || '');
         try {
             const topic = activeTopic.trim() || 'การเขียนโปรแกรม';
             const problems = await generateProblems(language, topic, difficulty, 1, '', hintDesc.trim());
             if (problems.length > 0) setProblem(problems[0]);
-            else alert('ไม่สามารถสร้างโจทย์ได้ ลองใหม่อีกครั้ง');
+            else if (!useBankProblem('AI สร้างโจทย์ไม่สำเร็จ ระบบจึงหยิบโจทย์จากคลังมาให้แทน'))
+                alert('ไม่สามารถสร้างโจทย์ได้ ลองใหม่อีกครั้ง');
         } catch (err) {
-            alert('เกิดข้อผิดพลาด: ' + err.message);
+            // โควตา AI หมดหรือเครือข่ายมีปัญหา — ยังฝึกต่อได้ด้วยคลังโจทย์
+            if (!useBankProblem('AI ใช้งานไม่ได้ขณะนี้ (' + err.message + ') ระบบจึงหยิบโจทย์จากคลังมาให้แทน'))
+                alert('เกิดข้อผิดพลาด: ' + err.message);
         } finally {
             setGenerating(false);
         }
@@ -244,9 +276,16 @@ const SelfPractice = () => {
         setResult(null);
 
         try {
-            setSubmitStatus('🤖 AI กำลังสร้าง test cases...');
-            const desc = `${problem.story}\n${problem.description}\nตัวอย่าง Input: ${problem.inputExample}\nตัวอย่าง Output: ${problem.outputExample}`;
-            const testCases = await generateTestCases(language, problem.title, desc, TC_COUNT);
+            let testCases;
+            if (problem._bank && Array.isArray(problem.testCases) && problem.testCases.length > 0) {
+                // โจทย์จากคลัง: กรณีทดสอบถูกตรวจสอบไว้แล้ว ไม่ต้องเรียก AI
+                setSubmitStatus('📋 ใช้กรณีทดสอบจากคลังโจทย์...');
+                testCases = problem.testCases;
+            } else {
+                setSubmitStatus('🤖 AI กำลังสร้าง test cases...');
+                const desc = `${problem.story}\n${problem.description}\nตัวอย่าง Input: ${problem.inputExample}\nตัวอย่าง Output: ${problem.outputExample}`;
+                testCases = await generateTestCases(language, problem.title, desc, TC_COUNT);
+            }
 
             setSubmitStatus(`⚙️ กำลังรันโค้ด (0/${testCases.length})...`);
             const testResults = [];
@@ -282,6 +321,8 @@ const SelfPractice = () => {
                 topic:              activeTopic.trim() || 'ทั่วไป',
                 problemTitle:       problem.title,
                 problemDescription: problem.description,
+                problemSource:      problem._bank ? 'bank' : 'ai',
+                problemId:          problem._bank ? (problem.id || null) : null,
                 code,
                 baseScore,
                 actualScore,
@@ -452,19 +493,44 @@ const SelfPractice = () => {
                                 />
                             </div>
 
-                            <button onClick={handleGenerate}
-                                disabled={generating || !selectedCourseId}
-                                className="k-btn-pink px-6 py-2.5 text-sm flex items-center gap-2 disabled:opacity-50">
-                                {generating ? <SpinIcon className="w-4 h-4" /> : '🎲'}
-                                {generating ? 'กำลังสร้างโจทย์...' : 'สร้างโจทย์ด้วย AI'}
-                            </button>
+                            <div className="flex flex-wrap gap-3 items-center">
+                                <button onClick={handleBankProblem}
+                                    disabled={!bankAvailable || !selectedCourseId}
+                                    title={bankAvailable ? 'หยิบโจทย์จากคลังทันที ไม่ใช้โควตา AI' : 'คลังโจทย์รองรับภาษา C'}
+                                    className="k-btn-pink px-6 py-2.5 text-sm flex items-center gap-2 disabled:opacity-50">
+                                    🎯 สุ่มโจทย์จากคลัง
+                                </button>
+                                <button onClick={handleGenerate}
+                                    disabled={generating || !selectedCourseId}
+                                    className="px-6 py-2.5 text-sm flex items-center gap-2 rounded-xl disabled:opacity-50"
+                                    style={{ border: '1.5px solid #EC407A', color: '#C2185B', background: 'white' }}>
+                                    {generating ? <SpinIcon className="w-4 h-4" /> : '🎲'}
+                                    {generating ? 'กำลังสร้างโจทย์...' : 'สร้างโจทย์ใหม่ด้วย AI'}
+                                </button>
+                            </div>
+                            {bankAvailable && (
+                                <p className="text-xs text-gray-400">
+                                    คลังโจทย์มี {typeof PRACTICE_BANK !== 'undefined' ? PRACTICE_BANK.length : 0} ข้อ พร้อมกรณีทดสอบที่ตรวจสอบแล้ว ใช้ได้ทันทีแม้โควตา AI หมด
+                                </p>
+                            )}
+                            {bankNotice && (
+                                <p className="text-xs" style={{ color: '#C2185B' }}>ℹ️ {bankNotice}</p>
+                            )}
                         </div>
 
                         {/* Problem Display */}
                         {problem && (
                             <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid #FFD1DC' }}>
                                 <div className="flex items-start justify-between mb-3">
-                                    <h3 className="font-bold text-gray-800 text-lg">{problem.title}</h3>
+                                    <h3 className="font-bold text-gray-800 text-lg">
+                                        {problem.title}
+                                        {problem._bank && (
+                                            <span className="ml-2 text-xs px-2 py-1 rounded-full align-middle"
+                                                style={{ background: '#E8F5E9', color: '#2E7D32' }}>
+                                                จากคลังโจทย์
+                                            </span>
+                                        )}
+                                    </h3>
                                     <span className="text-xs px-2 py-1 rounded-full font-bold ml-3 shrink-0"
                                         style={{ background: '#FFE4EC', color: diffColor[difficulty] }}>
                                         {difficulty} +{BASE_SCORES[difficulty]}pt
@@ -636,9 +702,14 @@ const SelfPractice = () => {
                                     </div>
                                 )}
                                 <div className="flex gap-3 mt-4">
-                                    <button onClick={handleGenerate} disabled={generating}
+                                    <button onClick={handleBankProblem} disabled={!bankAvailable}
                                         className="k-btn-pink px-4 py-2 text-sm flex items-center gap-1 disabled:opacity-50">
-                                        🎲 สร้างโจทย์ใหม่
+                                        🎯 โจทย์ใหม่จากคลัง
+                                    </button>
+                                    <button onClick={handleGenerate} disabled={generating}
+                                        className="px-4 py-2 text-sm flex items-center gap-1 rounded-xl disabled:opacity-50"
+                                        style={{ border: '1.5px solid #EC407A', color: '#C2185B', background: 'white' }}>
+                                        🎲 สร้างโจทย์ใหม่ด้วย AI
                                     </button>
                                 </div>
                             </div>
