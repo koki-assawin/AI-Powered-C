@@ -78,16 +78,34 @@ async function getOrCreatePlayerStats(uid) {
     const snap = await ref.get();
     if (snap.exists) return { id: uid, ...snap.data() };
 
+    // ⚠️ ห้ามเขียน 0 ทับยอดสะสมเด็ดขาด
+    // db.enablePersistence() ทำให้ ref.get() อาจตอบจากแคชในเครื่อง ถ้าเครื่องนั้นยังไม่เคย
+    // แคชเอกสารนี้ไว้และเน็ตหลุด snap.exists จะเป็น false ทั้งที่เซิร์ฟเวอร์มีข้อมูลอยู่
+    // การ set({xp: 0}) จึงเคยลบ XP สะสมทิ้งทั้งก้อนเมื่อซิงก์ขึ้นไป
+    // increment(0) ปลอดภัยกว่า: ถ้ายังไม่มีเอกสารจะได้ 0 ถ้ามีอยู่แล้วค่าเดิมไม่เปลี่ยน
+    const inc0 = firebase.firestore.FieldValue.increment(0);
     const init = {
-        xp: 0, rank: 1, rankName: RANK_TIERS[0].name,
-        codeCoin: 0, crystal: 0,
-        streakDays: 0, longestStreak: 0,
-        lastLoginDate: null, lastWeekString: null,
-        dailyXP: 0, weeklyXP: 0, seasonXP: 0,
+        xp: inc0, codeCoin: inc0, crystal: inc0,
+        streakDays: inc0, longestStreak: inc0,
+        dailyXP: inc0, weeklyXP: inc0, seasonXP: inc0,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     };
-    await ref.set(init);
-    return { id: uid, ...init };
+    await ref.set(init, { merge: true });
+
+    // อ่านค่าจริงหลังเขียน เพื่อให้ผู้เรียกได้ยอดที่ถูกต้องแม้เอกสารเคยมีอยู่แล้ว
+    const after = await ref.get();
+    const data = after.exists ? after.data() : {};
+    if (data.rank === undefined) {
+        await ref.set({ rank: 1, rankName: RANK_TIERS[0].name }, { merge: true });
+    }
+    return {
+        id: uid,
+        xp: 0, rank: 1, rankName: RANK_TIERS[0].name,
+        codeCoin: 0, crystal: 0, streakDays: 0, longestStreak: 0,
+        lastLoginDate: null, lastWeekString: null,
+        dailyXP: 0, weeklyXP: 0, seasonXP: 0,
+        ...data,
+    };
 }
 
 async function getPlayerStats(uid) {

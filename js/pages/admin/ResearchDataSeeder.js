@@ -156,6 +156,13 @@ const ResearchDataSeeder = () => {
         const totalGames = quizSessions + autopsySessions + bugSessions;
 
         // ── playerStats ──
+        // ⚠️ ป้องกันการเขียนทับข้อมูลจริง: ถ้าบัญชีนี้มี XP จากการใช้งานจริงอยู่แล้ว
+        // (มีรายการใน xpLedger ที่ไม่ได้มาจากการ seed) จะข้ามการเขียน playerStats
+        const realXpSnap = await db.collection('xpLedger').where('uid', '==', uid).limit(50).get();
+        const hasRealXp = realXpSnap.docs.some(d => d.data().seeded !== true);
+        if (hasRealXp) {
+            console.warn('[seeder] ข้าม playerStats ของ', uid, '— พบ XP จากการใช้งานจริง');
+        } else {
         await db.collection('playerStats').doc(uid).set({
             xp,
             rank:         rankInfo.level,
@@ -185,6 +192,7 @@ const ResearchDataSeeder = () => {
             engagementTierLabel: cfg.label,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
+        }
 
         // ── xpLedger (8-15 representative entries) ──
         const ledgerCount = rng.int(8, 15);
