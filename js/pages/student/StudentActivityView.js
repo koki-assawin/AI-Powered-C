@@ -124,7 +124,8 @@ const AutopsyView = ({ assignment, user, userDoc }) => {
             });
 
             if (isPassed && assignment.xpReward) {
-                typeof awardXP === 'function' && awardXP(user.uid, assignment.xpReward, 'submission_accepted', assignment.id).catch(console.error);
+                // ลำดับ argument ที่ถูกต้องคือ (uid, xp, coin, crystal, source, relatedId)
+                typeof awardXP === 'function' && awardXP(user.uid, assignment.xpReward || 30, 0, 0, 'submission_accepted', assignment.id).catch(console.error);
             }
             setXpEarned(isPassed ? (assignment.xpReward || 30) : 5);
             setSubmitted(true);
@@ -380,7 +381,7 @@ const QuizBlitzView = ({ assignment, user, userDoc }) => {
             });
 
             if (score >= 60 && typeof awardXP === 'function') {
-                awardXP(user.uid, assignment.xpReward || 25, 'submission_accepted', assignment.id).catch(console.error);
+                awardXP(user.uid, assignment.xpReward || 25, 0, 0, 'submission_accepted', assignment.id).catch(console.error);
             }
         } catch (err) { console.error(err); }
         finally { setSubmitting(false); }

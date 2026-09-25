@@ -333,7 +333,7 @@ const CodingWorkspace = () => {
                             .catch(() => {});
                     }
 
-                    const { xp, coin, crystal } = calculateSubmissionXP(score);
+                    let { xp, coin, crystal } = calculateSubmissionXP(score);
                     let bonusXP = 0, bonusCoin = 0, bonusCrystal = 0;
                     let isFirstSolve = false;
 
@@ -341,6 +341,14 @@ const CodingWorkspace = () => {
                     if (passed && typeof checkIsFirstSolve === 'function') {
                         isFirstSolve = await checkIsFirstSolve(userDoc.id, currentAssignment.id);
                         if (isFirstSolve) { bonusXP = 20; bonusCoin = 5; bonusCrystal = 1; }
+                    }
+
+                    // ส่งซ้ำข้อที่เคยผ่านแล้ว ได้ XP เล็กน้อยพอเป็นกำลังใจ ไม่ใช่เต็มจำนวนทุกครั้ง
+                    // (เดิมได้เต็มทุกครั้งที่กดส่ง จึงกดรัวสะสม XP ได้ไม่จำกัด)
+                    if (passed && !isFirstSolve) {
+                        xp = Math.min(xp, 5);
+                        coin = 0;
+                        crystal = 0;
                     }
 
                     const rankResult = await awardXP(

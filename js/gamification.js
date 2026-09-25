@@ -15,6 +15,15 @@ const RANK_TIERS = [
     { level: 10, name: 'เทพเจ้า AI',        minXP: 20000,  icon: '🤖', color: '#ef4444' },
 ];
 
+// ── เพดาน XP ต่อวัน แยกตามแหล่งที่มา (กันการกดรัวเพื่อสะสมคะแนน) ─────────────
+// แหล่งที่ทำซ้ำได้ไม่จำกัดต้องมีเพดาน ส่วน minigame มีเพดานของตัวเองใน miniGameGenerator.js
+const DAILY_XP_CAP_BY_SOURCE = {
+    submission_accepted: 300,
+    ethics_quiz:         160,
+    task_done:            60,
+    peer_feedback:        60,
+};
+
 // ── Pure helpers ──────────────────────────────────────────────────────────────
 function getRankFromXP(xp) {
     let tier = RANK_TIERS[0];
@@ -103,16 +112,48 @@ async function getSeasonInfo() {
 async function awardXP(uid, xpAmount, coinAmount, crystalAmount, source, relatedId, metadata) {
     const statsRef = db.collection('playerStats').doc(uid);
 
+    // ── เพดานรายวันต่อ source ────────────────────────────────────────────────
+    // นับยอดของวันนี้ไว้ใน playerStats.dailyBySource เพื่อไม่ต้องสร้าง index ใหม่
+    const today = todayDateString();
+    const cap = DAILY_XP_CAP_BY_SOURCE[source];
+    let dailyBySource = {};
+    let cappedXP = xpAmount, cappedCoin = coinAmount || 0, cappedCrystal = crystalAmount || 0;
+    if (cap) {
+        try {
+            const cur = (await statsRef.get()).data() || {};
+            dailyBySource = (cur.dailyBySourceDate === today && cur.dailyBySource) ? { ...cur.dailyBySource } : {};
+            const used = dailyBySource[source] || 0;
+            const remaining = Math.max(0, cap - used);
+            if (remaining <= 0) {
+                console.info(`[gamification] ถึงเพดาน XP ของ ${source} แล้ววันนี้ (${cap})`);
+                return { didRankUp: false, capped: true, newXP: cur.xp || 0 };
+            }
+            if (xpAmount > remaining) {
+                const ratio = xpAmount > 0 ? remaining / xpAmount : 0;
+                cappedXP = remaining;
+                cappedCoin = Math.round((coinAmount || 0) * ratio);
+                cappedCrystal = Math.round((crystalAmount || 0) * ratio);
+            }
+            dailyBySource[source] = used + cappedXP;
+        } catch (_) { /* อ่านไม่ได้ก็ปล่อยผ่าน ไม่บล็อกการให้ XP ปกติ */ }
+    }
+
     // Apply season XP multiplier if active
-    let effectiveXP = xpAmount;
+    let effectiveXP = cappedXP;
     try {
         const season = await getSeasonInfo();
         if (season?.xpMultiplier && season.xpMultiplier > 1) {
-            effectiveXP = Math.round(xpAmount * season.xpMultiplier);
+            effectiveXP = Math.round(cappedXP * season.xpMultiplier);
         }
     } catch (_) {}
 
+    coinAmount = cappedCoin;
+    crystalAmount = cappedCrystal;
+
     const batch = db.batch();
+    if (cap) {
+        batch.set(statsRef, { dailyBySource, dailyBySourceDate: today }, { merge: true });
+    }
     batch.set(statsRef, {
         xp: firebase.firestore.FieldValue.increment(effectiveXP),
         codeCoin: firebase.firestore.FieldValue.increment(coinAmount || 0),
@@ -158,14 +199,17 @@ async function _checkAndSaveRank(uid, newXP) {
 }
 
 // ── First-solve check ─────────────────────────────────────────────────────────
-async function checkIsFirstSolve(uid, assignmentId) {
+// หมายเหตุ: เอกสารใน submissions ไม่มี field 'passed' (js/grader.js เก็บแค่ score/status)
+// โค้ดเดิม query ด้วย passed == true จึงได้ผลว่าง = นับเป็น "ผ่านครั้งแรก" ทุกครั้ง
+// ทำให้ได้โบนัสครั้งแรกซ้ำได้ไม่จำกัด จึงเปลี่ยนมานับจากคะแนนแทน
+// เอกสารของการส่งครั้งปัจจุบันถูกเขียนไปแล้วก่อนเรียกฟังก์ชันนี้ จึงนับรวมอยู่ด้วย
+async function checkIsFirstSolve(uid, assignmentId, passMark = 60) {
     const snap = await db.collection('submissions')
         .where('studentId', '==', uid)
         .where('assignmentId', '==', assignmentId)
-        .where('passed', '==', true)
-        .limit(1)
         .get();
-    return snap.empty;
+    const passedCount = snap.docs.filter(d => (d.data().score || 0) >= passMark).length;
+    return passedCount <= 1;
 }
 
 // ── Daily streak + period XP reset ───────────────────────────────────────────
@@ -286,6 +330,7 @@ window.RANK_TIERS              = RANK_TIERS;
 window.getRankFromXP           = getRankFromXP;
 window.getNextRankXP           = getNextRankXP;
 window.calculateSubmissionXP   = calculateSubmissionXP;
+window.DAILY_XP_CAP_BY_SOURCE  = DAILY_XP_CAP_BY_SOURCE;
 window.getPlayerStats          = getPlayerStats;
 window.getOrCreatePlayerStats  = getOrCreatePlayerStats;
 window.awardXP                 = awardXP;

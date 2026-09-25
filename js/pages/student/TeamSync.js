@@ -366,7 +366,11 @@ const TeamSync = () => {
                 status: newStatus,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             });
-            if (newStatus === 'done') {
+            // ให้ XP ครั้งเดียวต่องาน ป้องกันการสลับสถานะไปมาเพื่อสะสม XP
+            const taskDoc = tasks.find(t => t.id === taskId);
+            if (newStatus === 'done' && !taskDoc?.xpAwarded) {
+                await db.collection('projectTeams').doc(team.id).collection('tasks').doc(taskId)
+                    .update({ xpAwarded: true }).catch(() => {});
                 awardXP(uid, 10, 2, 0, 'task_done', taskId, {}).catch(() => {});
             }
         } catch (e) {}
