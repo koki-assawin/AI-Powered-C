@@ -52,6 +52,12 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
+      // นักเรียนแก้ได้เฉพาะงานของตัวเอง และเฉพาะ field ที่เป็นข้อมูลเชิงกระบวนการ
+      // (คะแนนจากการตรวจ โค้ด และผลเทสต์ ยังแก้ไม่ได้)
+      allow update: if request.auth != null
+        && resource.data.studentId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['aiScore', 'aiMetrics', 'runCount', 'timeSpentSeconds', 'hintLevelUsed']);
       allow update, delete: if request.auth != null && (
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'

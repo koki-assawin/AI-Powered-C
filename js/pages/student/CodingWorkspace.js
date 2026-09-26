@@ -478,12 +478,17 @@ const CodingWorkspace = () => {
         try {
             const result = await analyzeCode(code, selectedLanguage);
             setAiResult(result);
-            // Update submission with AI metrics if we have a recent submission
+            // บันทึกคะแนนจาก AI ไว้กับการส่งครั้งล่าสุด — แยก try ของตัวเอง
+            // ถ้าบันทึกไม่ได้ (เช่น สิทธิ์ไม่พอ) ต้องไม่ทำให้ผลวิเคราะห์ที่ได้มาแล้วหายไป
             if (gradeResult?.submissionId) {
-                await db.collection('submissions').doc(gradeResult.submissionId).update({
-                    aiScore: Math.round(Object.values(result.metrics).reduce((a, b) => a + b, 0) / 5),
-                    aiMetrics: result.metrics,
-                });
+                try {
+                    await db.collection('submissions').doc(gradeResult.submissionId).update({
+                        aiScore: Math.round(Object.values(result.metrics).reduce((a, b) => a + b, 0) / 5),
+                        aiMetrics: result.metrics,
+                    });
+                } catch (saveErr) {
+                    console.warn('[workspace] บันทึกคะแนน AI ไม่สำเร็จ:', saveErr.message);
+                }
             }
         } catch (err) {
             setAiResult({ status: 'error', feedback: 'เกิดข้อผิดพลาด: ' + err.message });
@@ -1466,6 +1471,13 @@ const CodingWorkspace = () => {
                                         <div className="text-center py-8 text-gray-400">
                                             <div className="text-4xl mb-2">📝</div>
                                             <p>กด ▶ ทดสอบตัวอย่าง หรือ Submit เพื่อดูผล</p>
+                                        </div>
+                                    )}
+                                    {gradeResult && submittedCodeRef.current && code !== submittedCodeRef.current && (
+                                        <div className="mb-3 p-3 rounded-xl text-sm"
+                                            style={{ background: '#FFF7ED', border: '1px solid #FDBA74', color: '#9A3412' }}>
+                                            ⚠️ โค้ดในหน้าจอถูกแก้ไขหลังการตรวจครั้งนี้ ผลด้านล่างยังเป็นของโค้ดเวอร์ชันก่อนหน้า
+                                            กด <strong>Submit</strong> อีกครั้งเพื่อตรวจโค้ดล่าสุด
                                         </div>
                                     )}
                                     {gradeResult && (
