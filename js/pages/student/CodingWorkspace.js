@@ -38,6 +38,7 @@ const CodingWorkspace = () => {
     const [hintLoading, setHintLoading] = React.useState(false);
     const [hintLevel, setHintLevel] = React.useState(0); // 0=no hint yet, 1-4=level shown
     const [restoredNote, setRestoredNote] = React.useState('');   // แจ้งเมื่อกู้โค้ดจากการส่งครั้งล่าสุด
+    const [gradingPolicy, setGradingPolicy] = React.useState('best');   // เกณฑ์คิดคะแนนของรายวิชา
     const selectedAssignIdRef = React.useRef(null);   // โจทย์ที่เปิดอยู่ ใช้กันการกู้โค้ดมาทับหลังเปลี่ยนข้อ
     const codeRef = React.useRef('');                 // โค้ดล่าสุดในจอ ใช้เช็คว่าผู้เรียนพิมพ์ไปแล้วหรือยัง
     const hintSourceRef = React.useRef(null);        // gradeResult the current hint was built from
@@ -158,6 +159,7 @@ const CodingWorkspace = () => {
             if (!courseSnap.exists) return;
             const c = { id: courseSnap.id, ...courseSnap.data() };
             setCourse(c);
+            setGradingPolicy(c.gradingPolicy === 'latest' ? 'latest' : 'best');
             setSelectedLanguage(c.language || 'c');
             setCode(localStorage.getItem(`draft_${courseId}`) || LANGUAGES[c.language || 'c'].defaultCode);
 
@@ -320,6 +322,16 @@ const CodingWorkspace = () => {
 
     const handleSubmit = async () => {
         if (!currentAssignment || !userDoc) return;
+
+        // รายวิชาที่ใช้เกณฑ์คะแนนครั้งล่าสุด ต้องเตือนก่อน เพราะคะแนนอาจลดลงได้
+        if (gradingPolicy === 'latest') {
+            const ok = window.confirm(
+                'วิชานี้ใช้เกณฑ์ "คะแนนครั้งล่าสุด"\n\n' +
+                'คะแนนของข้อนี้จะถูกแทนที่ด้วยผลการตรวจครั้งนี้ แม้จะต่ำกว่าคะแนนเดิม\n' +
+                'ถ้ายังไม่มั่นใจ ให้กด "ทดสอบตัวอย่าง" ตรวจดูก่อนได้ไม่จำกัดครั้ง\n\nยืนยันส่งคำตอบ?'
+            );
+            if (!ok) return;
+        }
 
         const check = canSubmit(currentAssignment.id);
         if (!check.allowed) {
@@ -1089,6 +1101,15 @@ const CodingWorkspace = () => {
                                     ['eclipse','☀️ Eclipse (สว่าง)'],['default','📄 Default (สว่าง)'],
                                 ].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                             </select>
+                            <span className="text-xs px-2 py-1 rounded"
+                                title={gradingPolicy === 'latest'
+                                    ? 'คะแนนของข้อนี้จะยึดผลการตรวจครั้งล่าสุด'
+                                    : 'ระบบจะเก็บคะแนนครั้งที่ดีที่สุดให้'}
+                                style={gradingPolicy === 'latest'
+                                    ? { background: '#FFF7ED', color: '#C2410C', border: '1px solid #FDBA74' }
+                                    : { background: '#F0FDF4', color: '#15803D', border: '1px solid #86EFAC' }}>
+                                {gradingPolicy === 'latest' ? '📌 คิดคะแนนครั้งล่าสุด' : '🏆 คิดคะแนนครั้งที่ดีที่สุด'}
+                            </span>
                             {restoredNote && (
                                 <span className="text-xs px-2 py-1 rounded"
                                     style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #6ee7b7' }}>

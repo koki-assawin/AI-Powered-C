@@ -16,6 +16,7 @@ const CourseBuilder = () => {
     const [form, setForm] = React.useState({
         title: '', description: '', language: 'c', isPublished: false,
         grade: 'ม.4', room: '', semester: '1', academicYear: '2568',
+        gradingPolicy: 'best',
     });
     const [selectedCourse, setSelectedCourse] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
@@ -74,6 +75,7 @@ const CourseBuilder = () => {
             room: course.room || '',
             semester: course.semester || '1',
             academicYear: course.academicYear || '2568',
+            gradingPolicy: course.gradingPolicy === 'latest' ? 'latest' : 'best',
         });
         setCreatedClassCode(course.classCode || '');
         setTab('edit');
@@ -88,6 +90,7 @@ const CourseBuilder = () => {
                 title: form.title, description: form.description, language: form.language,
                 isPublished: form.isPublished, grade: form.grade, room: form.room,
                 semester: form.semester, academicYear: form.academicYear, teacherId: userDoc.id,
+                gradingPolicy: form.gradingPolicy === 'latest' ? 'latest' : 'best',
             };
             if (selectedCourse) {
                 await db.collection('courses').doc(selectedCourse.id).update(data);
@@ -652,6 +655,28 @@ const CourseBuilder = () => {
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">เกณฑ์คิดคะแนนของรายวิชา</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            ['best',   '🏆 คะแนนครั้งที่ดีที่สุด', 'ส่งซ้ำได้ คะแนนไม่ลด'],
+                                            ['latest', '📌 คะแนนครั้งล่าสุด',      'ส่งใหม่แล้วใช้คะแนนครั้งนั้น'],
+                                        ].map(([v, label, desc]) => (
+                                            <button key={v} type="button"
+                                                onClick={() => setForm(f => ({ ...f, gradingPolicy: v }))}
+                                                className="px-3 py-2 rounded-xl text-sm font-medium text-left transition-all"
+                                                style={form.gradingPolicy === v
+                                                    ? { background:'linear-gradient(135deg,#EC407A,#C2185B)', color:'#fff', border:'none' }
+                                                    : { background:'#F5F5F5', color:'#6b7280', border:'1px solid #E0E0E0' }}>
+                                                <div>{label}</div>
+                                                <div style={{ fontSize: 11, opacity: .85 }}>{desc}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        เปลี่ยนเกณฑ์มีผลกับการส่งงานครั้งต่อไป ถ้าต้องการคำนวณคะแนนเดิมใหม่ ใช้ tools/regrade-course.js
+                                    </p>
                                 </div>
                                 <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background:'#FFF5F7', border:'1px solid #FFD1DC' }}>
                                     <input type="checkbox" id="isPublished" checked={form.isPublished}

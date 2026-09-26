@@ -323,7 +323,23 @@ const gradeForGuest = async (assignmentId, code, language) => {
 };
 
 // Update or create the grade document keeping the best score
+// เกณฑ์คิดคะแนนของรายวิชา: 'best' = ใช้คะแนนครั้งที่ดีที่สุด (ค่าเริ่มต้นเดิมของระบบ)
+//                          'latest' = ใช้คะแนนครั้งล่าสุดเสมอ แม้จะต่ำกว่าเดิม
+// เก็บไว้ที่ courses/{courseId}.gradingPolicy — รายวิชาที่ไม่ได้ตั้งค่าจะเป็น 'best'
+const _gradingPolicyCache = {};
+const getGradingPolicy = async (courseId) => {
+    if (!courseId) return 'best';
+    if (_gradingPolicyCache[courseId]) return _gradingPolicyCache[courseId];
+    try {
+        const snap = await db.collection('courses').doc(courseId).get();
+        const policy = snap.exists && snap.data().gradingPolicy === 'latest' ? 'latest' : 'best';
+        _gradingPolicyCache[courseId] = policy;
+        return policy;
+    } catch (_) { return 'best'; }
+};
+
 const updateBestGrade = async (studentId, courseId, assignmentId, score, maxScore, submissionId) => {
+    const policy = await getGradingPolicy(courseId);
     const gradeQuery = await db.collection('grades')
         .where('studentId', '==', studentId)
         .where('assignmentId', '==', assignmentId)
@@ -338,12 +354,14 @@ const updateBestGrade = async (studentId, courseId, assignmentId, score, maxScor
             score,
             maxScore,
             submissionId,
+            gradingPolicy: policy,
             gradedAt: serverTimestamp(),
         });
     } else {
         const existing = gradeQuery.docs[0];
-        if (score > (existing.data().score || 0)) {
-            await existing.ref.update({ score, submissionId, gradedAt: serverTimestamp() });
+        const shouldUpdate = policy === 'latest' || score > (existing.data().score || 0);
+        if (shouldUpdate) {
+            await existing.ref.update({ score, maxScore, submissionId, gradingPolicy: policy, gradedAt: serverTimestamp() });
         }
     }
 };

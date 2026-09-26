@@ -6,6 +6,7 @@ const StudentAnalytics = () => {
     const courseId = params.get('course');
 
     const [activeTab, setActiveTab] = React.useState('overview');
+    const [gradingPolicy, setGradingPolicy] = React.useState('best');   // เกณฑ์คิดคะแนนของรายวิชา
     const [courses, setCourses] = React.useState([]);
     const [selectedCourse, setSelectedCourse] = React.useState(courseId || '');
     const [assignments, setAssignments] = React.useState([]);
@@ -94,6 +95,10 @@ const StudentAnalytics = () => {
                     return { id: d.id, ...dt, rawScore, _src: 'v2' };
                 });
             setAssignments([...v1, ...v2]);
+            try {
+                const cSnap = await db.collection('courses').doc(selectedCourse).get();
+                setGradingPolicy(cSnap.exists && cSnap.data().gradingPolicy === 'latest' ? 'latest' : 'best');
+            } catch (_) { setGradingPolicy('best'); }
             setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             setSubmissionsV2(subV2Snap.docs.map(d => ({ id: d.id, ...d.data() })));
             setGrades(gradeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -977,20 +982,38 @@ const StudentAnalytics = () => {
                                             unitMap[u].push(a);
                                         });
 
-                                    // Best score per student per assignment
-                                    // Seed from submissions (handles assignments without grade doc yet)
+                                    // คะแนนที่ใช้ต่อคนต่อข้อ ขึ้นกับเกณฑ์ของรายวิชา
+                                    // 'best'   = ครั้งที่ดีที่สุด (ค่าเริ่มต้นเดิมของระบบ)
+                                    // 'latest' = ครั้งล่าสุดตามเวลาส่ง
                                     const bestScore = {};
-                                    submissions.forEach(sub => {
-                                        if (!bestScore[sub.studentId]) bestScore[sub.studentId] = {};
-                                        const cur = bestScore[sub.studentId][sub.assignmentId] || 0;
-                                        if ((sub.score || 0) > cur) bestScore[sub.studentId][sub.assignmentId] = sub.score || 0;
-                                    });
+                                    if (gradingPolicy === 'latest') {
+                                        const latestAt = {};
+                                        submissions.forEach(sub => {
+                                            if (!bestScore[sub.studentId]) { bestScore[sub.studentId] = {}; latestAt[sub.studentId] = {}; }
+                                            const t = sub.submittedAt?.seconds || 0;
+                                            if (t >= (latestAt[sub.studentId][sub.assignmentId] || -1)) {
+                                                latestAt[sub.studentId][sub.assignmentId] = t;
+                                                bestScore[sub.studentId][sub.assignmentId] = sub.score || 0;
+                                            }
+                                        });
+                                    } else {
+                                        submissions.forEach(sub => {
+                                            if (!bestScore[sub.studentId]) bestScore[sub.studentId] = {};
+                                            const cur = bestScore[sub.studentId][sub.assignmentId] || 0;
+                                            if ((sub.score || 0) > cur) bestScore[sub.studentId][sub.assignmentId] = sub.score || 0;
+                                        });
+                                    }
                                     // Override/merge with grades collection (authoritative best score,
                                     // not affected by courseId mismatch in old submissions)
                                     grades.forEach(g => {
                                         if (!bestScore[g.studentId]) bestScore[g.studentId] = {};
-                                        const cur = bestScore[g.studentId][g.assignmentId] || 0;
-                                        if ((g.score || 0) > cur) bestScore[g.studentId][g.assignmentId] = g.score || 0;
+                                        const cur = bestScore[g.studentId][g.assignmentId];
+                                        if (gradingPolicy === 'latest') {
+                                            // ใช้ grades เฉพาะตอนที่ยังไม่มีผลการส่งของข้อนั้นในชุดข้อมูลนี้
+                                            if (cur === undefined) bestScore[g.studentId][g.assignmentId] = g.score || 0;
+                                        } else if ((g.score || 0) > (cur || 0)) {
+                                            bestScore[g.studentId][g.assignmentId] = g.score || 0;
+                                        }
                                     });
                                     // Include activity submissions (assignments_v2)
                                     submissionsV2.forEach(sub => {
@@ -1040,7 +1063,15 @@ const StudentAnalytics = () => {
                                         <div>
                                             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                                                 <div>
-                                                    <h3 className="font-bold text-gray-700">📋 สรุปคะแนนดิบทุกคน (E1)</h3>
+                                                    <h3 className="font-bold text-gray-700">
+                                                        📋 สรุปคะแนนดิบทุกคน (E1)
+                                                        <span className="ml-2 text-xs px-2 py-1 rounded align-middle"
+                                                            style={gradingPolicy === 'latest'
+                                                                ? { background: '#FFF7ED', color: '#C2410C', border: '1px solid #FDBA74' }
+                                                                : { background: '#F0FDF4', color: '#15803D', border: '1px solid #86EFAC' }}>
+                                                            {gradingPolicy === 'latest' ? '📌 เกณฑ์: คะแนนครั้งล่าสุด' : '🏆 เกณฑ์: คะแนนครั้งที่ดีที่สุด'}
+                                                        </span>
+                                                    </h3>
                                                     {hasRawScore
                                                         ? <p className="text-xs text-gray-400 mt-0.5">คะแนนเต็มรวม {totalRaw} คะแนน · {enrollments.length} คน · {visibleAssignments.length} โจทย์</p>
                                                         : <p className="text-xs text-orange-500 mt-0.5">⚠️ ยังไม่มีข้อมูลคะแนนดิบ</p>
