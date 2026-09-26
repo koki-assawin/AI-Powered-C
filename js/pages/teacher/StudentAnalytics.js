@@ -453,30 +453,39 @@ const StudentAnalytics = () => {
         if (summarySort === 'no') arr.sort((a, b) => parseInt(students[a.studentId]?.number||999) - parseInt(students[b.studentId]?.number||999));
         else if (summarySort === 'name') arr.sort((a, b) => (students[a.studentId]?.displayName||'').localeCompare(students[b.studentId]?.displayName||'', 'th'));
         else if (summarySort === 'score') {
-            // compute grandTotal for each — merge submissions + grades (same as summary tab)
-            const best = {};
-            submissions.forEach(sub => {
-                if (!best[sub.studentId]) best[sub.studentId] = {};
-                const cur = best[sub.studentId][sub.assignmentId] || 0;
-                if ((sub.score||0) > cur) best[sub.studentId][sub.assignmentId] = sub.score||0;
-            });
+            // ต้องคำนวณด้วยสูตรเดียวกับคอลัมน์ "รวม /60" ในตาราง ไม่งั้นลำดับจะไม่ตรงกับตัวเลขที่เห็น
+            // เกณฑ์เดิมผิดสองจุด: ใช้คะแนนสูงสุดเสมอแม้รายวิชาจะตั้งเป็นคะแนนครั้งล่าสุด
+            // และรวมโจทย์ที่ซ่อนอยู่หรือไม่ได้ระบุหน่วย ซึ่งตารางไม่ได้นับ
+            const visible = assignments.filter(a => a.isPublished !== false && a.unitName);
+            const picked = {};
+            const put = (sid, aid, score, at) => {
+                if (!picked[sid]) picked[sid] = {};
+                const cur = picked[sid][aid];
+                if (gradingPolicy === 'latest') {
+                    if (!cur || (at || 0) >= cur.at) picked[sid][aid] = { score: score || 0, at: at || 0 };
+                } else if (!cur || (score || 0) > cur.score) {
+                    picked[sid][aid] = { score: score || 0, at: at || 0 };
+                }
+            };
+            submissions.forEach(sub => put(sub.studentId, sub.assignmentId, sub.score, sub.submittedAt?.seconds));
+            submissionsV2.forEach(sub => put(sub.studentId, sub.assignmentId, sub.score, sub.submittedAt?.seconds));
             grades.forEach(g => {
-                if (!best[g.studentId]) best[g.studentId] = {};
-                const cur = best[g.studentId][g.assignmentId] || 0;
-                if ((g.score||0) > cur) best[g.studentId][g.assignmentId] = g.score||0;
+                // เกณฑ์คะแนนครั้งล่าสุด ใช้ grades เฉพาะข้อที่ยังไม่มีผลการส่งในชุดข้อมูลนี้
+                if (gradingPolicy === 'latest') {
+                    if (!picked[g.studentId]?.[g.assignmentId]) put(g.studentId, g.assignmentId, g.score, -1);
+                } else {
+                    put(g.studentId, g.assignmentId, g.score, 0);
+                }
             });
-            submissionsV2.forEach(sub => {
-                if (!best[sub.studentId]) best[sub.studentId] = {};
-                const cur = best[sub.studentId][sub.assignmentId] || 0;
-                if ((sub.score||0) > cur) best[sub.studentId][sub.assignmentId] = sub.score||0;
-            });
-            arr.sort((a, b) => {
-                const tot = (e) => assignments.reduce((s, asn) => s + (asn.rawScore > 0 ? Math.round((best[e.studentId]?.[asn.id]||0) * asn.rawScore / 100) : 0), 0);
-                return tot(b) - tot(a);
-            });
+            const totalOf = (e) => visible.reduce((sum, asn) => sum + (asn.rawScore > 0
+                ? Math.round((picked[e.studentId]?.[asn.id]?.score || 0) * asn.rawScore / 100)
+                : 0), 0);
+            const cache = {};
+            arr.forEach(e => { cache[e.studentId] = totalOf(e); });
+            arr.sort((a, b) => (cache[b.studentId] || 0) - (cache[a.studentId] || 0));
         }
         return arr;
-    }, [enrollmentsIndexed, summarySort, students, submissions, submissionsV2, grades, assignments]);
+    }, [enrollmentsIndexed, summarySort, students, submissions, submissionsV2, grades, assignments, gradingPolicy]);
 
     // Sorted enrollments for practice tab
     const sortedPracticeEnrollments = React.useMemo(() => {
@@ -1015,12 +1024,25 @@ const StudentAnalytics = () => {
                                             bestScore[g.studentId][g.assignmentId] = g.score || 0;
                                         }
                                     });
-                                    // Include activity submissions (assignments_v2)
-                                    submissionsV2.forEach(sub => {
-                                        if (!bestScore[sub.studentId]) bestScore[sub.studentId] = {};
-                                        const cur = bestScore[sub.studentId][sub.assignmentId] || 0;
-                                        if ((sub.score || 0) > cur) bestScore[sub.studentId][sub.assignmentId] = sub.score || 0;
-                                    });
+                                    // Include activity submissions (assignments_v2) — ตามเกณฑ์ของรายวิชาเช่นกัน
+                                    if (gradingPolicy === 'latest') {
+                                        const latestV2 = {};
+                                        submissionsV2.forEach(sub => {
+                                            if (!bestScore[sub.studentId]) { bestScore[sub.studentId] = {}; }
+                                            if (!latestV2[sub.studentId]) latestV2[sub.studentId] = {};
+                                            const t = sub.submittedAt?.seconds || 0;
+                                            if (t >= (latestV2[sub.studentId][sub.assignmentId] ?? -1)) {
+                                                latestV2[sub.studentId][sub.assignmentId] = t;
+                                                bestScore[sub.studentId][sub.assignmentId] = sub.score || 0;
+                                            }
+                                        });
+                                    } else {
+                                        submissionsV2.forEach(sub => {
+                                            if (!bestScore[sub.studentId]) bestScore[sub.studentId] = {};
+                                            const cur = bestScore[sub.studentId][sub.assignmentId] || 0;
+                                            if ((sub.score || 0) > cur) bestScore[sub.studentId][sub.assignmentId] = sub.score || 0;
+                                        });
+                                    }
 
                                     const hasRawScore = visibleAssignments.some(a => a.rawScore > 0);
                                     const totalRaw = visibleAssignments.reduce((s, a) => s + (a.rawScore || 0), 0);
