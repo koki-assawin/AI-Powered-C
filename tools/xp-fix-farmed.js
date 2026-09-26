@@ -88,6 +88,10 @@ const RANK_TIERS = [
 const rankFromXP = (xp) => RANK_TIERS.reduce((t, c) => (xp >= c.minXP ? c : t), RANK_TIERS[0]);
 
 const ts = (v) => (v && v.toDate ? v.toDate() : null);
+// xpLedger บางรายการมีค่าที่ไม่ใช่ตัวเลข เพราะโค้ดรุ่นก่อนส่ง argument ผิดตำแหน่ง
+// (เช่น coinAwarded เป็นข้อความ 'submission_accepted') ถ้าบวกตรง ๆ ผลรวมจะกลายเป็นข้อความ
+const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+
 const minuteKey = (d) => d.toISOString().slice(0, 16);
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const weekStr = () => {
@@ -149,7 +153,7 @@ const weekStr = () => {
     const voidIds = new Set(toVoid.map(r => r.id));
     const keep = rows.filter(r => r.voided !== true && !voidIds.has(r.id));
 
-    const sum = (arr, f) => arr.reduce((s, r) => s + (r[f] || 0), 0);
+    const sum = (arr, f) => arr.reduce((s, r) => s + num(r[f]), 0);
     const newXP      = sum(keep, 'xpAwarded');
     const newCoin    = sum(keep, 'coinAwarded');
     const newCrystal = sum(keep, 'crystalAwarded');

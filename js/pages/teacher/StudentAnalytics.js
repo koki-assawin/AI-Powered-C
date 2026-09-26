@@ -2238,7 +2238,7 @@ const _GamificationTab = ({ selectedCourse, submissions = [], students = {} }) =
                                                 {passed}/{total} โจทย์
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-yellow-600">🪙 {s.codeCoin || 0}</td>
+                                        <td className="px-4 py-3 text-yellow-600">🪙 {Number(s.codeCoin) || 0}</td>
                                         <td className="px-4 py-3">🔥 {s.streakDays || 0} วัน</td>
                                         <td className="px-4 py-3">
                                             <button onClick={() => loadXPAudit(s.uid)}

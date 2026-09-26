@@ -48,6 +48,10 @@ const RANK_TIERS = [
 ];
 const rankFromXP = (xp) => RANK_TIERS.reduce((t, c) => (xp >= c.minXP ? c : t), RANK_TIERS[0]);
 const ts = (v) => (v && v.toDate ? v.toDate() : null);
+// xpLedger บางรายการมีค่าที่ไม่ใช่ตัวเลข เพราะโค้ดรุ่นก่อนส่ง argument ผิดตำแหน่ง
+// (เช่น coinAwarded เป็นข้อความ 'submission_accepted') ถ้าบวกตรง ๆ ผลรวมจะกลายเป็นข้อความ
+const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+
 
 
 // ── ค้นหานักเรียนจาก --uid / --number / --name ────────────────────────────────
@@ -124,7 +128,7 @@ async function resolveUid(db, { uid, number, name }) {
 
         const name = list[0].displayName || '(ไม่ทราบชื่อ)';
         const statsSnap = await db.collection('playerStats').doc(uid).get();
-        const before = statsSnap.exists ? (statsSnap.data().xp || 0) : 0;
+        const before = statsSnap.exists ? num(statsSnap.data().xp) : 0;
         plan.push({ uid, name, entries, xpSum, coinSum, rows, before, after: before + xpSum });
         grandXP += xpSum; grandRows += rows;
     }

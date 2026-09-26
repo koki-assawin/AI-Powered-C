@@ -46,6 +46,10 @@ const RANK_TIERS = [
 ];
 const rankFromXP = (xp) => RANK_TIERS.reduce((t, c) => (xp >= c.minXP ? c : t), RANK_TIERS[0]);
 const ts = (v) => (v && v.toDate ? v.toDate() : null);
+// xpLedger บางรายการมีค่าที่ไม่ใช่ตัวเลข เพราะโค้ดรุ่นก่อนส่ง argument ผิดตำแหน่ง
+// (เช่น coinAwarded เป็นข้อความ 'submission_accepted') ถ้าบวกตรง ๆ ผลรวมจะกลายเป็นข้อความ
+const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+
 
 
 // ── ค้นหานักเรียนจาก --uid / --number / --name ────────────────────────────────
@@ -81,10 +85,11 @@ async function resolveUid(db, { uid, number, name }) {
     ledSnap.docs.forEach(d => {
         const v = d.data();
         if (v.voided === true || !v.uid) return;
-        const t = totals[v.uid] = totals[v.uid] || { xp: 0, coin: 0, crystal: 0, n: 0, daily: 0, weekly: 0 };
+        const t = totals[v.uid] = totals[v.uid] || { xp: 0, coin: 0, crystal: 0, n: 0, daily: 0, weekly: 0, malformed: 0 };
         const at = ts(v.createdAt);
-        const xp = v.xpAwarded || 0;
-        t.xp += xp; t.coin += v.coinAwarded || 0; t.crystal += v.crystalAwarded || 0; t.n++;
+        const xp = num(v.xpAwarded);
+        if (typeof v.coinAwarded !== 'number' || typeof v.crystalAwarded !== 'number') t.malformed++;
+        t.xp += xp; t.coin += num(v.coinAwarded); t.crystal += num(v.crystalAwarded); t.n++;
         if (at) {
             const today = new Date().toISOString().slice(0, 10);
             if (at.toISOString().slice(0, 10) === today) t.daily += xp;
@@ -109,11 +114,15 @@ async function resolveUid(db, { uid, number, name }) {
         const cur = statsSnap.exists ? statsSnap.data() : {};
         backup[uid] = cur;
         const name = userSnap.exists ? (userSnap.data().displayName || uid) : uid;
-        const diff = t.xp - (cur.xp || 0);
-        rows.push({ uid, name, cur, t, diff, tier: rankFromXP(t.xp) });
+        const diff = t.xp - num(cur.xp);
+        // ค่าใน playerStats ต้องเป็นตัวเลข ถ้าเคยถูกเขียนเป็นข้อความต้องเขียนทับให้ถูกชนิด
+        const typeBroken = typeof cur.xp !== 'number'
+            || typeof cur.codeCoin !== 'number'
+            || typeof cur.crystal !== 'number';
+        rows.push({ uid, name, cur, t, diff, typeBroken, tier: rankFromXP(t.xp) });
     }
 
-    const shown = ONLY_MISMATCH ? rows.filter(r => r.diff !== 0) : rows;
+    const shown = ONLY_MISMATCH ? rows.filter(r => r.diff !== 0 || r.typeBroken) : rows;
     shown.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
 
     const backupFile = path.join(backupDir, `playerStats_${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
@@ -133,7 +142,15 @@ async function resolveUid(db, { uid, number, name }) {
             '  ' + r.tier.name + (r.diff !== 0 ? '   ⚠️' : '')
         );
     });
-    const mismatched = rows.filter(r => r.diff !== 0);
+    const mismatched = rows.filter(r => r.diff !== 0 || r.typeBroken);
+    const malformedTotal = rows.reduce((s, r) => s + (r.t.malformed || 0), 0);
+    if (malformedTotal) {
+        console.log('⚠️  xpLedger มีรายการที่ค่าเหรียญหรือคริสตัลไม่ใช่ตัวเลข', malformedTotal, 'รายการ — นับเป็น 0 ให้แล้ว');
+    }
+    const broken = rows.filter(r => r.typeBroken);
+    if (broken.length) {
+        console.log('⚠️  playerStats ที่ค่าเป็นชนิดผิดและจะถูกเขียนทับให้ถูกต้อง:', broken.map(b => b.name).join(', '));
+    }
     console.log('--------------------------------------------------');
     console.log('ตรวจ', rows.length, 'คน | ยอดไม่ตรง', mismatched.length, 'คน');
 

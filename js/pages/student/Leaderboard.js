@@ -45,7 +45,7 @@ const Leaderboard = () => {
                     displayName: userData.displayName || 'นักเรียน',
                     number: userData.number || '',
                     xp: s.xp || 0,
-                    codeCoin: s.codeCoin || 0,
+                    codeCoin: Number(s.codeCoin) || 0,
                     crystal: s.crystal || 0,
                     streakDays: s.streakDays || 0,
                     tier,
@@ -357,7 +357,7 @@ const Leaderboard = () => {
                                         <div style={{ fontSize: 9, color: '#475569' }}>วัน streak</div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: 16, fontWeight: 700, color: '#fbbf24' }}>🪙 {(myStats?.codeCoin || 0).toLocaleString()}</div>
+                                        <div style={{ fontSize: 16, fontWeight: 700, color: '#fbbf24' }}>🪙 {(Number(myStats?.codeCoin) || 0).toLocaleString()}</div>
                                         <div style={{ fontSize: 9, color: '#475569' }}>CodeCoin</div>
                                     </div>
                                 </div>
@@ -587,7 +587,7 @@ const Leaderboard = () => {
                                                 </div>
                                                 <div style={{ fontSize: 9, color: '#334155' }}>
                                                     {e.streakDays > 0 && `🔥${e.streakDays}d`}
-                                                    {e.codeCoin > 0 && ` 🪙${e.codeCoin}`}
+                                                    {Number(e.codeCoin) > 0 && ` 🪙${Number(e.codeCoin)}`}
                                                 </div>
                                             </div>
                                         </div>
