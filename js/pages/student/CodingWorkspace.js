@@ -37,6 +37,9 @@ const CodingWorkspace = () => {
     const [scaffoldHint, setScaffoldHint] = React.useState('');
     const [hintLoading, setHintLoading] = React.useState(false);
     const [hintLevel, setHintLevel] = React.useState(0); // 0=no hint yet, 1-4=level shown
+    const [restoredNote, setRestoredNote] = React.useState('');   // แจ้งเมื่อกู้โค้ดจากการส่งครั้งล่าสุด
+    const selectedAssignIdRef = React.useRef(null);   // โจทย์ที่เปิดอยู่ ใช้กันการกู้โค้ดมาทับหลังเปลี่ยนข้อ
+    const codeRef = React.useRef('');                 // โค้ดล่าสุดในจอ ใช้เช็คว่าผู้เรียนพิมพ์ไปแล้วหรือยัง
     const hintSourceRef = React.useRef(null);        // gradeResult the current hint was built from
     const submittedCodeRef = React.useRef('');       // code as submitted, so hint line numbers match
 
@@ -219,6 +222,35 @@ const CodingWorkspace = () => {
         }
     };
 
+    // คีย์ draft ต้องมี uid กำกับ ไม่เช่นนั้นเครื่องที่ใช้ร่วมกันในห้องคอมจะเห็นโค้ดของคนก่อนหน้า
+    const draftKey = (assignmentId) => `draft_${userDoc?.id || 'anon'}_${assignmentId}`;
+
+    // localStorage ผูกกับเบราว์เซอร์และโปรไฟล์ Chrome นั้น ๆ เปลี่ยนเครื่องหรือเปลี่ยนโปรไฟล์จะไม่เห็น draft
+    // แต่โค้ดที่ "กดส่ง" แล้วถูกเก็บไว้บน Firestore เสมอ จึงดึงกลับมาให้ได้
+    const restoreLastSubmission = async (assign) => {
+        if (!userDoc?.id || userDoc.isGuest) return;
+        try {
+            const snap = await db.collection('submissions')
+                .where('studentId', '==', userDoc.id)
+                .where('assignmentId', '==', assign.id)
+                .get();
+            if (snap.empty) return;
+            const latest = snap.docs
+                .map(d => d.data())
+                .sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0))[0];
+            if (!latest?.code) return;
+            // ใส่กลับเฉพาะเมื่อผู้เรียนยังอยู่ที่โจทย์ข้อเดิมและยังไม่ได้พิมพ์อะไรทับ
+            if (selectedAssignIdRef.current !== assign.id) return;   // ผู้เรียนเปลี่ยนข้อไปแล้ว
+            const starter = assign.starterCode || LANGUAGES[assign.language || selectedLanguage]?.defaultCode || '';
+            if (codeRef.current !== starter) return;                // ผู้เรียนพิมพ์ไปแล้ว ไม่ทับของเขา
+            if (latest.language) setSelectedLanguage(latest.language);
+            setCode(latest.code);
+            setRestoredNote('กู้โค้ดจากการส่งครั้งล่าสุดของคุณแล้ว');
+        } catch (err) {
+            console.warn('[workspace] กู้โค้ดครั้งล่าสุดไม่สำเร็จ:', err.message);
+        }
+    };
+
     const selectAssignment = (assign) => {
         setCurrentAssignment(assign);
         setGradeResult(null);
@@ -238,9 +270,16 @@ const CodingWorkspace = () => {
         setRunCount(0);
         sessionStartRef.current = Date.now();
         // Restore draft
-        const draft = localStorage.getItem(`draft_${assign.id}`);
-        if (draft) setCode(draft);
-        else setCode(LANGUAGES[assign.language || selectedLanguage]?.defaultCode || '');
+        setRestoredNote('');
+        selectedAssignIdRef.current = assign.id;
+        const draft = localStorage.getItem(draftKey(assign.id))
+            || localStorage.getItem(`draft_${assign.id}`);   // คีย์รูปแบบเก่า ใช้ต่อได้
+        if (draft) {
+            setCode(draft);
+        } else {
+            setCode(assign.starterCode || LANGUAGES[assign.language || selectedLanguage]?.defaultCode || '');
+            restoreLastSubmission(assign);   // ไม่มี draft ในเครื่องนี้ → ดึงโค้ดที่เคยส่งไว้จากเซิร์ฟเวอร์
+        }
     };
 
     const loadTestCases = async () => {
@@ -254,8 +293,9 @@ const CodingWorkspace = () => {
 
     // Save draft on code change
     React.useEffect(() => {
+        codeRef.current = code;
         if (currentAssignment) {
-            localStorage.setItem(`draft_${currentAssignment.id}`, code);
+            localStorage.setItem(draftKey(currentAssignment.id), code);
         }
     }, [code]);
 
@@ -1049,6 +1089,12 @@ const CodingWorkspace = () => {
                                     ['eclipse','☀️ Eclipse (สว่าง)'],['default','📄 Default (สว่าง)'],
                                 ].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                             </select>
+                            {restoredNote && (
+                                <span className="text-xs px-2 py-1 rounded"
+                                    style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #6ee7b7' }}>
+                                    ☁️ {restoredNote}
+                                </span>
+                            )}
                             {/* Reset code to starter */}
                             {!isExamMode && (
                                 <button
@@ -1056,7 +1102,11 @@ const CodingWorkspace = () => {
                                         const starter = currentAssignment?.starterCode || LANGUAGES[selectedLanguage]?.defaultCode || '';
                                         if (starter && window.confirm('รีเซ็ตโค้ดกลับเป็นโค้ดตั้งต้น?\n(Draft ที่บันทึกไว้จะถูกลบ)')) {
                                             setCode(starter);
-                                            if (currentAssignment) localStorage.removeItem(`draft_${currentAssignment.id}`);
+                                            if (currentAssignment) {
+                                                localStorage.removeItem(draftKey(currentAssignment.id));
+                                                localStorage.removeItem(`draft_${currentAssignment.id}`);
+                                                setRestoredNote('');
+                                            }
                                         }
                                     }}
                                     className="text-xs px-2 py-1 rounded border hover:bg-red-50"
