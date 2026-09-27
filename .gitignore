@@ -46,3 +46,6 @@ serviceAccountKey.json
 
 # ไฟล์สำรองข้อมูลจากสคริปต์ใน tools/
 backups/
+
+# ตารางเทียบรหัสผู้เรียน (ข้อมูลส่วนบุคคล ห้ามขึ้น repo)
+docs/report-exports-2569-09/_mapping_private.csv

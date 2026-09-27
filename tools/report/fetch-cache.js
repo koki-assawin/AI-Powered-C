@@ -67,7 +67,6 @@ async function cache(name, buildQuery) {
     await cache('usageEvents',    () => db.collection('usageEvents'));
     await cache('selfPractice',   () => db.collection('selfPracticeSubmissions'));
     await cache('pollSessions',   () => db.collection('pollSessions'));
-    await cache('miniGameSessions', () => db.collection('miniGameSessions'));
     await cache('xpCorrections',  () => db.collection('xpCorrections'));
     await cache('gradeCorrections', () => db.collection('gradeCorrections'));
 
