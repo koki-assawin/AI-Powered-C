@@ -71,7 +71,15 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
-      allow write: if request.auth != null;
+      // รายวิชาที่ปิดรับคะแนนแล้ว (courses.gradesLocked == true) นักเรียนแก้คะแนนไม่ได้อีก
+      // ครูและผู้ดูแลระบบยังแก้ได้ เผื่อต้องปรับคะแนนภายหลัง
+      allow write: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        !(
+          get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.gradesLocked == true
+        )
+      );
     }
 
     // Enrollments — all authenticated can read (leaderboard needs full class list); write own

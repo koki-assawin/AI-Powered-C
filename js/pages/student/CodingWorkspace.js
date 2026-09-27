@@ -39,6 +39,7 @@ const CodingWorkspace = () => {
     const [hintLevel, setHintLevel] = React.useState(0); // 0=no hint yet, 1-4=level shown
     const [restoredNote, setRestoredNote] = React.useState('');   // แจ้งเมื่อกู้โค้ดจากการส่งครั้งล่าสุด
     const [gradingPolicy, setGradingPolicy] = React.useState('best');   // เกณฑ์คิดคะแนนของรายวิชา
+    const [gradesLocked, setGradesLocked] = React.useState(false);      // รายวิชาปิดรับคะแนนแล้วหรือยัง
     const selectedAssignIdRef = React.useRef(null);   // โจทย์ที่เปิดอยู่ ใช้กันการกู้โค้ดมาทับหลังเปลี่ยนข้อ
     const codeRef = React.useRef('');                 // โค้ดล่าสุดในจอ ใช้เช็คว่าผู้เรียนพิมพ์ไปแล้วหรือยัง
     const hintSourceRef = React.useRef(null);        // gradeResult the current hint was built from
@@ -160,6 +161,7 @@ const CodingWorkspace = () => {
             const c = { id: courseSnap.id, ...courseSnap.data() };
             setCourse(c);
             setGradingPolicy(c.gradingPolicy === 'latest' ? 'latest' : 'best');
+            setGradesLocked(c.gradesLocked === true);
             setSelectedLanguage(c.language || 'c');
             setCode(localStorage.getItem(`draft_${courseId}`) || LANGUAGES[c.language || 'c'].defaultCode);
 
@@ -324,7 +326,8 @@ const CodingWorkspace = () => {
         if (!currentAssignment || !userDoc) return;
 
         // รายวิชาที่ใช้เกณฑ์คะแนนครั้งล่าสุด ต้องเตือนก่อน เพราะคะแนนอาจลดลงได้
-        if (gradingPolicy === 'latest') {
+        // (ถ้าปิดรับคะแนนแล้วไม่ต้องเตือน เพราะส่งกี่ครั้งคะแนนก็ไม่เปลี่ยน)
+        if (gradingPolicy === 'latest' && !gradesLocked) {
             const ok = window.confirm(
                 'วิชานี้ใช้เกณฑ์ "คะแนนครั้งล่าสุด"\n\n' +
                 'คะแนนของข้อนี้จะถูกแทนที่ด้วยผลการตรวจครั้งนี้ แม้จะต่ำกว่าคะแนนเดิม\n' +
@@ -1106,6 +1109,14 @@ const CodingWorkspace = () => {
                                     ['eclipse','☀️ Eclipse (สว่าง)'],['default','📄 Default (สว่าง)'],
                                 ].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                             </select>
+                            {gradesLocked && (
+                                <span className="text-xs px-2 py-1 rounded"
+                                    title="ครูปิดรับคะแนนของรายวิชานี้แล้ว ส่งงานได้เพื่อฝึกฝน คะแนนจะไม่เปลี่ยน"
+                                    style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D' }}>
+                                    🔒 ปิดรับคะแนนแล้ว — ส่งได้เพื่อฝึก คะแนนไม่เปลี่ยน
+                                </span>
+                            )}
+                            {!gradesLocked && (
                             <span className="text-xs px-2 py-1 rounded"
                                 title={gradingPolicy === 'latest'
                                     ? 'คะแนนของข้อนี้จะยึดผลการตรวจครั้งล่าสุด'
@@ -1115,6 +1126,7 @@ const CodingWorkspace = () => {
                                     : { background: '#F0FDF4', color: '#15803D', border: '1px solid #86EFAC' }}>
                                 {gradingPolicy === 'latest' ? '📌 คิดคะแนนครั้งล่าสุด' : '🏆 คิดคะแนนครั้งที่ดีที่สุด'}
                             </span>
+                            )}
                             {restoredNote && (
                                 <span className="text-xs px-2 py-1 rounded"
                                     style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #6ee7b7' }}>

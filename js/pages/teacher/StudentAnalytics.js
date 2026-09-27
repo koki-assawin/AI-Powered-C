@@ -7,6 +7,7 @@ const StudentAnalytics = () => {
 
     const [activeTab, setActiveTab] = React.useState('overview');
     const [gradingPolicy, setGradingPolicy] = React.useState('best');   // เกณฑ์คิดคะแนนของรายวิชา
+    const [gradesLocked, setGradesLocked] = React.useState(false);      // รายวิชาปิดรับคะแนนแล้วหรือยัง
     const [courses, setCourses] = React.useState([]);
     const [selectedCourse, setSelectedCourse] = React.useState(courseId || '');
     const [assignments, setAssignments] = React.useState([]);
@@ -95,12 +96,21 @@ const StudentAnalytics = () => {
                     return { id: d.id, ...dt, rawScore, _src: 'v2' };
                 });
             setAssignments([...v1, ...v2]);
+            let lockedAtSec = null;
             try {
                 const cSnap = await db.collection('courses').doc(selectedCourse).get();
-                setGradingPolicy(cSnap.exists && cSnap.data().gradingPolicy === 'latest' ? 'latest' : 'best');
-            } catch (_) { setGradingPolicy('best'); }
-            setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-            setSubmissionsV2(subV2Snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                const cd = cSnap.exists ? cSnap.data() : {};
+                setGradingPolicy(cd.gradingPolicy === 'latest' ? 'latest' : 'best');
+                setGradesLocked(cd.gradesLocked === true);
+                lockedAtSec = cd.gradesLocked === true ? (cd.gradesLockedAt?.seconds ?? null) : null;
+            } catch (_) { setGradingPolicy('best'); setGradesLocked(false); }
+            // ไม่นับการส่งงานหลังปิดรับคะแนน ใช้ทั้งธง countedInGrade และเวลาที่ปิดรับ
+            // (ธงกันกรณีทั่วไป ส่วนเวลากันงานที่เขียนจากหน้าจออื่นที่ยังไม่ได้ติดธง)
+            const afterLock = (t) => lockedAtSec !== null && (t?.seconds || 0) > lockedAtSec;
+            setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+                .filter(s => s.countedInGrade !== false && !afterLock(s.submittedAt)));
+            setSubmissionsV2(subV2Snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                .filter(s => s.countedInGrade !== false && !afterLock(s.submittedAt)));
             setGrades(gradeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
             // De-duplicate enrollments by studentId (prevents double-count from duplicate docs)
@@ -1087,6 +1097,12 @@ const StudentAnalytics = () => {
                                                 <div>
                                                     <h3 className="font-bold text-gray-700">
                                                         📋 สรุปคะแนนดิบทุกคน (E1)
+                                                        {gradesLocked && (
+                                                            <span className="ml-2 text-xs px-2 py-1 rounded align-middle"
+                                                                style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D' }}>
+                                                                🔒 ปิดรับคะแนนแล้ว
+                                                            </span>
+                                                        )}
                                                         <span className="ml-2 text-xs px-2 py-1 rounded align-middle"
                                                             style={gradingPolicy === 'latest'
                                                                 ? { background: '#FFF7ED', color: '#C2410C', border: '1px solid #FDBA74' }

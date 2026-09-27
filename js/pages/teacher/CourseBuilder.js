@@ -81,6 +81,26 @@ const CourseBuilder = () => {
         setTab('edit');
     };
 
+    // ปิดรับคะแนน: นักเรียนยังเข้าเรียน ส่งงาน เล่นเกมได้ตามปกติ แต่คะแนนหยุดนิ่ง
+    const toggleGradesLock = async (course) => {
+        const next = !(course.gradesLocked === true);
+        const msg = next
+            ? `ปิดรับคะแนนของ "${course.title}"?\n\nนักเรียนยังเข้าเรียน ส่งงาน ขอคำใบ้ และเล่นเกมได้ตามปกติ\nแต่คะแนนในสมุดเกรดจะหยุดอยู่ที่ค่าปัจจุบัน ไม่เปลี่ยนอีก`
+            : `เปิดรับคะแนนของ "${course.title}" อีกครั้ง?\n\nการส่งงานหลังจากนี้จะมีผลกับคะแนนตามปกติ`;
+        if (!confirm(msg)) return;
+        try {
+            await db.collection('courses').doc(course.id).update({
+                gradesLocked: next,
+                gradesLockedAt: next ? serverTimestamp() : null,
+                gradesLockedBy: next ? (userDoc?.id || null) : null,
+            });
+            setCourses(cs => cs.map(c => c.id === course.id ? { ...c, gradesLocked: next } : c));
+            showMsg(next ? '🔒 ปิดรับคะแนนแล้ว คะแนนปัจจุบันถูกล็อกไว้' : '🔓 เปิดรับคะแนนอีกครั้งแล้ว');
+        } catch (err) {
+            showMsg('❌ ไม่สำเร็จ: ' + err.message, 'error');
+        }
+    };
+
     const handleSaveCourse = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -348,6 +368,14 @@ const CourseBuilder = () => {
                             style={{ background:'#F5F0FF', color:'#6D28D9', border:'1px solid #DDD6FE', textDecoration:'none' }}>
                             📝 โจทย์
                         </a>
+                        <button type="button" onClick={() => toggleGradesLock(c)}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-medium text-center"
+                            title={c.gradesLocked ? 'คะแนนถูกล็อกอยู่ กดเพื่อเปิดรับคะแนนอีกครั้ง' : 'หยุดคะแนนไว้ที่ค่าปัจจุบัน นักเรียนยังเรียนต่อได้'}
+                            style={c.gradesLocked
+                                ? { background:'#FEF3C7', color:'#92400E', border:'1px solid #FCD34D' }
+                                : { background:'#F1F5F9', color:'#475569', border:'1px solid #CBD5E1' }}>
+                            {c.gradesLocked ? '🔒 คะแนนถูกล็อก' : '🔓 ปิดรับคะแนน'}
+                        </button>
                         <a href={`#/teacher/activities?course=${c.id}`}
                             className="flex-1 py-1.5 rounded-lg text-xs font-medium text-center"
                             style={{ background:'#F0F9FF', color:'#0369A1', border:'1px solid #BAE6FD', textDecoration:'none' }}>

@@ -281,6 +281,10 @@ const gradeSubmission = async (studentId, assignmentId, courseId, code, language
         submittedAt: serverTimestamp(),
     };
 
+    // ติดธงไว้ว่าการส่งครั้งนี้นับคะแนนหรือไม่ เพื่อให้หน้าวิเคราะห์กรองออกได้
+    const { locked: courseLocked } = await getCourseGradeConfig(courseId);
+    if (courseLocked) submissionData.countedInGrade = false;
+
     const submissionRef = await db.collection('submissions').add(submissionData);
 
     // Update best grade in grades collection
@@ -326,20 +330,24 @@ const gradeForGuest = async (assignmentId, code, language) => {
 // เกณฑ์คิดคะแนนของรายวิชา: 'best' = ใช้คะแนนครั้งที่ดีที่สุด (ค่าเริ่มต้นเดิมของระบบ)
 //                          'latest' = ใช้คะแนนครั้งล่าสุดเสมอ แม้จะต่ำกว่าเดิม
 // เก็บไว้ที่ courses/{courseId}.gradingPolicy — รายวิชาที่ไม่ได้ตั้งค่าจะเป็น 'best'
-const _gradingPolicyCache = {};
-const getGradingPolicy = async (courseId) => {
-    if (!courseId) return 'best';
-    if (_gradingPolicyCache[courseId]) return _gradingPolicyCache[courseId];
+const _courseGradeCfgCache = {};
+const getCourseGradeConfig = async (courseId) => {
+    if (!courseId) return { policy: 'best', locked: false };
+    if (_courseGradeCfgCache[courseId]) return _courseGradeCfgCache[courseId];
     try {
         const snap = await db.collection('courses').doc(courseId).get();
-        const policy = snap.exists && snap.data().gradingPolicy === 'latest' ? 'latest' : 'best';
-        _gradingPolicyCache[courseId] = policy;
-        return policy;
-    } catch (_) { return 'best'; }
+        const d = snap.exists ? snap.data() : {};
+        const cfg = { policy: d.gradingPolicy === 'latest' ? 'latest' : 'best', locked: d.gradesLocked === true };
+        _courseGradeCfgCache[courseId] = cfg;
+        return cfg;
+    } catch (_) { return { policy: 'best', locked: false }; }
 };
+const getGradingPolicy = async (courseId) => (await getCourseGradeConfig(courseId)).policy;
 
 const updateBestGrade = async (studentId, courseId, assignmentId, score, maxScore, submissionId) => {
-    const policy = await getGradingPolicy(courseId);
+    const { policy, locked } = await getCourseGradeConfig(courseId);
+    // รายวิชาที่ปิดรับคะแนนแล้ว: ตรวจงานให้ตามปกติ แต่ไม่แตะสมุดเกรด
+    if (locked) return;
     const gradeQuery = await db.collection('grades')
         .where('studentId', '==', studentId)
         .where('assignmentId', '==', assignmentId)
