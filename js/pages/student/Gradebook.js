@@ -4,6 +4,7 @@ const Gradebook = () => {
     const { user, userDoc } = useAuth();
     const [allAssignments, setAllAssignments] = React.useState([]);
     const [gradeMap, setGradeMap]             = React.useState({});
+    const [gradingPolicy, setGradingPolicy]   = React.useState('best');   // เกณฑ์คิดคะแนนของรายวิชา
     const [enrolledCourses, setEnrolledCourses] = React.useState([]);
     const [selectedCourseId, setSelectedCourseId] = React.useState('');
     const [loading, setLoading] = React.useState(true);
@@ -38,13 +39,20 @@ const Gradebook = () => {
         if (!userDoc || !courseId) return;
         setLoading(true);
         try {
-            const [assignSnap, gradeSnap] = await Promise.all([
+            const [assignSnap, gradeSnap, subSnap, courseSnap] = await Promise.all([
                 db.collection('assignments').where('courseId', '==', courseId).get(),
                 db.collection('grades')
                     .where('studentId', '==', userDoc.id)
                     .where('courseId', '==', courseId)
                     .get(),
+                db.collection('submissions')
+                    .where('studentId', '==', userDoc.id)
+                    .where('courseId', '==', courseId)
+                    .get(),
+                db.collection('courses').doc(courseId).get(),
             ]);
+            // เกณฑ์คิดคะแนนของรายวิชา ต้องใช้ชุดเดียวกับตารางสรุปคะแนนของครู
+            const policy = courseSnap.exists && courseSnap.data().gradingPolicy === 'latest' ? 'latest' : 'best';
             const assigns = assignSnap.docs
                 .map(d => ({ id: d.id, ...d.data() }))
                 .filter(a => a.isPublished !== false) // hidden assignments must never reach the student
@@ -55,7 +63,26 @@ const Gradebook = () => {
             setAllAssignments(assigns);
             const gmap = {};
             gradeSnap.docs.forEach(d => { gmap[d.data().assignmentId] = { id: d.id, ...d.data() }; });
+
+            // คิดคะแนนใหม่จากการส่งงานของตัวเองตามเกณฑ์ของรายวิชา
+            // เกณฑ์ latest = ใช้การส่งครั้งล่าสุด, เกณฑ์ best = ใช้ครั้งที่ได้คะแนนสูงสุด
+            subSnap.docs.forEach(d => {
+                const v = d.data();
+                if (!v.assignmentId) return;
+                const at = v.submittedAt?.seconds || 0;
+                const score = v.score || 0;
+                const cur = gmap[v.assignmentId];
+                if (!cur) {
+                    gmap[v.assignmentId] = { assignmentId: v.assignmentId, score, _at: at, gradedAt: v.submittedAt };
+                    return;
+                }
+                const curAt = cur._at ?? -1;
+                if (policy === 'latest' ? at >= curAt : score > (cur.score || 0)) {
+                    gmap[v.assignmentId] = { ...cur, score, _at: at, gradedAt: v.submittedAt };
+                }
+            });
             setGradeMap(gmap);
+            setGradingPolicy(policy);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
     };
@@ -74,13 +101,21 @@ const Gradebook = () => {
     const doneCount    = allAssignments.filter(a => gradeMap[a.id]).length;
     const pendingCount = totalCount - doneCount;
 
-    // Raw points totals (when maxScore available from grade doc)
+    // คะแนนดิบ: ใช้ค่า rawScore ที่ครูกำหนดต่อกิจกรรม ให้ตรงกับตารางสรุปคะแนนของครู
+    // (เดิมใช้ g.maxScore ซึ่งเป็นผลรวมคะแนนของกรณีทดสอบ ทำให้ตัวหารไม่ตรงกัน
+    //  เช่น กิจกรรมที่ครูตั้งไว้ 3 คะแนน แต่มีกรณีทดสอบรวม 50 คะแนน)
+    // กิจกรรมที่ยังไม่ได้ส่งนับเป็น 0 แต่ยังรวมอยู่ในตัวหาร เหมือนตารางของครู
+    const rawOf = (a) => (a.rawScore > 0 ? a.rawScore : 0);
+    const earnedOf = (a) => {
+        const g = gradeMap[a.id];
+        if (!g || !(a.rawScore > 0)) return 0;
+        return Math.round((g.score || 0) * a.rawScore / 100);
+    };
     let grandEarned = 0, grandMax = 0;
     allAssignments.forEach(a => {
-        const g = gradeMap[a.id];
-        if (g && g.maxScore > 0) {
-            grandEarned += Math.round((g.score || 0) * g.maxScore / 100);
-            grandMax    += g.maxScore;
+        if (rawOf(a) > 0) {
+            grandEarned += earnedOf(a);
+            grandMax    += rawOf(a);
         }
     });
     const grandPct = grandMax > 0 ? (grandEarned / grandMax * 100).toFixed(1) : null;
@@ -162,7 +197,10 @@ const Gradebook = () => {
                                             <div className={`text-3xl font-bold`} style={{ color: scoreColor(parseFloat(grandPct)) }}>
                                                 {grandEarned}<span className="text-base text-gray-400">/{grandMax}</span>
                                             </div>
-                                            <div className="text-xs text-gray-500">คะแนนรวม</div>
+                                            <div className="text-xs text-gray-500">คะแนนรวม (คะแนนดิบ)</div>
+                                            <div className="text-xs mt-1" style={{ color: gradingPolicy === 'latest' ? '#C2410C' : '#15803D' }}>
+                                                {gradingPolicy === 'latest' ? '📌 คิดจากการส่งครั้งล่าสุด' : '🏆 คิดจากครั้งที่ดีที่สุด'}
+                                            </div>
                                         </div>
                                     )}
                                     <div className="text-center">
@@ -242,13 +280,10 @@ const Gradebook = () => {
                                             // Unit subtotals
                                             let unitEarned = 0, unitMax = 0, unitDone = 0;
                                             rows.forEach(a => {
-                                                const g = gradeMap[a.id];
-                                                if (g) {
-                                                    unitDone++;
-                                                    if (g.maxScore > 0) {
-                                                        unitEarned += Math.round((g.score || 0) * g.maxScore / 100);
-                                                        unitMax    += g.maxScore;
-                                                    }
+                                                if (gradeMap[a.id]) unitDone++;
+                                                if (rawOf(a) > 0) {
+                                                    unitEarned += earnedOf(a);
+                                                    unitMax    += rawOf(a);
                                                 }
                                             });
                                             const unitPct = unitMax > 0 ? (unitEarned / unitMax * 100).toFixed(1) : null;
@@ -280,8 +315,8 @@ const Gradebook = () => {
                                                         const g     = gradeMap[a.id];
                                                         const done  = !!g;
                                                         const pct   = done ? (g.score || 0) : null;
-                                                        const max   = done && g.maxScore > 0 ? g.maxScore : null;
-                                                        const earned = max !== null ? Math.round((pct) * max / 100) : null;
+                                                        const max   = a.rawScore > 0 ? a.rawScore : null;   // คะแนนดิบที่ครูกำหนด
+                                                        const earned = done && max !== null ? Math.round(pct * max / 100) : null;
                                                         const passed = done && pct >= 60;
                                                         const dateStr = done && g.gradedAt?.toDate
                                                             ? g.gradedAt.toDate().toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
