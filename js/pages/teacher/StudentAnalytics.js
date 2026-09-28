@@ -589,6 +589,7 @@ const StudentAnalytics = () => {
                                     { key: 'summary',   label: '📋 สรุปคะแนนทุกคน' },
                                     { key: 'practice',  label: '🎯 คะแนนฝึกเอง' },
                                     { key: 'aireport',  label: '🤖 รายงาน AI' },
+                                    { key: 'hints',     label: '💡 การใช้คำใบ้' },
                                     { key: 'gamification', label: '🎮 Gamification' },
                                     { key: 'profiles',     label: '🧩 กลุ่มผู้เรียน' },
                                 ].map(t => (
@@ -1550,6 +1551,19 @@ const StudentAnalytics = () => {
                                             </div>
                                         )}
                                     </div>
+                                )}
+
+                                {/* ─── TAB: HINT USAGE ─── */}
+                                {activeTab === 'hints' && (
+                                    <_HintUsageTab
+                                        selectedCourse={selectedCourse}
+                                        assignments={assignments}
+                                        enrollments={enrollments}
+                                        students={students}
+                                        submissions={submissions}
+                                        gradingPolicy={gradingPolicy}
+                                        gradesLocked={gradesLocked}
+                                    />
                                 )}
 
                                 {/* ─── TAB 6: GAMIFICATION ─── */}
@@ -2560,6 +2574,307 @@ const _GamificationTab = ({ selectedCourse, submissions = [], students = {} }) =
                     </div>
                 ))}
             </div>
+        </div>
+    );
+};
+
+// ── Tab: การใช้คำใบ้รายบุคคล ─────────────────────────────────────────────────
+// แสดงการขอ AI Scaffolding (คำใบ้) รายคน เฉพาะรายวิชาที่เลือก
+// นับจากสองแหล่งเหมือนสคริปต์ tools/report/build-report.js เพื่อให้ตัวเลขบนหน้าจอ
+// ตรงกับตัวเลขที่ใช้ในเล่มรายงาน
+//   ก) usageEvents (event='ai_hint') มี courseId และ assignmentId ตรง ๆ
+//   ข) coachInteractions (coachRole='socratic') ไม่มี courseId จึงจับคู่กิจกรรมด้วยชื่อ
+const _HintUsageTab = ({ selectedCourse, assignments, enrollments, students, submissions, gradingPolicy, gradesLocked }) => {
+    const [loading, setLoading] = React.useState(false);
+    const [usageHints, setUsageHints] = React.useState([]);
+    const [coachHints, setCoachHints] = React.useState([]);
+    const [loadedFor, setLoadedFor] = React.useState('');
+    const [error, setError] = React.useState('');
+    const [sortBy, setSortBy] = React.useState('no');
+
+    const hintLevelOf = (ev) => { const m = /^hint_level_(\d)/.exec(ev || ''); return m ? parseInt(m[1], 10) : null; };
+
+    React.useEffect(() => {
+        if (!selectedCourse || enrollments.length === 0) return;
+        if (loadedFor === selectedCourse) return;
+        load();
+    }, [selectedCourse, enrollments]);
+
+    const load = async () => {
+        setLoading(true); setError('');
+        try {
+            const ids = [...new Set(enrollments.map(e => e.studentId))];
+            const enrolled = new Set(ids);
+
+            // ก) usageEvents ของรายวิชานี้ (กรองสองเงื่อนไขเท่ากัน ไม่ต้องมี composite index)
+            const uSnap = await db.collection('usageEvents')
+                .where('courseId', '==', selectedCourse)
+                .where('event', '==', 'ai_hint')
+                .get();
+            setUsageHints(uSnap.docs.map(d => d.data())
+                .filter(x => enrolled.has(x.uid))
+                .map(x => ({
+                    uid: x.uid,
+                    aid: x.assignmentId || '',
+                    level: x.hintLevel ? parseInt(x.hintLevel, 10) : null,
+                    at: x.timestamp || null,
+                })));
+
+            // ข) coachInteractions ของผู้เรียนในรายวิชานี้ (ครั้งละไม่เกิน 30 uid ตามข้อจำกัดของ 'in')
+            const chunks = [];
+            for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
+            const coach = [];
+            for (const c of chunks) {
+                const snap = await db.collection('coachInteractions').where('uid', 'in', c).get();
+                snap.docs.forEach(d => {
+                    const x = d.data();
+                    const lv = hintLevelOf(x.triggerEvent);
+                    if (x.coachRole !== 'socratic' || !lv) return;
+                    coach.push({
+                        uid: x.uid,
+                        level: lv,
+                        title: x.relatedId || '',
+                        local: /_local$/.test(x.triggerEvent || ''),
+                        at: x.createdAt || null,
+                    });
+                });
+            }
+            setCoachHints(coach);
+            setLoadedFor(selectedCourse);
+        } catch (e) {
+            setError(e.message || String(e));
+        } finally { setLoading(false); }
+    };
+
+    const stats = React.useMemo(() => {
+        const graded = assignments.filter(a => a.isPublished !== false && a.unitName);
+        const byId = {}; graded.forEach(a => byId[a.id] = a);
+        const byTitle = {}; graded.forEach(a => byTitle[a.title] = a);
+        const enrolled = [...new Set(enrollments.map(e => e.studentId))];
+        const enrolledSet = new Set(enrolled);
+
+        // คู่ (ผู้เรียน × ข้อ) จากการส่งงานจริง — นิยามเดียวกับตาราง E1
+        const pairs = {};
+        submissions.filter(s => byId[s.assignmentId] && enrolledSet.has(s.studentId))
+            .slice()
+            .sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0))
+            .forEach(s => {
+                const k = s.studentId + '|' + s.assignmentId;
+                const sc = s.score || 0;
+                const p = pairs[k] || { uid: s.studentId, aid: s.assignmentId, n: 0, first: null, best: -1 };
+                p.n++;
+                if (p.first === null) p.first = sc;
+                if (sc > p.best) p.best = sc;
+                pairs[k] = p;
+            });
+        const pairList = Object.values(pairs);
+
+        // คำใบ้รายคู่จากทั้งสองแหล่ง
+        const coachPair = {};
+        coachHints.forEach(h => {
+            const a = byTitle[h.title];
+            if (!a) return;
+            const k = h.uid + '|' + a.id;
+            coachPair[k] = (coachPair[k] || 0) + 1;
+        });
+        const anyPair = new Set(Object.keys(coachPair));
+        usageHints.forEach(h => { if (h.aid) anyPair.add(h.uid + '|' + h.aid); });
+        const hasHint = (uid, aid) => anyPair.has(uid + '|' + aid);
+
+        const nFull = pairList.filter(p => p.best === 100).length;
+        const nFullNoHint = pairList.filter(p => p.best === 100 && !hasHint(p.uid, p.aid)).length;
+        const nFirstFull = pairList.filter(p => p.first === 100).length;
+        const nFirstFullNoHint = pairList.filter(p => p.first === 100 && !hasHint(p.uid, p.aid)).length;
+
+        const levels = [1, 2, 3, 4].map(l => ({
+            level: l,
+            usage: usageHints.filter(h => h.level === l).length,
+            coach: coachHints.filter(h => h.level === l).length,
+        }));
+        const coachUnmatched = coachHints.filter(h => !byTitle[h.title]).length;
+
+        const rows = enrolled.map(uid => {
+            const uh = usageHints.filter(h => h.uid === uid);
+            const ch = coachHints.filter(h => h.uid === uid);
+            const aids = new Set([
+                ...uh.filter(h => h.aid).map(h => h.aid),
+                ...ch.map(h => byTitle[h.title]?.id).filter(Boolean),
+            ]);
+            const ps = pairList.filter(p => p.uid === uid);
+            return {
+                uid,
+                number: parseInt(students[uid]?.number || '999', 10),
+                name: students[uid]?.displayName || uid,
+                usage: uh.length,
+                coach: ch.length,
+                lv: [1, 2, 3, 4].map(l => uh.filter(h => h.level === l).length),
+                lvCoach: [1, 2, 3, 4].map(l => ch.filter(h => h.level === l).length),
+                assignCount: aids.size,
+                pairs: ps.length,
+                full: ps.filter(p => p.best === 100).length,
+                fullNoHint: ps.filter(p => p.best === 100 && !hasHint(p.uid, p.aid)).length,
+            };
+        });
+
+        const totUsage = usageHints.length;
+        const none = rows.filter(r => r.usage === 0).length;
+        const low = rows.filter(r => r.usage >= 1 && r.usage <= 5).length;
+        const high = rows.filter(r => r.usage > 5).length;
+
+        return { graded, pairList, nFull, nFullNoHint, nFirstFull, nFirstFullNoHint, levels, rows, totUsage, none, low, high, coachUnmatched };
+    }, [assignments, enrollments, submissions, students, usageHints, coachHints]);
+
+    const sortedRows = React.useMemo(() => {
+        const arr = [...stats.rows];
+        if (sortBy === 'no') arr.sort((a, b) => a.number - b.number);
+        else if (sortBy === 'hints') arr.sort((a, b) => b.usage - a.usage);
+        else if (sortBy === 'assign') arr.sort((a, b) => b.assignCount - a.assignCount);
+        else if (sortBy === 'lv3') arr.sort((a, b) => (b.lv[2] + b.lv[3]) - (a.lv[2] + a.lv[3]));
+        return arr;
+    }, [stats, sortBy]);
+
+    const exportCsv = () => {
+        const header = ['เลขที่', 'ชื่อ-สกุล', 'ขอคำใบ้ (usageEvents)', 'ระดับ1', 'ระดับ2', 'ระดับ3', 'ระดับ4',
+            'ขอคำใบ้ (coachInteractions)', 'จำนวนกิจกรรมที่ขอ', 'คู่ที่ส่งงาน', 'ได้เต็ม', 'ได้เต็มโดยไม่ขอคำใบ้'];
+        const rows = sortedRows.map(r => [r.number === 999 ? '-' : r.number, '"' + r.name.replace(/"/g, '""') + '"',
+            r.usage, ...r.lv, r.coach, r.assignCount, r.pairs, r.full, r.fullNoHint]);
+        const csv = [header, ...rows].map(r => r.join(',')).join('\n');
+        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'hint_usage_per_student.csv'; a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const KPI = ({ label, value, sub, color }) => (
+        <div className="k-card p-4">
+            <div className="text-2xl font-bold" style={{ color }}>{value}</div>
+            <div className="text-xs text-gray-600 mt-1">{label}</div>
+            {sub ? <div className="text-xs text-gray-400 mt-1">{sub}</div> : null}
+        </div>
+    );
+
+    const pctOf = (n, d) => d > 0 ? (n / d * 100).toFixed(1) : '0.0';
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div>
+                    <h3 className="font-bold text-gray-700">💡 การใช้ AI Scaffolding (คำใบ้) รายบุคคล</h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                        เฉพาะรายวิชาที่เลือก · นับจาก usageEvents และ coachInteractions
+                        {gradesLocked ? ' · รายวิชานี้ปิดรับคะแนนแล้ว (ไม่นับการส่งหลังปิดรับ)' : ''}
+                    </p>
+                </div>
+                <div className="flex gap-2">
+                    <button onClick={load} className="k-btn-outline text-sm" disabled={loading}>
+                        {loading ? 'กำลังโหลด…' : '🔄 โหลดใหม่'}
+                    </button>
+                    <button onClick={exportCsv} className="k-btn-pink text-sm" disabled={stats.rows.length === 0}>
+                        📥 ส่งออก CSV
+                    </button>
+                </div>
+            </div>
+
+            {error ? (
+                <div className="p-3 mb-4 rounded" style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 13 }}>
+                    โหลดข้อมูลไม่สำเร็จ: {error}
+                </div>
+            ) : null}
+
+            {loading ? <Spinner /> : (
+                <>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+                        <KPI label="ขอคำใบ้รวม (usageEvents)" value={stats.totUsage} color="#10b981"
+                            sub={'เฉลี่ย ' + (stats.rows.length ? (stats.totUsage / stats.rows.length).toFixed(2) : '0') + ' ครั้ง/คน'} />
+                        <KPI label="คู่ (ผู้เรียน × ข้อ) ที่มีการส่ง" value={stats.pairList.length} color="#be185d" />
+                        <KPI label="คู่ที่เคยได้คะแนนเต็ม" value={stats.nFull} color="#16a34a"
+                            sub={pctOf(stats.nFull, stats.pairList.length) + '% ของคู่ทั้งหมด'} />
+                        <KPI label="ได้เต็มโดยไม่เคยขอคำใบ้" value={stats.nFullNoHint} color="#0ea5e9"
+                            sub={pctOf(stats.nFullNoHint, stats.nFull) + '% ของคู่ที่ได้เต็ม'} />
+                        <KPI label="ได้เต็มตั้งแต่ส่งครั้งแรก" value={stats.nFirstFull} color="#d97706"
+                            sub={'ไม่ขอคำใบ้ ' + stats.nFirstFullNoHint + ' คู่'} />
+                    </div>
+
+                    <div className="k-card p-4 mb-5">
+                        <div className="font-bold text-gray-700 text-sm mb-3">การขอคำใบ้แยกตามระดับ</div>
+                        {stats.levels.map(l => {
+                            const max = Math.max(1, ...stats.levels.map(x => x.usage));
+                            return (
+                                <div key={l.level} className="flex items-center gap-3 mb-2">
+                                    <div style={{ width: 70, fontSize: 12, color: '#6b7280' }}>ระดับ {l.level}</div>
+                                    <div style={{ flex: 1, height: 14, background: '#f3f4f6', borderRadius: 8, overflow: 'hidden' }}>
+                                        <div style={{ width: (l.usage / max * 100) + '%', height: '100%', background: '#10b981' }} />
+                                    </div>
+                                    <div style={{ width: 150, fontSize: 12, color: '#374151', textAlign: 'right' }}>
+                                        {l.usage} ครั้ง <span style={{ color: '#9ca3af' }}>(coach {l.coach})</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        <div className="text-xs text-gray-500 mt-3">
+                            การกระจายรายคน (usageEvents): ไม่เคยขอ {stats.none} คน · 1-5 ครั้ง {stats.low} คน · มากกว่า 5 ครั้ง {stats.high} คน
+                        </div>
+                    </div>
+
+                    <div className="flex gap-2 mb-3 flex-wrap items-center">
+                        <span className="text-xs text-gray-500">เรียงตาม:</span>
+                        {[
+                            { k: 'no', t: 'เลขที่' },
+                            { k: 'hints', t: 'จำนวนครั้งที่ขอ' },
+                            { k: 'lv3', t: 'ระดับ 3-4' },
+                            { k: 'assign', t: 'จำนวนกิจกรรม' },
+                        ].map(s => (
+                            <button key={s.k} onClick={() => setSortBy(s.k)} style={{
+                                padding: '4px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', border: 'none',
+                                background: sortBy === s.k ? '#ec4899' : '#fce7f3',
+                                color: sortBy === s.k ? '#fff' : '#be185d',
+                                fontWeight: sortBy === s.k ? 700 : 400, fontFamily: "'Prompt', sans-serif",
+                            }}>{s.t}</button>
+                        ))}
+                    </div>
+
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ background: '#fce7f3' }}>
+                                    {['เลขที่', 'ชื่อ-สกุล', 'ขอคำใบ้', 'ระดับ 1', 'ระดับ 2', 'ระดับ 3', 'ระดับ 4',
+                                        'coach', 'กิจกรรมที่ขอ', 'คู่ที่ส่ง', 'ได้เต็ม', 'ได้เต็มโดยไม่ขอคำใบ้'].map(h => (
+                                            <th key={h} style={{ padding: '8px 10px', fontSize: 12, color: '#be185d', whiteSpace: 'nowrap' }}>{h}</th>
+                                        ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sortedRows.map(r => (
+                                    <tr key={r.uid} style={{ borderBottom: '1px solid #fdf2f8' }}>
+                                        <td style={{ padding: '6px 10px', textAlign: 'center' }}>{r.number === 999 ? '-' : r.number}</td>
+                                        <td style={{ padding: '6px 10px', whiteSpace: 'nowrap' }}>{r.name}</td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: '#10b981' }}>{r.usage}</td>
+                                        {r.lv.map((n, i) => (
+                                            <td key={i} style={{ padding: '6px 10px', textAlign: 'center', color: n ? '#374151' : '#d1d5db' }}>{n}</td>
+                                        ))}
+                                        <td style={{ padding: '6px 10px', textAlign: 'center', color: '#9ca3af' }}>{r.coach}</td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'center' }}>{r.assignCount}</td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'center' }}>{r.pairs}</td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'center', color: '#16a34a', fontWeight: 700 }}>{r.full}</td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'center', color: '#0ea5e9' }}>{r.fullNoHint}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-4 text-xs text-gray-500" style={{ lineHeight: 1.8 }}>
+                        <div><strong>วิธีนับ</strong></div>
+                        <div>• คอลัมน์ <strong>ขอคำใบ้</strong> และระดับ 1-4 นับจาก <code>usageEvents</code> (event=ai_hint) ซึ่งมี courseId และ assignmentId จึงกรองเฉพาะรายวิชานี้ได้</div>
+                        <div>• คอลัมน์ <strong>coach</strong> นับจาก <code>coachInteractions</code> (coachRole=socratic) ซึ่งไม่มี courseId จึงเป็นยอดของผู้เรียนคนนั้นทุกรายวิชา{stats.coachUnmatched > 0 ? ' · จับคู่กิจกรรมด้วยชื่อไม่ได้ ' + stats.coachUnmatched + ' รายการ' : ''}</div>
+                        <div>• <strong>คู่ (ผู้เรียน × ข้อ)</strong> นับเฉพาะกิจกรรมที่เผยแพร่และระบุหน่วยการเรียนรู้ ({stats.graded.length} กิจกรรม) และนับเฉพาะคู่ที่มีการส่งงานอย่างน้อย 1 ครั้ง</div>
+                        <div>• <strong>ได้เต็มโดยไม่ขอคำใบ้</strong> คือคู่ที่เคยได้ 100% และไม่พบการขอคำใบ้ในข้อนั้นจากทั้งสองแหล่ง</div>
+                        <div>• เกณฑ์คิดคะแนนของรายวิชา: {gradingPolicy === 'latest' ? 'คะแนนครั้งล่าสุด' : 'คะแนนสูงสุด'} · ตัวเลขในตารางนี้ใช้ "เคยได้เต็ม" จึงไม่ขึ้นกับเกณฑ์</div>
+                        <div>• ข้อมูล ณ {new Date().toLocaleString('th-TH')}</div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };
