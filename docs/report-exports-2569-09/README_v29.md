@@ -16,6 +16,7 @@
 | P5 | `SYSTEM_FACTS.md` | ตรวจตัวเลขโครงสร้างระบบ 15 รายการกับโค้ดจริง |
 | P6 | `FIELD_TRIAL.md` · `FIELD_TRIAL_e1_per_student.csv` | ค่า E1 ของทุกรายวิชา เทียบกับ 85.42 |
 | P7 | `OPEN_ISSUES.md` | QuickPoll 7-8 ก.ย. · บัญชีนอกกลุ่มเป้าหมาย · คะแนน 5-A ที่ลดลง |
+| เพิ่มเติม | `E1_PROBLEMS.md` · `E1_PROBLEMS_testcases.csv` | รายละเอียดโจทย์ที่นับคะแนน E1 ครบ 20 ข้อ พร้อมกรณีทดสอบทุกกรณีและสถิติการใช้งานรายข้อ |
 
 ชุด v24 เดิม (`REPORT_DATA_EXPORT_v24.md` และไฟล์ `01_` ถึง `09_`) และ `SAMPLE_WORK*.md` ยังใช้ได้ตามเดิม
 
@@ -46,6 +47,7 @@ node tools/report/version-history.js    # P4
 node tools/report/system-facts.js       # P5
 node tools/report/field-trial.js        # P6
 node tools/report/open-issues.js        # P7
+node tools/report/e1-problems.js        # รายละเอียดโจทย์ E1
 ```
 
 `_mapping_private.csv` เก็บไว้ในเครื่องเท่านั้น อยู่ใน `.gitignore` ห้ามแนบไปกับเอกสารที่เผยแพร่
