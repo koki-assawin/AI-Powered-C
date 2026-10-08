@@ -191,6 +191,114 @@ const SetPasswordModal = ({ user, onClose, onSuccess }) => {
     );
 };
 
+const GRADE_OPTIONS_ADMIN = ['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'];
+
+// Edit-profile modal: updates the user's Firestore profile fields
+const EditUserModal = ({ user, onClose, onSaved }) => {
+    const [form, setForm] = React.useState({
+        displayName: user.displayName || '',
+        studentCode: user.studentCode || '',
+        grade:       user.grade || 'ม.4',
+        room:        user.room || '',
+        number:      user.number || '',
+    });
+    const [saving, setSaving] = React.useState(false);
+    const [err, setErr]       = React.useState('');
+
+    const isStudent = user.role === 'student';
+    const up = (f) => (e) => { setForm(p => ({ ...p, [f]: e.target.value })); setErr(''); };
+
+    const handleSave = async () => {
+        if (!form.displayName.trim()) { setErr('กรุณากรอกชื่อ-นามสกุล'); return; }
+        const updates = { displayName: form.displayName.trim() };
+        if (isStudent) {
+            updates.studentCode = form.studentCode.trim();
+            updates.grade       = form.grade;
+            updates.room        = form.room.trim();
+            updates.number      = form.number.trim();
+        }
+        setSaving(true);
+        try {
+            await db.collection('users').doc(user.id).update(updates);
+            onSaved(user.id, updates);
+        } catch (e) {
+            setErr(e.message || 'เกิดข้อผิดพลาด');
+            setSaving(false);
+        }
+    };
+
+    const labelStyle = { fontSize: 12, color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 };
+    const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box', background: '#fff' };
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 16,
+        }} onClick={e => { if (!saving && e.target === e.currentTarget) onClose(); }}>
+            <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: 440, boxShadow: '0 20px 60px rgba(0,0,0,0.25)', maxWidth: '100%' }}>
+                <h3 style={{ margin: '0 0 2px', fontSize: 17, fontWeight: 700, color: '#1e293b' }}>
+                    ✏️ แก้ไขข้อมูลผู้ใช้
+                </h3>
+                <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748b', fontFamily: 'monospace' }}>
+                    {user.email}
+                </p>
+
+                <div style={{ marginBottom: 12 }}>
+                    <label style={labelStyle}>ชื่อ-นามสกุล</label>
+                    <input value={form.displayName} onChange={up('displayName')} autoFocus style={inputStyle} />
+                </div>
+
+                {isStudent && (
+                    <>
+                        <div style={{ marginBottom: 12 }}>
+                            <label style={labelStyle}>เลขประจำตัวนักเรียน</label>
+                            <input value={form.studentCode} onChange={up('studentCode')} style={inputStyle} />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+                            <div>
+                                <label style={labelStyle}>ระดับชั้น</label>
+                                <select value={form.grade} onChange={up('grade')} style={inputStyle}>
+                                    {GRADE_OPTIONS_ADMIN.map(g => <option key={g} value={g}>{g}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={labelStyle}>ห้อง</label>
+                                <input value={form.room} onChange={up('room')} style={inputStyle} />
+                            </div>
+                            <div>
+                                <label style={labelStyle}>เลขที่</label>
+                                <input value={form.number} onChange={up('number')} style={inputStyle} />
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                <div style={{ marginBottom: 14, padding: '8px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 11, color: '#64748b' }}>
+                    ℹ️ อีเมลใช้สำหรับเข้าสู่ระบบ จึงแก้ไขในหน้านี้ไม่ได้ · เปลี่ยนบทบาทได้จากเมนู "เปลี่ยนบทบาท"
+                </div>
+
+                {err && (
+                    <div style={{ marginBottom: 14, padding: '8px 12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontSize: 13, color: '#DC2626' }}>
+                        ❌ {err}
+                    </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={onClose} disabled={saving} style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748b', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>
+                        ยกเลิก
+                    </button>
+                    <button onClick={handleSave} disabled={saving}
+                        style={{ flex: 2, padding: '9px 0', borderRadius: 8, border: 'none', background: '#EC407A', color: '#fff', fontSize: 14, cursor: 'pointer', fontWeight: 700, opacity: saving ? 0.6 : 1 }}>
+                        {saving ? '⏳ กำลังบันทึก...' : '💾 บันทึกข้อมูล'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const UserManager = () => {
     const [users, setUsers] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
@@ -200,6 +308,7 @@ const UserManager = () => {
     const [resetting, setResetting] = React.useState(null);
     const [msg, setMsg] = React.useState('');
     const [setPwUser, setSetPwUser] = React.useState(null);
+    const [editUser, setEditUser] = React.useState(null);
     const [expandedUser, setExpandedUser] = React.useState(null);
 
     const showMsg = (m) => { setMsg(m); setTimeout(() => setMsg(''), 3000); };
@@ -295,6 +404,17 @@ const UserManager = () => {
                     user={setPwUser}
                     onClose={() => setSetPwUser(null)}
                     onSuccess={m => { showMsg(m); setSetPwUser(null); }}
+                />
+            )}
+            {editUser && (
+                <EditUserModal
+                    user={editUser}
+                    onClose={() => setEditUser(null)}
+                    onSaved={(uid, updates) => {
+                        setUsers(us => us.map(u => u.id === uid ? { ...u, ...updates } : u));
+                        setEditUser(null);
+                        showMsg('✅ บันทึกข้อมูลผู้ใช้สำเร็จ!');
+                    }}
                 />
             )}
             <Navbar title="AI-Powered Coding Coach (APCC)" subtitle="จัดการผู้ใช้" />
@@ -425,6 +545,13 @@ const UserManager = () => {
                                                     <option value="admin">⚙️ Admin</option>
                                                 </select>
                                             </div>
+
+                                            {/* Edit profile */}
+                                            <button onClick={() => setEditUser(u)}
+                                                className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1"
+                                                style={{ background: '#FDF2F8', color: '#BE185D', border: '1px solid #FBCFE8' }}>
+                                                ✏️ แก้ไขข้อมูล
+                                            </button>
 
                                             {/* Set password directly */}
                                             <button onClick={() => setSetPwUser(u)}
