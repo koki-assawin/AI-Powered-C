@@ -121,6 +121,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(SystemSettings));
         if (route === '#/admin/usage')
             return guard(React.createElement(UsageAnalytics));
+        if (route === '#/admin/risk-evidence')
+            return guard(React.createElement(RiskAlertEvidence));
 
         return guard(React.createElement(AdminDashboard));
     }
