@@ -41,7 +41,7 @@ const FreeEditor = () => {
     };
     const EXTENSIONS       = { c: 'c', cpp: 'cpp', python: 'py' };
     const LANG_LABELS      = { c: 'C', cpp: 'C++', python: 'Python' };
-    const WANDBOX_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.0' };
+    const WANDBOX_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.7' };
     const WANDBOX_OPTIONS  = { c: '-x c', cpp: '', python: '' };
 
     const INPUT_PATTERNS = {

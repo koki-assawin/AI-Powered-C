@@ -244,7 +244,7 @@ const SelfPractice = () => {
     };
 
     // ── Free run (Wandbox → Piston → Judge0) ─────────────────────────
-    const SP_WB_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.0', java: 'openjdk-head' };
+    const SP_WB_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.7', java: 'openjdk-head' };
     const SP_WB_OPTIONS  = { c: '-x c' };
     const handleFreeRun = async () => {
         setFreeRunning(true);

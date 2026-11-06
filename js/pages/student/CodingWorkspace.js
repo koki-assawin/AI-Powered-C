@@ -589,7 +589,7 @@ const CodingWorkspace = () => {
         e.target.value = '';
     };
 
-    const WB_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.0', java: 'openjdk-head' };
+    const WB_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.7', java: 'openjdk-head' };
     const WB_OPTIONS  = { c: '-x c' };
 
     // Detect if code reads from stdin

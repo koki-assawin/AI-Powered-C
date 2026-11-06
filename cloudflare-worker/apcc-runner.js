@@ -11,7 +11,7 @@ const JUDGE0_URL  = 'https://ce.judge0.com/submissions?base64_encoded=false&wait
 const WANDBOX_COMPILER = {
     c:      'gcc-head',
     cpp:    'gcc-head',
-    python: 'cpython-3.12.0',
+    python: 'cpython-3.12.7',
     java:   'openjdk-head',
 };
 const WANDBOX_OPTIONS = { c: '-x c', cpp: '', python: '', java: '' };
