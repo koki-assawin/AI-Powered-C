@@ -311,7 +311,7 @@
         SCRIPT LOADING ORDER (must be maintained):
         1. firebase.js    - Firebase init (db, auth, rtdb, LANGUAGES, GEMINI_KEY)
         2. gemini.js      - Gemini API wrapper (callGeminiApi, analyzeCode, generateProblems)
-        3. grader.js      - Piston code execution engine (gradeSubmission, runSampleTests)
+        3. grader.js      - Code runner (Worker → Wandbox → Judge0) + grader (gradeSubmission, runSampleTests)
         4. context.js     - React AuthContext + AuthProvider + useAuth
         5. components/*   - Shared UI components
         6. pages/**/*     - Page components (student, teacher, admin)
@@ -320,7 +320,7 @@
 
     <script type="text/babel" src="js/firebase.js?v=5.6"></script>
     <script type="text/babel" src="js/gemini.js?v=5.2"></script>
-    <script type="text/babel" src="js/grader.js?v=5.9"></script>
+    <script type="text/babel" src="js/grader.js?v=6.0"></script>
     <script type="text/babel" src="js/analytics.js?v=1.0"></script>
     <script type="text/babel" src="js/gamification.js?v=5.7"></script>
     <script type="text/babel" src="js/achievementEngine.js?v=5.2"></script>
@@ -343,14 +343,14 @@
     <script type="text/babel" src="js/pages/PrivacyPolicy.js?v=1.2"></script>
     <script type="text/babel" src="js/pages/LoginPage.js?v=5.5"></script>
     <script type="text/babel" src="js/pages/RegisterPage.js?v=4.7"></script>
-    <script type="text/babel" src="js/pages/GuestLandingPage.js?v=3.6"></script>
+    <script type="text/babel" src="js/pages/GuestLandingPage.js?v=3.7"></script>
 
     <script type="text/babel" src="js/pages/student/StudentDashboard.js?v=5.9"></script>
     <script type="text/babel" src="js/pages/student/CourseViewer.js?v=5.0"></script>
-    <script type="text/babel" src="js/pages/student/CodingWorkspace.js?v=5.19"></script>
+    <script type="text/babel" src="js/pages/student/CodingWorkspace.js?v=5.20"></script>
     <script type="text/babel" src="js/pages/student/Gradebook.js?v=5.4"></script>
     <script type="text/babel" src="js/pages/student/SubmissionHistory.js?v=4.7"></script>
-    <script type="text/babel" src="js/pages/student/SelfPractice.js?v=5.0"></script>
+    <script type="text/babel" src="js/pages/student/SelfPractice.js?v=5.1"></script>
     <script type="text/babel" src="js/pages/student/StudentProfile.js?v=5.3"></script>
     <script type="text/babel" src="js/pages/student/Leaderboard.js?v=6.1"></script>
     <script type="text/babel" src="js/pages/student/AchievementsPage.js?v=5.2"></script>
@@ -386,7 +386,7 @@
     <script type="text/babel" src="js/pages/admin/SystemSettings.js?v=5.0"></script>
     <script type="text/babel" src="js/pages/admin/ResearchDataSeeder.js?v=5.2"></script>
 
-    <script type="text/babel" src="js/pages/shared/FreeEditor.js?v=8.4"></script>
+    <script type="text/babel" src="js/pages/shared/FreeEditor.js?v=8.5"></script>
 
     <script type="text/babel" src="js/app.js?v=5.13"></script>
 

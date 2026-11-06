@@ -589,8 +589,6 @@ const CodingWorkspace = () => {
         e.target.value = '';
     };
 
-    const WB_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.7', java: 'openjdk-head' };
-    const WB_OPTIONS  = { c: '-x c' };
 
     // Detect if code reads from stdin
     const FR_INPUT_PATTERNS = {
@@ -626,41 +624,8 @@ const CodingWorkspace = () => {
         let data;
         const _frIsOci = (s) => (s||'').includes('OCI runtime error') || (s||'').includes('temporarily unavailable');
 
-        // Load Worker URL (inline Firestore fetch for race-condition safety)
-        let _workerUrl = window.RUNNER_URL || '';
-        if (!_workerUrl) {
-            try {
-                const _snap = await db.collection('config').doc('runner').get();
-                if (_snap.exists && _snap.data().workerUrl) {
-                    _workerUrl = (_snap.data().workerUrl || '').replace(/\/$/, '');
-                    window.RUNNER_URL = _workerUrl;
-                }
-            } catch (_e) {}
-        }
-
-        // 1. Cloudflare Worker (primary — server-to-server, no CORS/OCI issues)
-        if (_workerUrl) {
-            try {
-                const ctrl = new AbortController();
-                const timer = setTimeout(() => ctrl.abort(), 20000);
-                const res = await fetch(`${_workerUrl}/compile`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code, language: selectedLanguage, stdin: stdinStr || '' }),
-                    signal: ctrl.signal,
-                });
-                clearTimeout(timer);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const d = await res.json();
-                if (d.error) throw new Error(d.error);
-                if (_frIsOci(d.program_output) || _frIsOci(d.program_error) || _frIsOci(d.compiler_error)) throw new Error('OCI');
-                data = d;
-            } catch (_) {}
-        }
-
-        // 2. Judge0 CE fallback
-        if (!data) {
-            try { data = await runWithJudge0(code, selectedLanguage, stdinStr); } catch (_) {}
-        }
+        // Shared runner chain (grader.js): Worker → Wandbox → Judge0 (base64)
+        try { data = await runCodeRemote(code, selectedLanguage, stdinStr); } catch (_) {}
 
         const elapsed = Date.now() - t0;
         if (!data) {
@@ -1302,7 +1267,7 @@ const CodingWorkspace = () => {
                                             {/* Collecting: interactive input */}
                                             {frCollecting && (
                                                 <>
-                                                    <div style={{ color: '#475569', marginBottom: 4 }}><span style={{ color: '#34d399' }}>$ </span>./main.c</div>
+                                                    <div style={{ color: '#475569', marginBottom: 4 }}><span style={{ color: '#34d399' }}>$ </span>./{selectedLanguage === 'java' ? 'Main.java' : selectedLanguage === 'python' ? 'main.py' : selectedLanguage === 'cpp' ? 'main.cpp' : 'main.c'}</div>
                                                     {frCollectedLines.map((l, i) => <div key={i} style={{ color: '#e2e8f0' }}>{l}</div>)}
                                                     <div style={{ display: 'flex', alignItems: 'center' }}>
                                                         <input ref={frInputLineRef} type="text" value={frCurrentLine}
@@ -1330,7 +1295,7 @@ const CodingWorkspace = () => {
                                             {/* Output */}
                                             {!frCollecting && (
                                                 <>
-                                                    <div style={{ color: '#475569', marginBottom: 4 }}><span style={{ color: '#34d399' }}>$ </span>./main.c</div>
+                                                    <div style={{ color: '#475569', marginBottom: 4 }}><span style={{ color: '#34d399' }}>$ </span>./{selectedLanguage === 'java' ? 'Main.java' : selectedLanguage === 'python' ? 'main.py' : selectedLanguage === 'cpp' ? 'main.cpp' : 'main.c'}</div>
                                                     {frEchoedLines.map((l, i) => <div key={i} style={{ color: '#cdd6f4' }}>{l}</div>)}
                                                     <pre style={{ margin: 0, color: freeRunOutput.startsWith('❌') ? '#f38ba8' : '#cdd6f4', whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontFamily: 'Consolas, monospace', fontSize: 13 }}>
                                                         {freeRunOutput || '(กด ▶ รัน เพื่อดูผลลัพธ์)'}

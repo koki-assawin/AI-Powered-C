@@ -243,30 +243,15 @@ const SelfPractice = () => {
         }
     };
 
-    // ── Free run (Wandbox → Piston → Judge0) ─────────────────────────
-    const SP_WB_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.7', java: 'openjdk-head' };
-    const SP_WB_OPTIONS  = { c: '-x c' };
+    // ── Free run (shared runCodeRemote: Worker → Wandbox → Judge0) ───
     const handleFreeRun = async () => {
         setFreeRunning(true);
         setShowTerminal(true);
         setFreeRunOutput('⏳ กำลังรันโค้ด...');
         const t0 = Date.now();
         let data;
-        try {
-            const body = { compiler: SP_WB_COMPILER[language] || 'gcc-head', code, stdin: freeRunStdin };
-            if (SP_WB_OPTIONS[language]) body.options = SP_WB_OPTIONS[language];
-            const res = await fetch('https://wandbox.org/api/compile.json', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-            });
-            if (!res.ok) throw new Error(`Wandbox ${res.status}`);
-            data = await res.json();
-        } catch (_) {
-            try { data = await runWithPiston(code, language, freeRunStdin); }
-            catch (_) {
-                try { data = await runWithJudge0(code, language, freeRunStdin); }
-                catch (e) { setFreeRunOutput(`⚠️ compiler ไม่ว่าง: ${e.message}`); setFreeRunning(false); return; }
-            }
-        }
+        try { data = await runCodeRemote(code, language, freeRunStdin); }
+        catch (e) { setFreeRunOutput('⚠️ เซิร์ฟเวอร์รันโค้ดชั่วคราวไม่ว่าง กรุณาลองใหม่อีกครั้ง'); setFreeRunning(false); return; }
         const elapsed = Date.now() - t0;
         const compErr = (data.compiler_error || '').trim();
         const progOut = (data.program_output || '').trimEnd();

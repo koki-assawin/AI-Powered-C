@@ -41,8 +41,6 @@ const FreeEditor = () => {
     };
     const EXTENSIONS       = { c: 'c', cpp: 'cpp', python: 'py' };
     const LANG_LABELS      = { c: 'C', cpp: 'C++', python: 'Python' };
-    const WANDBOX_COMPILER = { c: 'gcc-head', cpp: 'gcc-head', python: 'cpython-3.12.7' };
-    const WANDBOX_OPTIONS  = { c: '-x c', cpp: '', python: '' };
 
     const INPUT_PATTERNS = {
         c:      [/\bscanf\s*\(/, /\bfgets\s*\(/, /\bgets\s*\(/, /\bgetchar\s*\(/, /\bgetc\s*\(/],
@@ -194,54 +192,6 @@ const FreeEditor = () => {
         setCollecting(false); setCollectedLines([]); setCurrentLine(''); setEchoedLines([]);
     };
 
-    // ── Fallback compilers ────────────────────────────────────────────────────
-    const PISTON_LANG_MAP = {
-        c:      { language: 'c',      version: '*', filename: 'main.c'   },
-        cpp:    { language: 'c++',    version: '*', filename: 'main.cpp' },
-        python: { language: 'python', version: '*', filename: 'main.py'  },
-        java:   { language: 'java',   version: '*', filename: 'Main.java'},
-    };
-    const JUDGE0_LANG_MAP = { c: 50, cpp: 54, python: 71, java: 62 };
-
-    const runWithPistonEditor = async (stdinStr) => {
-        const p = PISTON_LANG_MAP[language] || PISTON_LANG_MAP.c;
-        const res = await fetch('https://emkc.org/api/v2/piston/execute', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                language: p.language, version: p.version,
-                files: [{ name: p.filename, content: code }],
-                stdin: stdinStr || '',
-            }),
-        });
-        if (!res.ok) throw new Error(`Piston HTTP ${res.status}`);
-        const data = await res.json();
-        const stderr = data.run?.stderr || '';
-        // OCI/crun errors = Piston server overloaded → trigger fallback to Judge0
-        if (stderr.includes('OCI runtime error') || stderr.includes('temporarily unavailable')) {
-            throw new Error(`Piston overloaded (${stderr.slice(0, 80)})`);
-        }
-        return {
-            compiler_error: data.compile?.stderr || '',
-            program_output: data.run?.stdout || '',
-            program_error:  stderr,
-        };
-    };
-
-    const runWithJudge0Editor = async (stdinStr) => {
-        const langId = JUDGE0_LANG_MAP[language] || JUDGE0_LANG_MAP.c;
-        const res = await fetch('https://ce.judge0.com/submissions?base64_encoded=false&wait=true', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ source_code: code, language_id: langId, stdin: stdinStr || '' }),
-        });
-        if (!res.ok) throw new Error(`Judge0 HTTP ${res.status}`);
-        const data = await res.json();
-        return {
-            compiler_error: data.compile_output || '',
-            program_output: data.stdout || '',
-            program_error:  data.stderr  || '',
-        };
-    };
-
     // ── Core run ─────────────────────────────────────────────────────────────
     const runCodeCore = async (stdinStr, echo) => {
         setRunning(true);
@@ -250,81 +200,11 @@ const FreeEditor = () => {
         const t0 = Date.now();
 
         const _isOci = (s) => (s || '').includes('OCI runtime error') || (s || '').includes('temporarily unavailable');
-        const _fetchT = (url, opts, ms) => {
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), ms);
-            return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
-        };
 
         let data = null;
-        let log = '';
 
-        // 0. Cloudflare Worker — server-to-server proxy, no CORS/OCI issues
-        // Fetch URL from Firestore inline if not cached yet (race condition safety)
-        let _workerUrl = runnerUrlRef.current || window.RUNNER_URL || '';
-        if (!_workerUrl) {
-            try {
-                const _snap = await db.collection('config').doc('runner').get();
-                if (_snap.exists && _snap.data().workerUrl) {
-                    _workerUrl = (_snap.data().workerUrl || '').replace(/\/$/, '');
-                    window.RUNNER_URL = _workerUrl;
-                    runnerUrlRef.current = _workerUrl;
-                }
-            } catch (_e) {}
-        }
-        console.log('[APCC] runner:', _workerUrl || 'none');
-        if (_workerUrl) {
-            try {
-                const res = await _fetchT(`${_workerUrl}/compile`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code, language, stdin: stdinStr || '' }),
-                }, 20000);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const d = await res.json();
-                if (d.error) throw new Error(d.error);
-                console.log('[APCC] Worker OK, source:', d.source);
-                data = d;
-            } catch (e) {
-                console.warn('[APCC] Worker failed:', e.message);
-                log += `Worker:${e.message} `;
-            }
-        }
-
-        // 1. Wandbox — CORS-safe, no key needed, retry once on failure
-        for (let i = 0; i < 2 && !data; i++) {
-            try {
-                const body = { compiler: WANDBOX_COMPILER[language] || 'gcc-head', code, stdin: stdinStr || '' };
-                if (WANDBOX_OPTIONS[language]) body.options = WANDBOX_OPTIONS[language];
-                const res = await _fetchT('https://wandbox.org/api/compile.json', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
-                }, 12000);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const d = await res.json();
-                if (_isOci(d.program_error)) throw new Error('OCI in response');
-                data = d;
-            } catch (e) { log += `Wandbox[${i}]:${e.message} `; }
-        }
-
-        // 2. Judge0 CE — fallback (may have CORS/rate-limit issues from browser)
-        if (!data) {
-            try {
-                const langId = JUDGE0_LANG_MAP[language] || 50;
-                const res = await _fetchT('https://ce.judge0.com/submissions?base64_encoded=false&wait=true', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ source_code: code, language_id: langId, stdin: stdinStr || '' }),
-                }, 14000);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const d = await res.json();
-                data = { compiler_error: d.compile_output || '', program_output: d.stdout || '', program_error: d.stderr || '' };
-            } catch (e) { log += `Judge0:${e.message} `; }
-        }
-
-        // 3. Piston — last resort (sunset but still partially responding)
-        if (!data) {
-            try { data = await runWithPistonEditor(stdinStr); }
-            catch (e) { log += `Piston:${e.message}`; }
-        }
+        // Shared runner chain (grader.js): Worker → Wandbox → Judge0 (base64)
+        try { data = await runCodeRemote(code, language, stdinStr || ''); } catch (_) {}
 
         setExecTime(Date.now() - t0);
 

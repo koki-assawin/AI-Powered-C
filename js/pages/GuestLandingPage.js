@@ -162,40 +162,9 @@ const _runCode = async (code, language, input) => {
         return { output: out || '(ไม่มีผลลัพธ์)', isError: false };
     };
 
-    // Load Worker URL (window.RUNNER_URL set by firebase.js on startup)
-    let _workerUrl = window.RUNNER_URL || '';
-    if (!_workerUrl) {
-        try {
-            const _snap = await db.collection('config').doc('runner').get();
-            if (_snap.exists && _snap.data().workerUrl) {
-                _workerUrl = (_snap.data().workerUrl || '').replace(/\/$/, '');
-                window.RUNNER_URL = _workerUrl;
-            }
-        } catch (_e) {}
-    }
-
-    // 1. Cloudflare Worker (primary — server-to-server, no CORS/OCI issues)
-    if (_workerUrl) {
-        try {
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 20000);
-            const res = await fetch(`${_workerUrl}/compile`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code, language, stdin: input || '' }),
-                signal: ctrl.signal,
-            });
-            clearTimeout(timer);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const d = await res.json();
-            if (d.error) throw new Error(d.error);
-            if (_isOci(d.program_output) || _isOci(d.program_error) || _isOci(d.compiler_error)) throw new Error('OCI');
-            return normalize(d);
-        } catch (_) {}
-    }
-
-    // 2. Judge0 CE fallback
+    // Shared runner chain (grader.js): Worker → Wandbox → Judge0 (base64)
     try {
-        return normalize(await runWithJudge0(code, language, input || ''));
+        return normalize(await runCodeRemote(code, language, input || ''));
     } catch (_) {}
 
     return { output: '⚠️ เซิร์ฟเวอร์รันโค้ดชั่วคราวไม่ว่าง กรุณาลองใหม่อีกครั้ง', isError: true };
