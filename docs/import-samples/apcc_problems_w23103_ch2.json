@@ -1,0 +1,227 @@
+[
+  {
+    "id": "C23103-2-01", "course": "ว23103", "language": "python", "plan": 3,
+    "title": "แปลงองศาเซลเซียสเป็นฟาเรนไฮต์", "level": "ง่าย", "type": "code", "concept": "input float print",
+    "description": "รับอุณหภูมิองศาเซลเซียส 1 ค่า แล้วแสดงอุณหภูมิองศาฟาเรนไฮต์ ทศนิยม 1 ตำแหน่ง (F = C × 9/5 + 32)",
+    "input_format": "จำนวนจริง 1 ค่า", "output_format": "จำนวนจริงทศนิยม 1 ตำแหน่ง",
+    "starter_code": "# รับค่า c แล้วคำนวณ f\n",
+    "solution": "c = float(input())\nf = c * 9 / 5 + 32\nprint(f\"{f:.1f}\")\n",
+    "hints": [
+      "ข้อมูลที่รับจาก input() เป็นชนิดใด ต้องแปลงก่อนคำนวณหรือไม่",
+      "ใช้ float(input()) เพื่อรับค่าที่มีทศนิยมได้",
+      "สูตรคือ c * 9 / 5 + 32",
+      "print(f\"{f:.1f}\") แสดงทศนิยม 1 ตำแหน่ง"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      { "input": "37", "expected_output": "98.6\n", "visible": true },
+      { "input": "0", "expected_output": "32.0\n", "visible": true },
+      { "input": "-40", "expected_output": "-40.0\n", "visible": false },
+      { "input": "100.5", "expected_output": "212.9\n", "visible": false }
+    ]
+  },
+  {
+    "id": "C23103-2-02", "course": "ว23103", "language": "python", "plan": 3,
+    "title": "เรียงโค้ดทักทายผู้ใช้ (Parsons)", "level": "ง่าย", "type": "parsons", "concept": "input print f-string",
+    "description": "เรียงบรรทัดโค้ดให้โปรแกรมรับชื่อ (บรรทัดที่ 1) และอายุ (บรรทัดที่ 2) แล้วแสดงข้อความ สวัสดี <ชื่อ> ปีหน้าคุณอายุ <อายุ+1> ปี",
+    "input_format": "บรรทัดที่ 1 ชื่อ บรรทัดที่ 2 จำนวนเต็มอายุ", "output_format": "ข้อความ 1 บรรทัด",
+    "starter_code": "",
+    "solution": "name = input()\nage = int(input())\nprint(f\"สวัสดี {name} ปีหน้าคุณอายุ {age + 1} ปี\")\n",
+    "hints": [
+      "โปรแกรมต้องรับข้อมูลก่อนหรือแสดงผลก่อน",
+      "อายุต้องนำไปบวก 1 จึงต้องแปลงเป็นตัวเลขด้วย int()",
+      "บรรทัดหลอกคือบรรทัดที่ไม่แปลงชนิดข้อมูล",
+      "ลำดับ: name = input() → age = int(input()) → print(...)"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      { "input": "มานี\n14", "expected_output": "สวัสดี มานี ปีหน้าคุณอายุ 15 ปี\n", "visible": true },
+      { "input": "ปิติ\n15", "expected_output": "สวัสดี ปิติ ปีหน้าคุณอายุ 16 ปี\n", "visible": true }
+    ],
+    "parsons": {
+      "lines": [
+        "name = input()",
+        "age = int(input())",
+        "print(f\"สวัสดี {name} ปีหน้าคุณอายุ {age + 1} ปี\")"
+      ],
+      "distractors": ["age = input()"],
+      "indentRequired": true
+    }
+  },
+  {
+    "id": "C23103-2-03", "course": "ว23103", "language": "python", "plan": 3,
+    "title": "คำนวณดัชนีมวลกาย (BMI)", "level": "ง่าย", "type": "code", "concept": "float operator",
+    "description": "รับน้ำหนัก (กิโลกรัม) และส่วนสูง (เซนติเมตร) คนละบรรทัด แล้วแสดงค่า BMI ทศนิยม 2 ตำแหน่ง (BMI = น้ำหนัก ÷ ส่วนสูงเป็นเมตรยกกำลังสอง)",
+    "input_format": "บรรทัดที่ 1 น้ำหนัก บรรทัดที่ 2 ส่วนสูง (ซม.)", "output_format": "BMI ทศนิยม 2 ตำแหน่ง",
+    "starter_code": "",
+    "solution": "w = float(input())\nh = float(input()) / 100\nbmi = w / (h ** 2)\nprint(f\"{bmi:.2f}\")\n",
+    "hints": [
+      "ส่วนสูงที่รับมาเป็นเซนติเมตร สูตรต้องใช้หน่วยใด",
+      "แปลงเซนติเมตรเป็นเมตรด้วยการหาร 100",
+      "ยกกำลังสองในไพทอนใช้ ** 2",
+      "bmi = w / (h ** 2) แล้ว print(f\"{bmi:.2f}\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      { "input": "50\n160", "expected_output": "19.53\n", "visible": true },
+      { "input": "72.5\n175", "expected_output": "23.67\n", "visible": true },
+      { "input": "40\n150", "expected_output": "17.78\n", "visible": false }
+    ]
+  },
+  {
+    "id": "C23103-2-04", "course": "ว23103", "language": "python", "plan": 3,
+    "title": "แปลผลดัชนีมวลกาย", "level": "ปานกลาง", "type": "code", "concept": "if-elif-else",
+    "description": "รับค่า BMI 1 ค่า แล้วแปลผล: น้อยกว่า 18.5 แสดง ผอม, ตั้งแต่ 18.5 แต่น้อยกว่า 23 แสดง ปกติ, ตั้งแต่ 23 แต่น้อยกว่า 25 แสดง ท้วม, ตั้งแต่ 25 ขึ้นไป แสดง อ้วน",
+    "input_format": "จำนวนจริง 1 ค่า", "output_format": "ผอม / ปกติ / ท้วม / อ้วน",
+    "starter_code": "",
+    "solution": "bmi = float(input())\nif bmi < 18.5:\n    print(\"ผอม\")\nelif bmi < 23:\n    print(\"ปกติ\")\nelif bmi < 25:\n    print(\"ท้วม\")\nelse:\n    print(\"อ้วน\")\n",
+    "hints": [
+      "มีผลลัพธ์ได้กี่แบบ ต้องใช้เงื่อนไขกี่ข้อ",
+      "ตรวจจากค่าน้อยไปมาก แล้วใช้ elif ต่อกัน",
+      "ระวังค่าขอบ เช่น 18.5 และ 23 ต้องอยู่กลุ่มไหน",
+      "if bmi < 18.5 ... elif bmi < 23 ... elif bmi < 25 ... else ..."
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      { "input": "17.9", "expected_output": "ผอม\n", "visible": true },
+      { "input": "18.5", "expected_output": "ปกติ\n", "visible": true },
+      { "input": "22.99", "expected_output": "ปกติ\n", "visible": false },
+      { "input": "23", "expected_output": "ท้วม\n", "visible": false },
+      { "input": "24.9", "expected_output": "ท้วม\n", "visible": false },
+      { "input": "25", "expected_output": "อ้วน\n", "visible": false },
+      { "input": "31.2", "expected_output": "อ้วน\n", "visible": false }
+    ]
+  },
+  {
+    "id": "C23103-2-05", "course": "ว23103", "language": "python", "plan": 3,
+    "title": "ตัดเกรดจากคะแนน", "level": "ปานกลาง", "type": "code", "concept": "if-elif-else",
+    "description": "รับคะแนนรวม 0–100 แล้วแสดงเกรดตามเกณฑ์ 80 ขึ้นไป 4, 75–79 3.5, 70–74 3, 65–69 2.5, 60–64 2, 55–59 1.5, 50–54 1, ต่ำกว่า 50 0",
+    "input_format": "จำนวนเต็ม 1 ค่า", "output_format": "เกรด เช่น 4 หรือ 3.5",
+    "starter_code": "",
+    "solution": "s = int(input())\nif s >= 80:\n    print(\"4\")\nelif s >= 75:\n    print(\"3.5\")\nelif s >= 70:\n    print(\"3\")\nelif s >= 65:\n    print(\"2.5\")\nelif s >= 60:\n    print(\"2\")\nelif s >= 55:\n    print(\"1.5\")\nelif s >= 50:\n    print(\"1\")\nelse:\n    print(\"0\")\n",
+    "hints": [
+      "เกณฑ์มีกี่ช่วง",
+      "เริ่มตรวจจากคะแนนสูงสุดลงมา ใช้ >=",
+      "ช่วงสุดท้ายใช้ else",
+      "if s >= 80: print(\"4\") elif s >= 75: print(\"3.5\") ..."
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      { "input": "80", "expected_output": "4\n", "visible": true },
+      { "input": "79", "expected_output": "3.5\n", "visible": true },
+      { "input": "70", "expected_output": "3\n", "visible": false },
+      { "input": "64", "expected_output": "2\n", "visible": false },
+      { "input": "55", "expected_output": "1.5\n", "visible": false },
+      { "input": "50", "expected_output": "1\n", "visible": false },
+      { "input": "49", "expected_output": "0\n", "visible": false },
+      { "input": "100", "expected_output": "4\n", "visible": false }
+    ]
+  },
+  {
+    "id": "C23103-2-06", "course": "ว23103", "language": "python", "plan": 3,
+    "title": "ค่าไฟฟ้าอัตราก้าวหน้า", "level": "ท้าทาย", "type": "code", "concept": "if-elif arithmetic",
+    "description": "รับจำนวนหน่วยไฟฟ้าที่ใช้ (จำนวนเต็ม) คำนวณค่าไฟตามอัตราสมมุติ: หน่วยที่ 1–150 หน่วยละ 3 บาท, หน่วยที่ 151–400 หน่วยละ 4 บาท, ส่วนที่เกิน 400 หน่วยละ 5 บาท แสดงค่าไฟเป็นจำนวนเต็ม",
+    "input_format": "จำนวนเต็ม 1 ค่า", "output_format": "ค่าไฟ (บาท)",
+    "starter_code": "",
+    "solution": "u = int(input())\nif u <= 150:\n    cost = u * 3\nelif u <= 400:\n    cost = 150 * 3 + (u - 150) * 4\nelse:\n    cost = 150 * 3 + 250 * 4 + (u - 400) * 5\nprint(cost)\n",
+    "hints": [
+      "ลองคิดด้วยมือก่อน: ใช้ 200 หน่วย ต้องจ่ายเท่าไร",
+      "ช่วงแรก 150 หน่วยจ่ายเต็มเสมอเมื่อใช้เกิน 150",
+      "ช่วงที่ 2 มีได้มากสุด 250 หน่วย (151–400)",
+      "else: cost = 150*3 + 250*4 + (u-400)*5"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      { "input": "0", "expected_output": "0\n", "visible": true },
+      { "input": "100", "expected_output": "300\n", "visible": true },
+      { "input": "150", "expected_output": "450\n", "visible": false },
+      { "input": "151", "expected_output": "454\n", "visible": false },
+      { "input": "400", "expected_output": "1450\n", "visible": false },
+      { "input": "500", "expected_output": "1950\n", "visible": false }
+    ]
+  },
+  {
+    "id": "C23103-2-07", "course": "ว23103", "language": "python", "plan": 4,
+    "title": "ฟังก์ชันแปลงสกุลเงิน", "level": "ปานกลาง", "type": "code", "concept": "def return",
+    "description": "เขียนฟังก์ชัน convert(thb, rate) คืนค่าเงินต่างประเทศ = thb ÷ rate จากนั้นรับจำนวนเงินบาทและอัตราแลกเปลี่ยน (บาทต่อ 1 หน่วยเงินต่างประเทศ) แล้วแสดงผลทศนิยม 2 ตำแหน่ง (ฟังก์ชันนี้คือส่วนประมวลผลของปุ่ม แปลง ในแอป GUI)",
+    "input_format": "บรรทัดที่ 1 จำนวนเงินบาท บรรทัดที่ 2 อัตราแลกเปลี่ยน", "output_format": "จำนวนเงินทศนิยม 2 ตำแหน่ง",
+    "starter_code": "def convert(thb, rate):\n    # คืนค่าเงินต่างประเทศ\n    pass\n\n",
+    "solution": "def convert(thb, rate):\n    return thb / rate\n\nthb = float(input())\nrate = float(input())\nprint(f\"{convert(thb, rate):.2f}\")\n",
+    "hints": [
+      "ฟังก์ชันรับค่าอะไรเข้าไป และต้องคืนค่าอะไร",
+      "ใช้ def convert(thb, rate): แล้ว return ผลหาร",
+      "เรียกใช้ฟังก์ชันในบรรทัด print",
+      "print(f\"{convert(thb, rate):.2f}\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      { "input": "1000\n36.5", "expected_output": "27.40\n", "visible": true },
+      { "input": "500\n0.24", "expected_output": "2083.33\n", "visible": true },
+      { "input": "0\n35", "expected_output": "0.00\n", "visible": false }
+    ]
+  },
+  {
+    "id": "C23103-2-08", "course": "ว23103", "language": "python", "plan": 4,
+    "title": "ฟังก์ชันพื้นที่รูปเรขาคณิต", "level": "ปานกลาง", "type": "code", "concept": "def if",
+    "description": "รับรหัสรูป (1 สี่เหลี่ยมผืนผ้า รับกว้าง ยาว, 2 สามเหลี่ยม รับฐาน สูง, 3 วงกลม รับรัศมี ใช้ pi = 3.14) แล้วแสดงพื้นที่ทศนิยม 2 ตำแหน่ง ถ้ารหัสไม่ใช่ 1–3 แสดง ไม่มีรูปนี้ ให้เขียนฟังก์ชันอย่างน้อย 1 ฟังก์ชัน",
+    "input_format": "บรรทัดที่ 1 รหัสรูป ตามด้วยขนาดบรรทัดละ 1 ค่า", "output_format": "พื้นที่ หรือ ไม่มีรูปนี้",
+    "starter_code": "",
+    "solution": "def rect(w, l):\n    return w * l\n\ndef tri(b, h):\n    return 0.5 * b * h\n\ndef circle(r):\n    return 3.14 * r * r\n\nk = int(input())\nif k == 1:\n    print(f\"{rect(float(input()), float(input())):.2f}\")\nelif k == 2:\n    print(f\"{tri(float(input()), float(input())):.2f}\")\nelif k == 3:\n    print(f\"{circle(float(input())):.2f}\")\nelse:\n    print(\"ไม่มีรูปนี้\")\n",
+    "hints": [
+      "แยกงานเป็น 2 ส่วน: เลือกรูป และคำนวณพื้นที่",
+      "สร้างฟังก์ชันคำนวณพื้นที่แยกตามรูป",
+      "รับขนาดหลังจากรู้รหัสรูปแล้ว เพราะแต่ละรูปรับข้อมูลไม่เท่ากัน",
+      "if k == 1: ... elif k == 2: ... elif k == 3: ... else: print(\"ไม่มีรูปนี้\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      { "input": "1\n4\n5", "expected_output": "20.00\n", "visible": true },
+      { "input": "2\n6\n3", "expected_output": "9.00\n", "visible": true },
+      { "input": "3\n7", "expected_output": "153.86\n", "visible": false },
+      { "input": "9", "expected_output": "ไม่มีรูปนี้\n", "visible": false }
+    ]
+  },
+  {
+    "id": "C23103-2-09", "course": "ว23103", "language": "python", "plan": 4,
+    "title": "กฎของโอห์ม หากระแสไฟฟ้า", "level": "ปานกลาง", "type": "code", "concept": "def validation",
+    "description": "บูรณาการวิทยาศาสตร์ V = I × R เขียนฟังก์ชัน current(v, r) คืนค่ากระแส I = V ÷ R รับแรงดัน V และความต้านทาน R ถ้า R น้อยกว่าหรือเท่ากับ 0 แสดง ข้อมูลผิดพลาด มิฉะนั้นแสดงกระแสทศนิยม 2 ตำแหน่ง",
+    "input_format": "บรรทัดที่ 1 V บรรทัดที่ 2 R", "output_format": "กระแส หรือ ข้อมูลผิดพลาด",
+    "starter_code": "",
+    "solution": "def current(v, r):\n    return v / r\n\nv = float(input())\nr = float(input())\nif r <= 0:\n    print(\"ข้อมูลผิดพลาด\")\nelse:\n    print(f\"{current(v, r):.2f}\")\n",
+    "hints": [
+      "ถ้า R เป็น 0 จะเกิดอะไรขึ้นเมื่อหาร",
+      "ตรวจค่า R ก่อนเรียกฟังก์ชัน",
+      "ข้อมูลผิดพลาดคือ R <= 0",
+      "if r <= 0: print(\"ข้อมูลผิดพลาด\") else: print(f\"{current(v, r):.2f}\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      { "input": "12\n4", "expected_output": "3.00\n", "visible": true },
+      { "input": "9\n0", "expected_output": "ข้อมูลผิดพลาด\n", "visible": true },
+      { "input": "5\n2.2", "expected_output": "2.27\n", "visible": false },
+      { "input": "3\n-1", "expected_output": "ข้อมูลผิดพลาด\n", "visible": false }
+    ]
+  },
+  {
+    "id": "C23103-2-10", "course": "ว23103", "language": "python", "plan": 4,
+    "title": "ตรรกะปุ่มคำนวณ BMI (เตรียมทำ GUI)", "level": "ท้าทาย", "type": "code", "concept": "def validation if",
+    "description": "เขียนฟังก์ชัน bmi_result(w, h_cm) คืนข้อความผลลัพธ์ที่จะแสดงบนป้ายของแอป GUI: ถ้าน้ำหนักหรือส่วนสูงน้อยกว่าหรือเท่ากับ 0 คืน กรุณากรอกข้อมูลให้ถูกต้อง มิฉะนั้นคืน BMI <ค่าทศนิยม 2 ตำแหน่ง> <ผลแปล> (เกณฑ์เดียวกับข้อ C23103-2-04) แล้วรับน้ำหนักและส่วนสูงมาแสดงผล",
+    "input_format": "บรรทัดที่ 1 น้ำหนัก บรรทัดที่ 2 ส่วนสูง (ซม.)", "output_format": "ข้อความ 1 บรรทัด",
+    "starter_code": "",
+    "solution": "def bmi_result(w, h_cm):\n    if w <= 0 or h_cm <= 0:\n        return \"กรุณากรอกข้อมูลให้ถูกต้อง\"\n    bmi = w / (h_cm / 100) ** 2\n    if bmi < 18.5:\n        t = \"ผอม\"\n    elif bmi < 23:\n        t = \"ปกติ\"\n    elif bmi < 25:\n        t = \"ท้วม\"\n    else:\n        t = \"อ้วน\"\n    return f\"BMI {bmi:.2f} {t}\"\n\nw = float(input())\nh = float(input())\nprint(bmi_result(w, h))\n",
+    "hints": [
+      "ฟังก์ชันนี้คืนค่าเป็นข้อความ ไม่ได้ print เอง",
+      "ตรวจข้อมูลผิดก่อนคำนวณเสมอ",
+      "ใช้ตัวแปรเก็บผลแปล แล้วต่อข้อความด้วย f-string",
+      "return f\"BMI {bmi:.2f} {t}\""
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      { "input": "50\n160", "expected_output": "BMI 19.53 ปกติ\n", "visible": true },
+      { "input": "80\n170", "expected_output": "BMI 27.68 อ้วน\n", "visible": true },
+      { "input": "0\n160", "expected_output": "กรุณากรอกข้อมูลให้ถูกต้อง\n", "visible": false },
+      { "input": "45\n-150", "expected_output": "กรุณากรอกข้อมูลให้ถูกต้อง\n", "visible": false },
+      { "input": "60\n160", "expected_output": "BMI 23.44 ท้วม\n", "visible": false }
+    ]
+  }
+]

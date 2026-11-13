@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-11-13T05:23:42.996Z",
+  "project": "ai-powered-coding-596ed",
+  "note": "baseline ก่อนพัฒนา APCC v6.0 Studio (อ่านอย่างเดียว) — คอลเลกชันเดิมต้องมีจำนวนเท่าเดิมหลังพัฒนา",
+  "totalTopLevelDocs": 37330,
+  "collections": {
+    "appConfig": 1,
+    "assignments": 310,
+    "assignments_v2": 1,
+    "coachInteractions": 3819,
+    "config": 2,
+    "courses": 12,
+    "enrollments": 480,
+    "grades": 2188,
+    "leaderboardSnapshots": 12,
+    "learningTopics": 7,
+    "miniGameSessions": 5038,
+    "playerStats": 142,
+    "pollSessions": 32,
+    "pollTemplates": 4,
+    "runtimeStatus": 9,
+    "selfPracticeSubmissions": 453,
+    "studentAchievements": 370,
+    "submissions": 6220,
+    "submissions_v2": 5,
+    "testCases": 1179,
+    "usageEvents": 6285,
+    "users": 183,
+    "xpCorrections": 4,
+    "xpLedger": 10574
+  },
+  "subcollections": {
+    "responses": 336,
+    "tasks": 0,
+    "feedback": 0,
+    "versions": 0
+  }
+}

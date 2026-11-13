@@ -24,6 +24,11 @@ const db   = firebase.firestore();
 const auth = firebase.auth();
 const rtdb = firebase.database();
 
+// APCC Studio v6 (Phase 0): ต่อ Firebase Emulator เฉพาะเครื่องผู้พัฒนา — เปิดด้วย ?emulator=1 บน localhost เท่านั้น
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emulator=1/.test(location.search)) {
+    db.useEmulator('127.0.0.1', 8080); auth.useEmulator('http://127.0.0.1:9099'); rtdb.useEmulator('127.0.0.1', 9000);
+}
+
 // Offline persistence — required by QuickPoll (§9): answers sent while offline
 // must sync automatically once the connection returns. Fails silently in
 // unsupported contexts (multiple tabs, private browsing) — app still works online.
