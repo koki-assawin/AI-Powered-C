@@ -162,9 +162,16 @@ Firebase Hosting ก็ตั้งค่าไว้ (`firebase.json` → `publ
 | `firestore.rules` | 1–5 | +~90 | เพิ่มบล็อก `studio_*` ต่อท้ายไฟล์ (ไม่แก้กฎเดิม) |
 | `grader.js`, `hintEngine.js`, `analytics.js`, `aiCoach.js` | — | **0** | ไม่แตะ |
 
-## 6. ความเสี่ยงและเรื่องที่ต้องตัดสินใจ
+## 6. ข้อตัดสินใจ (เสนอเมื่อ 13 พ.ย. 2569 — รอครูยืนยันตอนสั่ง Phase 1)
 
-1. **ยังไม่มี Java ในเครื่อง** — Firestore emulator ต้องใช้ JDK 11+ จึงยังเปิด emulator และรัน seed ไม่ได้ (config กับสคริปต์พร้อมแล้ว) ติดตั้งได้ด้วย `winget install EclipseAdoptium.Temurin.21.JDK`
+- **D1 โจทย์เดิมของ ว23207** — ทาง (ก): ครูกดปุ่ม "เติมข้อมูล Studio" เอง เพิ่มได้เฉพาะฟิลด์ optional `studioType, parsons, hintLadder, skillTag, planNo, sourceTemplate` ในรายวิชาที่เปิด Studio และไม่อยู่ใน `PROTECTED_COURSE_IDS` แสดงตัวอย่างการเปลี่ยนแปลงก่อนบันทึก และเก็บค่าก่อนแก้ลง `studio_events` ไม่มีสคริปต์รันอัตโนมัติ
+- **D2 กฎ Firestore** — เพิ่มบล็อก `projectTeams` (+`tasks`, `feedback`) ให้สมาชิกทีมเขียนของทีมตน ครูอ่านทั้งหมด; `shopPurchases` แยกไปแก้นอกงาน Studio
+
+## 7. ความเสี่ยงและเรื่องที่ต้องตัดสินใจ
+
+1. ~~ยังไม่มี Java~~ — ติดตั้ง Temurin JDK 21.0.13 แล้ว (13 พ.ย. 2569) emulator เปิดได้ และ seed ผ่าน (ผู้ใช้ 7, รายวิชา 2, โจทย์ 5, test case 13)
+   วิธีเปิด: `firebase emulators:start --only auth,firestore,hosting` แล้วเข้า `http://127.0.0.1:5000/?emulator=1` (UI ที่ `http://127.0.0.1:4000`)
+   ไม่ได้เปิด database emulator เพราะ `firebase.json` ไม่มีบล็อก `database` — QuickPoll ที่ใช้ RTDB จึงยังทดสอบใน emulator ไม่ได้ ซึ่ง Studio ไม่ต้องใช้
 2. **ไม่พบไฟล์ `apcc_problems_w23207.json`** ในโปรเจกต์ แต่โจทย์ทั้ง 57 ข้อมีอยู่ในรายวิชาจริงแล้ว ถ้าจะให้โจทย์เดิมได้ `hintLadder`/`studioType: parsons` ต้องเพิ่มฟิลด์ optional ให้ assignment เดิมของ ว23207 ซึ่งขัดกับข้อ 1.2 ตามตัวอักษร (ห้ามแก้เอกสารเดิม) แม้จะไม่ใช่ข้อมูลวิจัยก็ตาม
 3. **`projectTeams` และ `shopPurchases` ไม่มีกฎใน `firestore.rules`** — TeamSync และการซื้อของใน AvatarShop จึงถูกปฏิเสธทุกครั้งบน production (มี 0 เอกสาร) ถ้า Project Studio จะต่อยอด TeamSync ต้องเพิ่มบล็อกกฎของ `projectTeams` ด้วย (ถือเป็นการเพิ่มบล็อก ไม่ได้ผ่อนกฎเดิม)
 4. **ทีมของ TeamSync ไม่ผูกกับรายวิชา** (`playerStats.teamId` มีได้ค่าเดียว) — `studio_projects` จะเก็บ `courseId` + `teamId` เอง ถ้านักเรียนอยู่หลายรายวิชาจะใช้ทีมได้ทีมเดียว
