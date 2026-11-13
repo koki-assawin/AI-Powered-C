@@ -25,7 +25,12 @@ const StudioStageCard = ({ course, userId }) => {
                     <div className="text-xs font-semibold" style={{ color: '#7E57C2' }}>🎨 APCC Studio</div>
                     <div className="font-bold text-gray-800 text-sm">{course.title}</div>
                 </div>
-                <a href={`#/student/workspace?course=${course.id}`} className="text-xs underline" style={{ color: '#5E35B1' }}>ไปฝึกต่อ →</a>
+                <div className="flex items-center gap-3">
+                    {p && p.createUnlocked && hasFeature(course, 'projectStudio') && (
+                        <a href={`#/studio/project?course=${course.id}`} className="k-btn-pink text-xs px-3 py-1.5">🛠️ เปิด Project Studio</a>
+                    )}
+                    <a href={`#/student/workspace?course=${course.id}`} className="text-xs underline" style={{ color: '#5E35B1' }}>ไปฝึกต่อ →</a>
+                </div>
             </div>
 
             {/* แถบขั้น */}
@@ -71,7 +76,7 @@ const StudioStageCard = ({ course, userId }) => {
             {p && (
                 <div className="text-xs mt-3" style={{ color: '#5E35B1' }}>
                     {p.createUnlocked
-                        ? '🎉 ผ่านด่านครบแล้ว — ปลดล็อกขั้น "สร้าง" สร้างนวัตกรรมกับทีมได้เลย'
+                        ? '🎉 ผ่านด่านครบแล้ว — ปลดล็อกขั้น "สร้าง" กดปุ่ม เปิด Project Studio เพื่อสร้างนวัตกรรมกับทีม'
                         : (() => { const g = p.gates.find(x => x.gateId === p.nextGateId); if (!g) return '';
                             return g.total ? `ด่านถัดไป: ${g.name} — ผ่านอีก ${g.need - g.passed} ข้อ เพื่อไปต่อ` : `ด่านถัดไป: ${g.name} — รอครูเปิดโจทย์ของด่านนี้`; })()}
                 </div>

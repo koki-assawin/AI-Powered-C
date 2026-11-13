@@ -106,6 +106,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(StudioPage, { name: 'TemplateManager' }));
         if (route.startsWith('#/teacher/studio/gates'))
             return guard(React.createElement(StudioPage, { name: 'StudioGates' }));
+        if (route.startsWith('#/teacher/studio/projects'))
+            return guard(React.createElement(StudioPage, { name: 'RubricReview' }));
 
         return guard(React.createElement(TeacherDashboard));
     }
@@ -130,6 +132,10 @@ const renderRoute = (route, role) => {
 
         return guard(React.createElement(AdminDashboard));
     }
+
+    // APCC Studio v6 — หน้าของนักเรียนในรายวิชา Studio (lazy)
+    if (route.startsWith('#/studio/project'))
+        return React.createElement(ProtectedRoute, { allowedRoles: ['student', 'teacher', 'admin'] }, React.createElement(StudioPage, { name: 'ProjectStudio' }));
 
     // Unknown route → login
     window.location.hash = '#/login';

@@ -9,7 +9,7 @@
  * ไฟล์ที่โหลดแบบ lazy ต้องประกาศของที่ใช้ข้ามไฟล์ไว้บน window (เช่น window.TemplateManager = TemplateManager)
  */
 
-const STUDIO_ASSET_VERSION = '6.0.5';
+const STUDIO_ASSET_VERSION = '6.0.6';
 
 // หน้า Studio → ไฟล์ที่ต้องโหลด (ตามลำดับ)
 const STUDIO_PAGES = {
@@ -18,6 +18,8 @@ const STUDIO_PAGES = {
     StudioGates:      ['js/studio/skillGate.js', 'js/pages/studio/StudioGates.js'],
     StudioStageStrip: ['js/studio/skillGate.js', 'js/studio/StageBar.js'],
     ExplainBack:      ['js/studio/ExplainBack.js'],
+    ProjectStudio:    ['js/studio/skillGate.js', 'js/studio/projectStudio.js', 'js/studio/WebAppRunner.js', 'js/pages/studio/ProjectStudio.js'],
+    RubricReview:     ['js/studio/projectStudio.js', 'js/studio/WebAppRunner.js', 'js/pages/studio/RubricReview.js'],
 };
 
 const _studioScripts = {};
