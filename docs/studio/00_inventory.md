@@ -172,7 +172,12 @@ Firebase Hosting ก็ตั้งค่าไว้ (`firebase.json` → `publ
 1. ~~ยังไม่มี Java~~ — ติดตั้ง Temurin JDK 21.0.13 แล้ว (13 พ.ย. 2569) emulator เปิดได้ และ seed ผ่าน (ผู้ใช้ 7, รายวิชา 2, โจทย์ 5, test case 13)
    วิธีเปิด: `firebase emulators:start --only auth,firestore,hosting` แล้วเข้า `http://127.0.0.1:5000/?emulator=1` (UI ที่ `http://127.0.0.1:4000`)
    ไม่ได้เปิด database emulator เพราะ `firebase.json` ไม่มีบล็อก `database` — QuickPoll ที่ใช้ RTDB จึงยังทดสอบใน emulator ไม่ได้ ซึ่ง Studio ไม่ต้องใช้
-2. **ไม่พบไฟล์ `apcc_problems_w23207.json`** ในโปรเจกต์ แต่โจทย์ทั้ง 57 ข้อมีอยู่ในรายวิชาจริงแล้ว ถ้าจะให้โจทย์เดิมได้ `hintLadder`/`studioType: parsons` ต้องเพิ่มฟิลด์ optional ให้ assignment เดิมของ ว23207 ซึ่งขัดกับข้อ 1.2 ตามตัวอักษร (ห้ามแก้เอกสารเดิม) แม้จะไม่ใช่ข้อมูลวิจัยก็ตาม
+2. **`apcc_problems_w23207.json` วางแล้ว (13 พ.ย. 2569)** — 57 ข้อ, 159 กรณี, เฉลยผ่าน 159/159 (Python ในเครื่อง)
+   ตรงกับรายวิชาจริงทุกข้อ (รหัส, ชื่อ, จำนวน test case, practice/exam) ข้อสังเกตสำหรับ Phase 1:
+   - โจทย์ Parsons 4 ข้อ **ไม่มีฟิลด์ `parsons`** — บรรทัดอยู่ใน `starter_code` เป็นคอมเมนต์ `# ...` (ไม่มีการเยื้อง ไม่มีบรรทัดหลอก) ตัว import ต้องดึงบรรทัดจาก `starter_code` และใช้การเยื้องจาก `solution` เป็นเฉลย
+   - `level: "สอบ"` 8 ข้อ (MID/FIN) → `assignmentType: 'exam'`, `hints: []`, `hints_enabled: false`
+   - `plan: 0` = ข้อสอบ, `plan: 15–16` = โจทย์ท้าทาย
+   เดิม: โจทย์ทั้ง 57 ข้อมีอยู่ในรายวิชาจริงแล้ว ถ้าจะให้โจทย์เดิมได้ `hintLadder`/`studioType: parsons` ต้องเพิ่มฟิลด์ optional ให้ assignment เดิมของ ว23207 ซึ่งขัดกับข้อ 1.2 ตามตัวอักษร (ห้ามแก้เอกสารเดิม) แม้จะไม่ใช่ข้อมูลวิจัยก็ตาม
 3. **`projectTeams` และ `shopPurchases` ไม่มีกฎใน `firestore.rules`** — TeamSync และการซื้อของใน AvatarShop จึงถูกปฏิเสธทุกครั้งบน production (มี 0 เอกสาร) ถ้า Project Studio จะต่อยอด TeamSync ต้องเพิ่มบล็อกกฎของ `projectTeams` ด้วย (ถือเป็นการเพิ่มบล็อก ไม่ได้ผ่อนกฎเดิม)
 4. **ทีมของ TeamSync ไม่ผูกกับรายวิชา** (`playerStats.teamId` มีได้ค่าเดียว) — `studio_projects` จะเก็บ `courseId` + `teamId` เอง ถ้านักเรียนอยู่หลายรายวิชาจะใช้ทีมได้ทีมเดียว
 5. **การสำรองแบบเต็ม** อ่านราว 37,000 ครั้ง ใกล้โควตาฟรี 50,000 ครั้งต่อวัน ควรรันนอกเวลาเรียน หรือใช้ `gcloud firestore export` แทน
