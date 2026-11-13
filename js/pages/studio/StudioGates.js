@@ -22,19 +22,24 @@ const StudioGates = () => {
     const course = courses.find(c => c.id === courseId) || null;
 
     React.useEffect(() => {
-        if (!userDoc) return;
+        if (!userDoc) return undefined;
+        let alive = true;   // ผู้ใช้อาจเปลี่ยนหน้าก่อนโหลดรายวิชาเสร็จ
         Promise.all([
             db.collection('courses').where('teacherId', '==', userDoc.id).get(),
             db.collection('courses').where('coTeacherIds', 'array-contains', userDoc.id).get(),
         ]).then(([own, co]) => {
+            if (!alive) return;
             const seen = new Set(), list = [];
             [...own.docs, ...co.docs].forEach(d => { if (!seen.has(d.id)) { seen.add(d.id); list.push({ id: d.id, ...d.data() }); } });
             const studio = list.filter(c => isStudio(c));
             setCourses(studio);
             if (!courseId && studio.length) setCourseId(studio[0].id);
         });
+        return () => { alive = false; };
     }, [userDoc]);
 
+    const aliveRef = React.useRef(true);
+    React.useEffect(() => () => { aliveRef.current = false; }, []);
     const load = React.useCallback(async () => {
         if (!course) return;
         setBusy('load'); setMsg('');
@@ -44,12 +49,13 @@ const StudioGates = () => {
                 sgComputeClass(course),
                 db.collection('studio_explainBack').where('courseId', '==', course.id).get(),
             ]);
+            if (!aliveRef.current) return;   // ผู้ใช้เปลี่ยนหน้าไปแล้ว
             setGates(g.gates); setGateSource(g.source); setCls(c);
             const names = Object.fromEntries(c.rows.map(r => [r.uid, r.name]));
             setEb(e.docs.map(d => ({ id: d.id, ...d.data(), name: names[d.data().uid] || d.data().uid }))
                 .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
-        } catch (err) { setMsg('โหลดข้อมูลไม่สำเร็จ: ' + err.message); }
-        finally { setBusy(''); }
+        } catch (err) { if (aliveRef.current) setMsg('โหลดข้อมูลไม่สำเร็จ: ' + err.message); }
+        finally { if (aliveRef.current) setBusy(''); }
     }, [course && course.id]);
     React.useEffect(() => { load(); }, [load]);
 

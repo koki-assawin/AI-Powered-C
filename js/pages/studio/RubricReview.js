@@ -22,19 +22,24 @@ const RubricReview = () => {
     const course = courses.find(c => c.id === courseId) || null;
 
     React.useEffect(() => {
-        if (!userDoc) return;
+        if (!userDoc) return undefined;
+        let alive = true;   // ผู้ใช้อาจเปลี่ยนหน้าก่อนโหลดรายวิชาเสร็จ
         Promise.all([
             db.collection('courses').where('teacherId', '==', userDoc.id).get(),
             db.collection('courses').where('coTeacherIds', 'array-contains', userDoc.id).get(),
         ]).then(([own, co]) => {
+            if (!alive) return;
             const seen = new Set(), list = [];
             [...own.docs, ...co.docs].forEach(d => { if (!seen.has(d.id)) { seen.add(d.id); list.push({ id: d.id, ...d.data() }); } });
             const studio = list.filter(c => hasFeature(c, 'projectStudio') || hasFeature(c, 'rubricReview'));
             setCourses(studio);
             if (!courseId && studio.length) setCourseId(studio[0].id);
         });
+        return () => { alive = false; };
     }, [userDoc]);
 
+    const aliveRef = React.useRef(true);
+    React.useEffect(() => () => { aliveRef.current = false; }, []);
     const load = React.useCallback(async () => {
         if (!course) return;
         setProjects(null); setSel(null); setMsg('');
@@ -44,6 +49,7 @@ const RubricReview = () => {
             db.collection('studio_reviews').where('courseId', '==', course.id).get(),
             db.collection('studio_explainBack').where('courseId', '==', course.id).get(),
         ]);
+        if (!aliveRef.current) return;
         setRubric(r);
         const list = ps.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.teamName || '').localeCompare(b.teamName || '', 'th'));
         const byProject = {}, peers = {};
@@ -57,6 +63,7 @@ const RubricReview = () => {
         const uids = [...new Set(list.flatMap(p => p.members || []))];
         const us = {};
         await Promise.all(uids.map(u => db.collection('users').doc(u).get().then(s => { if (s.exists) us[u] = s.data(); }).catch(() => {})));
+        if (!aliveRef.current) return;   // ผู้ใช้เปลี่ยนหน้าไปแล้ว
         setReviews({ teacher: byProject, peers }); setEb(ebByUid); setUsers(us); setProjects(list);
     }, [course && course.id]);
     React.useEffect(() => { load(); }, [load]);
@@ -126,7 +133,27 @@ const RrProjectReview = ({ project, rubric, existing, peers, eb, users, uid, onB
     const [draftSource, setDraftSource] = React.useState((existing && existing.aiDraftSource) || null);
     const [busy, setBusy] = React.useState('');
     const [msg, setMsg] = React.useState('');
+    const [showcase, setShowcase] = React.useState(undefined);
+    const [blurb, setBlurb] = React.useState('');
     React.useEffect(() => { psLoadVersions(project.id).then(setVersions).catch(() => setVersions([])); }, [project.id]);
+    React.useEffect(() => {
+        db.collection('studio_showcase').doc(project.id).get()
+            .then(s => { setShowcase(s.exists ? s.data() : null); if (s.exists) setBlurb(s.data().blurb || ''); }).catch(() => setShowcase(null));
+    }, [project.id]);
+    const approveShowcase = async () => {
+        setBusy('showcase');
+        try {
+            await saApproveShowcase(project, uid, blurb);
+            setShowcase({ visible: true, blurb });
+            setMsg('🌏 อนุมัติขึ้นแกลเลอรีแล้ว — สมาชิกทีมเลื่อนไปขั้น "แบ่งปัน"');
+        } catch (err) { setMsg('อนุมัติไม่สำเร็จ: ' + err.message); }
+        finally { setBusy(''); }
+    };
+    const toggleShowcase = async () => {
+        setBusy('showcase');
+        try { await saHideShowcase(project.id, showcase.visible); setShowcase(s => ({ ...s, visible: !s.visible })); }
+        finally { setBusy(''); }
+    };
 
     const crit = rubric.criteria.filter(c => c.scope === 'team');
     const c5 = rubric.criteria.find(c => c.scope === 'individual');
@@ -226,6 +253,21 @@ const RrProjectReview = ({ project, rubric, existing, peers, eb, users, uid, onB
                     <button onClick={() => save(true)} disabled={!!busy || !complete} className="k-btn-pink text-sm px-4 py-1.5">📢 ยืนยันและเผยแพร่ให้ทีม</button>
                     {!complete && <span className="text-xs text-gray-400 self-center">ให้ระดับครบทุกเกณฑ์และทุกคนก่อนบันทึก</span>}
                     {published && <span className="text-xs text-green-700 self-center">เผยแพร่แล้ว</span>}
+                </div>
+            </div>
+            <div className="bg-white rounded-2xl p-4" style={{ border: '1px solid #FFD1DC' }}>
+                <div className="font-bold mb-2" style={{ color: '#4527A0' }}>🌏 แกลเลอรีผลงาน (ขั้นแบ่งปัน)</div>
+                <p className="text-xs text-gray-500 mb-2">อนุมัติแล้วระบบเก็บสำเนาผลงาน ณ วันนี้ไว้ในแกลเลอรีของรายวิชา และเลื่อนสมาชิกทีมไปขั้น "แบ่งปัน"</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <input value={blurb} onChange={e => setBlurb(e.target.value)} className="k-input text-sm" style={{ padding: '8px 12px' }} placeholder="คำแนะนำผลงานสั้นๆ (แสดงบนการ์ดแกลเลอรี)" />
+                    <button onClick={approveShowcase} disabled={!!busy || showcase === undefined} className="k-btn-pink text-sm px-4 py-1.5 whitespace-nowrap">
+                        {busy === 'showcase' ? 'กำลังบันทึก...' : showcase ? '🔄 อัปเดตสำเนาในแกลเลอรี' : '🌏 อนุมัติขึ้นแกลเลอรี'}
+                    </button>
+                    {showcase && <button onClick={toggleShowcase} disabled={!!busy} className="k-btn-outline text-sm px-3 py-1.5 whitespace-nowrap">{showcase.visible ? '🙈 ซ่อน' : '👁️ แสดง'}</button>}
+                </div>
+                <div className="flex flex-wrap gap-3 mt-3 text-xs">
+                    <a className="underline" style={{ color: '#5E35B1' }} href={`#/studio/showcase?course=${project.courseId}`}>เปิดแกลเลอรี ↗</a>
+                    {members.map(u => <a key={u} className="underline" style={{ color: '#5E35B1' }} href={`#/studio/portfolio?course=${project.courseId}&uid=${u}`}>📁 พอร์ตโฟลิโอ {name(u)}</a>)}
                 </div>
             </div>
         </div>

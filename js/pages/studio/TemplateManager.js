@@ -39,16 +39,19 @@ const TemplateManager = () => {
     const show = (text, type = 'ok') => setMsg({ text, type });
 
     React.useEffect(() => {
-        if (!userDoc) return;
+        if (!userDoc) return undefined;
+        let alive = true;   // ผู้ใช้อาจเปลี่ยนหน้าก่อนโหลดรายวิชาเสร็จ
         Promise.all([
             db.collection('courses').where('teacherId', '==', userDoc.id).get(),
             db.collection('courses').where('coTeacherIds', 'array-contains', userDoc.id).get(),
         ]).then(([own, co]) => {
+            if (!alive) return;
             const seen = new Set(), list = [];
             [...own.docs, ...co.docs].forEach(d => { if (!seen.has(d.id)) { seen.add(d.id); list.push({ id: d.id, ...d.data() }); } });
             list.sort((a, b) => (isStudio(b) - isStudio(a)) || (a.title || '').localeCompare(b.title || '', 'th'));
             setCourses(list);
         }).catch(err => show('โหลดรายวิชาไม่สำเร็จ: ' + err.message, 'err'));
+        return () => { alive = false; };
     }, [userDoc]);
 
     // คำนวณ dry-run ใหม่ทุกครั้งที่เปลี่ยนรายวิชา ชุดโจทย์ หรือ template

@@ -9,7 +9,7 @@
  * ไฟล์ที่โหลดแบบ lazy ต้องประกาศของที่ใช้ข้ามไฟล์ไว้บน window (เช่น window.TemplateManager = TemplateManager)
  */
 
-const STUDIO_ASSET_VERSION = '6.0.6';
+const STUDIO_ASSET_VERSION = '6.0.10';
 
 // หน้า Studio → ไฟล์ที่ต้องโหลด (ตามลำดับ)
 const STUDIO_PAGES = {
@@ -19,7 +19,10 @@ const STUDIO_PAGES = {
     StudioStageStrip: ['js/studio/skillGate.js', 'js/studio/StageBar.js'],
     ExplainBack:      ['js/studio/ExplainBack.js'],
     ProjectStudio:    ['js/studio/skillGate.js', 'js/studio/projectStudio.js', 'js/studio/WebAppRunner.js', 'js/pages/studio/ProjectStudio.js'],
-    RubricReview:     ['js/studio/projectStudio.js', 'js/studio/WebAppRunner.js', 'js/pages/studio/RubricReview.js'],
+    RubricReview:     ['js/studio/skillGate.js', 'js/studio/projectStudio.js', 'js/studio/studioAnalytics.js', 'js/studio/WebAppRunner.js', 'js/pages/studio/RubricReview.js'],
+    StudioShowcase:   ['js/studio/projectStudio.js', 'js/studio/WebAppRunner.js', 'js/pages/studio/Showcase.js'],
+    StudioPortfolio:  ['js/studio/skillGate.js', 'js/studio/projectStudio.js', 'js/studio/studioAnalytics.js', 'js/studio/WebAppRunner.js', 'js/pages/studio/ProjectStudio.js', 'js/pages/studio/Showcase.js'],
+    StudioAnalytics:  ['js/studio/skillGate.js', 'js/studio/projectStudio.js', 'js/studio/studioAnalytics.js', 'js/pages/studio/StudioAnalytics.js'],
 };
 
 const _studioScripts = {};
@@ -44,24 +47,28 @@ const loadStudioModules = (paths) =>
 
 // ใช้ใน router: React.createElement(StudioPage, { name: 'TemplateManager' })
 const StudioPage = ({ name, ...props }) => {
-    const [state, setState] = React.useState(window[name] ? 'ready' : 'loading');
-    const [error, setError] = React.useState('');
+    // เก็บสถานะแยกตามชื่อหน้า: เมื่อเปลี่ยนหน้า Studio โดยไม่โหลดใหม่ (React ใช้ StudioPage ตัวเดิม)
+    // ต้องไม่ถือว่าหน้าใหม่พร้อมแล้ว ไม่อย่างนั้น createElement(undefined) จะทำให้หน้าเว็บพัง
+    const [failed, setFailed] = React.useState({});
+    const [, setTick] = React.useState(0);
     React.useEffect(() => {
-        if (state === 'ready') return;
+        if (window[name]) return undefined;
+        let alive = true;
         loadStudioModules(STUDIO_PAGES[name] || [])
-            .then(() => setState(window[name] ? 'ready' : 'error'))
-            .catch(err => { setError(err.message); setState('error'); });
+            .then(() => { if (alive) { if (!window[name]) setFailed(f => ({ ...f, [name]: 'ไม่พบหน้า ' + name })); setTick(t => t + 1); } })
+            .catch(err => { if (alive) setFailed(f => ({ ...f, [name]: err.message })); });
+        return () => { alive = false; };
     }, [name]);
 
-    if (state === 'loading') return <Spinner text="กำลังโหลด APCC Studio..." />;
-    if (state === 'error') {
+    if (window[name]) return React.createElement(window[name], props);
+    if (failed[name] != null) {
         return (
             <div className="p-8 text-center text-sm text-red-600">
-                โหลดหน้า APCC Studio ไม่สำเร็จ {error && <div className="text-xs text-gray-500 mt-1">{error}</div>}
+                โหลดหน้า APCC Studio ไม่สำเร็จ <div className="text-xs text-gray-500 mt-1">{failed[name]}</div>
             </div>
         );
     }
-    return React.createElement(window[name], props);
+    return <Spinner text="กำลังโหลด APCC Studio..." />;
 };
 
 window.loadStudioModules = loadStudioModules;
