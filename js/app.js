@@ -102,6 +102,14 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(PollPresent));
         if (route.startsWith('#/teacher/poll'))
             return guard(React.createElement(PollControl));
+        if (route.startsWith('#/teacher/studio/templates'))   // APCC Studio v6 (lazy)
+            return guard(React.createElement(StudioPage, { name: 'TemplateManager' }));
+        if (route.startsWith('#/teacher/studio/gates'))
+            return guard(React.createElement(StudioPage, { name: 'StudioGates' }));
+        if (route.startsWith('#/teacher/studio/projects'))
+            return guard(React.createElement(StudioPage, { name: 'RubricReview' }));
+        if (route.startsWith('#/teacher/studio/analytics'))
+            return guard(React.createElement(StudioPage, { name: 'StudioAnalytics' }));
 
         return guard(React.createElement(TeacherDashboard));
     }
@@ -126,6 +134,14 @@ const renderRoute = (route, role) => {
 
         return guard(React.createElement(AdminDashboard));
     }
+
+    // APCC Studio v6 — หน้าของนักเรียนในรายวิชา Studio (lazy)
+    if (route.startsWith('#/studio/project'))
+        return React.createElement(ProtectedRoute, { allowedRoles: ['student', 'teacher', 'admin'] }, React.createElement(StudioPage, { name: 'ProjectStudio' }));
+    if (route.startsWith('#/studio/showcase'))
+        return React.createElement(ProtectedRoute, { allowedRoles: ['student', 'teacher', 'admin'] }, React.createElement(StudioPage, { name: 'StudioShowcase' }));
+    if (route.startsWith('#/studio/portfolio'))
+        return React.createElement(ProtectedRoute, { allowedRoles: ['student', 'teacher', 'admin'] }, React.createElement(StudioPage, { name: 'StudioPortfolio' }));
 
     // Unknown route → login
     window.location.hash = '#/login';

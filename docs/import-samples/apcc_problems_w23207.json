@@ -1,0 +1,2125 @@
+[
+  {
+    "id": "W207-01-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 1,
+    "title": "สวัสดีก้างปลา",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "print",
+    "description": "เขียนโปรแกรมแสดงข้อความ 2 บรรทัด บรรทัดแรก สวัสดี โรงเรียนก้างปลาวิทยาคม บรรทัดที่สอง ฉันพร้อมสร้างนวัตกรรม",
+    "input_format": "ไม่มีข้อมูลนำเข้า",
+    "output_format": "ข้อความ 2 บรรทัดตามโจทย์",
+    "starter_code": "# แสดงข้อความ 2 บรรทัด\n",
+    "solution": "print(\"สวัสดี โรงเรียนก้างปลาวิทยาคม\")\nprint(\"ฉันพร้อมสร้างนวัตกรรม\")\n",
+    "hints": [
+      "คำสั่งใดในไพทอนที่ใช้แสดงข้อความบนจอ",
+      "หนึ่งคำสั่ง print แสดงผลหนึ่งบรรทัด โจทย์ต้องการ 2 บรรทัด",
+      "ข้อความต้องอยู่ในเครื่องหมายคำพูด \" \" และสะกดให้ตรงกับโจทย์ทุกตัวอักษร",
+      "print(\"สวัสดี ...\")  แล้วเขียน print อีกบรรทัด"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "",
+        "expected_output": "สวัสดี โรงเรียนก้างปลาวิทยาคม\nฉันพร้อมสร้างนวัตกรรม\n",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "id": "W207-01-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 1,
+    "title": "ป้ายชื่อนวัตกรรม",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "print",
+    "description": "แสดงป้ายชื่อ 3 บรรทัด ดังนี้\n**********\n* APCC *\n**********",
+    "input_format": "ไม่มีข้อมูลนำเข้า",
+    "output_format": "ป้าย 3 บรรทัด",
+    "starter_code": "",
+    "solution": "print(\"**********\")\nprint(\"* APCC *\")\nprint(\"**********\")\n",
+    "hints": [
+      "ป้ายมีกี่บรรทัด แต่ละบรรทัดมีอะไร",
+      "ใช้ print 3 ครั้ง เครื่องหมาย * ก็เป็นข้อความธรรมดา",
+      "นับจำนวน * ให้ครบ 10 ตัว และเว้นวรรคระหว่าง * กับ APCC",
+      "print(\"**********\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "",
+        "expected_output": "**********\n* APCC *\n**********\n",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "id": "W207-01-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 1,
+    "title": "เรียงคำสั่งเมนูสหกรณ์",
+    "level": "ง่าย",
+    "type": "parsons",
+    "concept": "print (เรียงบรรทัด)",
+    "description": "นำบรรทัดคำสั่งที่กำหนดมาเรียงให้แสดงเมนูสหกรณ์ตามลำดับนี้\nเมนูสหกรณ์โรงเรียน\n1. น้ำดื่ม 7 บาท\n2. ขนมปัง 10 บาท\n3. นมกล่อง 12 บาท",
+    "input_format": "ไม่มีข้อมูลนำเข้า",
+    "output_format": "เมนู 4 บรรทัดตามลำดับ",
+    "starter_code": "# เรียงบรรทัดต่อไปนี้ให้ถูกลำดับ แล้วลบเครื่องหมาย # หน้าบรรทัดออก (ระวังการย่อหน้า)\n# print(\"เมนูสหกรณ์โรงเรียน\")\n# print(\"3. นมกล่อง 12 บาท\")\n# print(\"2. ขนมปัง 10 บาท\")\n# print(\"1. น้ำดื่ม 7 บาท\")\n",
+    "solution": "print(\"เมนูสหกรณ์โรงเรียน\")\nprint(\"1. น้ำดื่ม 7 บาท\")\nprint(\"2. ขนมปัง 10 บาท\")\nprint(\"3. นมกล่อง 12 บาท\")\n",
+    "hints": [
+      "บรรทัดไหนควรแสดงก่อน",
+      "โปรแกรมทำงานจากบนลงล่าง",
+      "หัวเมนูอยู่บรรทัดแรก ตามด้วยข้อ 1 2 3",
+      "ลากบรรทัด print(\"เมนูสหกรณ์โรงเรียน\") ไว้บนสุด"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "",
+        "expected_output": "เมนูสหกรณ์โรงเรียน\n1. น้ำดื่ม 7 บาท\n2. ขนมปัง 10 บาท\n3. นมกล่อง 12 บาท\n",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "id": "W207-01-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 1,
+    "title": "ที่อยู่ของเรา",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "print หลายค่า, sep",
+    "description": "ใช้ print ครั้งเดียวแสดงคำ 3 คำ คือ ก้างปลา ทุ่งสง นครศรีธรรมราช โดยคั่นด้วย \" - \" ให้ได้ผลลัพธ์\nก้างปลา - ทุ่งสง - นครศรีธรรมราช",
+    "input_format": "ไม่มีข้อมูลนำเข้า",
+    "output_format": "1 บรรทัด",
+    "starter_code": "",
+    "solution": "print(\"ก้างปลา\", \"ทุ่งสง\", \"นครศรีธรรมราช\", sep=\" - \")\n",
+    "hints": [
+      "print รับหลายค่าโดยคั่นด้วยจุลภาคได้หรือไม่",
+      "ปกติ print เว้นวรรคระหว่างค่า ถ้าต้องการตัวคั่นอื่นใช้ sep",
+      "sep=\" - \" มีเว้นวรรคทั้งหน้าและหลังขีด",
+      "print(\"ก้างปลา\", \"ทุ่งสง\", ..., sep=\" - \")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "",
+        "expected_output": "ก้างปลา - ทุ่งสง - นครศรีธรรมราช\n",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "id": "W207-02-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 2,
+    "title": "ทักทายเพื่อนใหม่",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "input, ตัวแปร",
+    "description": "รับชื่อเล่น 1 บรรทัด แล้วแสดง สวัสดี ตามด้วยชื่อ",
+    "input_format": "ชื่อเล่น 1 บรรทัด",
+    "output_format": "สวัสดี <ชื่อ>",
+    "starter_code": "name = input()\n# แสดงคำทักทาย\n",
+    "solution": "name = input()\nprint(\"สวัสดี\", name)\n",
+    "hints": [
+      "ต้องเก็บชื่อที่ผู้ใช้พิมพ์ไว้ที่ไหน",
+      "input() รับข้อความ แล้วเก็บในตัวแปร",
+      "name = input() แล้ว print ข้อความกับตัวแปร",
+      "print(\"สวัสดี\", name)"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "มิว\n",
+        "expected_output": "สวัสดี มิว\n",
+        "visible": true
+      },
+      {
+        "input": "ต้นกล้า\n",
+        "expected_output": "สวัสดี ต้นกล้า\n",
+        "visible": false
+      },
+      {
+        "input": "Ploy\n",
+        "expected_output": "สวัสดี Ploy\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-02-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 2,
+    "title": "แนะนำตัว",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "input หลายบรรทัด",
+    "description": "รับชื่อ 1 บรรทัด และห้อง 1 บรรทัด (เช่น 3/2) แล้วแสดง <ชื่อ> เรียนชั้น ม.<ห้อง>",
+    "input_format": "บรรทัดที่ 1 ชื่อ บรรทัดที่ 2 ห้อง",
+    "output_format": "<ชื่อ> เรียนชั้น ม.<ห้อง>",
+    "starter_code": "",
+    "solution": "name = input()\nroom = input()\nprint(name, \"เรียนชั้น ม.\" + room)\n",
+    "hints": [
+      "ต้องใช้ input กี่ครั้ง",
+      "เก็บแต่ละค่าในตัวแปรคนละตัว",
+      "\"ม.\" + room ต่อข้อความโดยไม่มีช่องว่าง",
+      "print(name, \"เรียนชั้น ม.\" + room)"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "มิว\n3/2\n",
+        "expected_output": "มิว เรียนชั้น ม.3/2\n",
+        "visible": true
+      },
+      {
+        "input": "เจได\n3/5\n",
+        "expected_output": "เจได เรียนชั้น ม.3/5\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-02-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 2,
+    "title": "อายุปีหน้า",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "int(), การแปลงชนิดข้อมูล",
+    "description": "รับอายุปัจจุบัน (จำนวนเต็ม) แล้วแสดงอายุในปีหน้า",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "จำนวนเต็ม 1 บรรทัด",
+    "starter_code": "",
+    "solution": "age = int(input())\nprint(age + 1)\n",
+    "hints": [
+      "input() ให้ค่าเป็นข้อความหรือตัวเลข",
+      "ข้อความ \"14\" + 1 ทำไม่ได้ ต้องแปลงเป็นตัวเลขก่อน",
+      "ใช้ int(input()) แปลงเป็นจำนวนเต็ม",
+      "age = int(input())  แล้ว print(age + 1)"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "14\n",
+        "expected_output": "15\n",
+        "visible": true
+      },
+      {
+        "input": "15\n",
+        "expected_output": "16\n",
+        "visible": false
+      },
+      {
+        "input": "9\n",
+        "expected_output": "10\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-02-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 2,
+    "title": "ราคารวมสองชิ้น",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "int(), บวก",
+    "description": "รับราคาสินค้า 2 ชิ้น (จำนวนเต็ม บรรทัดละ 1 ค่า) แล้วแสดงราคารวม",
+    "input_format": "จำนวนเต็ม 2 บรรทัด",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "a = int(input())\nb = int(input())\nprint(a + b)\n",
+    "hints": [
+      "ต้องรับข้อมูลกี่ค่า",
+      "แปลงทั้งสองค่าเป็น int ก่อนบวก",
+      "ถ้าลืม int ผลลัพธ์จะเป็น 710 แทน 17",
+      "a = int(input())  b = int(input())"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "7\n10\n",
+        "expected_output": "17\n",
+        "visible": true
+      },
+      {
+        "input": "25\n12\n",
+        "expected_output": "37\n",
+        "visible": false
+      },
+      {
+        "input": "0\n5\n",
+        "expected_output": "5\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-02-5",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 2,
+    "title": "พื้นที่แปลงผัก",
+    "level": "ง่าย",
+    "type": "parsons",
+    "concept": "ตัวแปร, คูณ (เรียงบรรทัด)",
+    "description": "เรียงบรรทัดให้เป็นโปรแกรมรับความกว้างและความยาวของแปลงผัก (เมตร จำนวนเต็ม) แล้วแสดงพื้นที่",
+    "input_format": "จำนวนเต็ม 2 บรรทัด",
+    "output_format": "พื้นที่ <ค่า> ตารางเมตร",
+    "starter_code": "# เรียงบรรทัดต่อไปนี้ให้ถูกลำดับ แล้วลบเครื่องหมาย # หน้าบรรทัดออก (ระวังการย่อหน้า)\n# print(\"พื้นที่\", area, \"ตารางเมตร\")\n# area = w * h\n# w = int(input())\n# h = int(input())\n",
+    "solution": "w = int(input())\nh = int(input())\narea = w * h\nprint(\"พื้นที่\", area, \"ตารางเมตร\")\n",
+    "hints": [
+      "ต้องมีค่าอะไรก่อนจึงจะคำนวณพื้นที่ได้",
+      "รับข้อมูลก่อน แล้วคำนวณ แล้วจึงแสดงผล",
+      "area = w * h ต้องอยู่หลังบรรทัดรับ w และ h",
+      "ลำดับ: รับ w → รับ h → คำนวณ → print"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "2\n5\n",
+        "expected_output": "พื้นที่ 10 ตารางเมตร\n",
+        "visible": true
+      },
+      {
+        "input": "3\n4\n",
+        "expected_output": "พื้นที่ 12 ตารางเมตร\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-03-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 3,
+    "title": "ทอนเงินสหกรณ์",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "ลบ",
+    "description": "รับราคาสินค้าและเงินที่จ่าย (จำนวนเต็ม) แล้วแสดงเงินทอน",
+    "input_format": "จำนวนเต็ม 2 บรรทัด: ราคา, เงินที่จ่าย",
+    "output_format": "ทอน <ค่า> บาท",
+    "starter_code": "",
+    "solution": "price = int(input())\npaid = int(input())\nprint(\"ทอน\", paid - price, \"บาท\")\n",
+    "hints": [
+      "เงินทอนคำนวณอย่างไร",
+      "เงินทอน = เงินที่จ่าย - ราคา",
+      "ระวังลำดับการลบ",
+      "print(\"ทอน\", paid - price, \"บาท\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "17\n20\n",
+        "expected_output": "ทอน 3 บาท\n",
+        "visible": true
+      },
+      {
+        "input": "45\n100\n",
+        "expected_output": "ทอน 55 บาท\n",
+        "visible": false
+      },
+      {
+        "input": "12\n12\n",
+        "expected_output": "ทอน 0 บาท\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-03-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 3,
+    "title": "แบ่งขนมให้เพื่อน",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "// และ %",
+    "description": "รับจำนวนขนมและจำนวนเพื่อน แล้วแสดงว่าได้คนละกี่ชิ้น และเหลือกี่ชิ้น",
+    "input_format": "จำนวนเต็ม 2 บรรทัด",
+    "output_format": "บรรทัดแรก คนละ <ค่า> ชิ้น บรรทัดสอง เหลือ <ค่า> ชิ้น",
+    "starter_code": "",
+    "solution": "c = int(input())\np = int(input())\nprint(\"คนละ\", c // p, \"ชิ้น\")\nprint(\"เหลือ\", c % p, \"ชิ้น\")\n",
+    "hints": [
+      "หารแล้วเอาเฉพาะจำนวนเต็มใช้ตัวดำเนินการใด",
+      "// ให้ผลหารปัดเศษทิ้ง % ให้เศษ",
+      "17 // 5 = 3 และ 17 % 5 = 2",
+      "print(\"คนละ\", c // p, \"ชิ้น\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "17\n5\n",
+        "expected_output": "คนละ 3 ชิ้น\nเหลือ 2 ชิ้น\n",
+        "visible": true
+      },
+      {
+        "input": "20\n4\n",
+        "expected_output": "คนละ 5 ชิ้น\nเหลือ 0 ชิ้น\n",
+        "visible": false
+      },
+      {
+        "input": "3\n7\n",
+        "expected_output": "คนละ 0 ชิ้น\nเหลือ 3 ชิ้น\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-03-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 3,
+    "title": "เวลาอ่านหนังสือ",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "// และ %",
+    "description": "รับจำนวนนาทีทั้งหมด แล้วแปลงเป็นชั่วโมงและนาที",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "<ชั่วโมง> ชั่วโมง <นาที> นาที",
+    "starter_code": "",
+    "solution": "m = int(input())\nprint(m // 60, \"ชั่วโมง\", m % 60, \"นาที\")\n",
+    "hints": [
+      "1 ชั่วโมงมีกี่นาที",
+      "ชั่วโมง = นาที // 60 เศษนาที = นาที % 60",
+      "135 // 60 = 2 และ 135 % 60 = 15",
+      "print(m // 60, \"ชั่วโมง\", m % 60, \"นาที\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "135\n",
+        "expected_output": "2 ชั่วโมง 15 นาที\n",
+        "visible": true
+      },
+      {
+        "input": "60\n",
+        "expected_output": "1 ชั่วโมง 0 นาที\n",
+        "visible": false
+      },
+      {
+        "input": "45\n",
+        "expected_output": "0 ชั่วโมง 45 นาที\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-03-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 3,
+    "title": "คะแนนเฉลี่ย 3 วิชา",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "/ และทศนิยม 2 ตำแหน่ง",
+    "description": "รับคะแนน 3 วิชา (จำนวนเต็ม) แล้วแสดงค่าเฉลี่ยทศนิยม 2 ตำแหน่ง",
+    "input_format": "จำนวนเต็ม 3 บรรทัด",
+    "output_format": "ทศนิยม 2 ตำแหน่ง",
+    "starter_code": "",
+    "solution": "a = int(input())\nb = int(input())\nc = int(input())\navg = (a + b + c) / 3\nprint(f\"{avg:.2f}\")\n",
+    "hints": [
+      "ค่าเฉลี่ยคำนวณอย่างไร",
+      "ต้องใส่วงเล็บให้บวกก่อนหาร",
+      "แสดงทศนิยม 2 ตำแหน่งด้วย f\"{avg:.2f}\"",
+      "avg = (a + b + c) / 3"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "70\n80\n75\n",
+        "expected_output": "75.00\n",
+        "visible": true
+      },
+      {
+        "input": "50\n60\n61\n",
+        "expected_output": "57.00\n",
+        "visible": false
+      },
+      {
+        "input": "100\n100\n99\n",
+        "expected_output": "99.67\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-03-5",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 3,
+    "title": "ลดราคา 10%",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "float, คูณทศนิยม",
+    "description": "รับราคาสินค้า (อาจมีทศนิยม) แล้วแสดงราคาหลังลด 10% ทศนิยม 2 ตำแหน่ง",
+    "input_format": "ทศนิยม 1 บรรทัด",
+    "output_format": "ทศนิยม 2 ตำแหน่ง",
+    "starter_code": "",
+    "solution": "price = float(input())\nprint(f\"{price * 0.9:.2f}\")\n",
+    "hints": [
+      "ลด 10% เหลือกี่เปอร์เซ็นต์ของราคาเดิม",
+      "ใช้ float(input()) เพราะราคาอาจมีทศนิยม",
+      "ราคาหลังลด = price * 0.9",
+      "print(f\"{price * 0.9:.2f}\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "100\n",
+        "expected_output": "90.00\n",
+        "visible": true
+      },
+      {
+        "input": "35.5\n",
+        "expected_output": "31.95\n",
+        "visible": false
+      },
+      {
+        "input": "9.99\n",
+        "expected_output": "8.99\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-04-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 4,
+    "title": "ผ่านหรือไม่ผ่าน",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "if-else",
+    "description": "รับคะแนน (0–100) ถ้าได้ 50 ขึ้นไปแสดง ผ่าน ไม่เช่นนั้นแสดง ไม่ผ่าน",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "ผ่าน หรือ ไม่ผ่าน",
+    "starter_code": "",
+    "solution": "s = int(input())\nif s >= 50:\n    print(\"ผ่าน\")\nelse:\n    print(\"ไม่ผ่าน\")\n",
+    "hints": [
+      "เงื่อนไขของการผ่านคืออะไร",
+      "ใช้ if s >= 50: และ else:",
+      "บรรทัดใต้ if และ else ต้องย่อหน้า 4 ช่อง",
+      "if s >= 50:\n    print(\"ผ่าน\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "75\n",
+        "expected_output": "ผ่าน\n",
+        "visible": true
+      },
+      {
+        "input": "50\n",
+        "expected_output": "ผ่าน\n",
+        "visible": false
+      },
+      {
+        "input": "49\n",
+        "expected_output": "ไม่ผ่าน\n",
+        "visible": false
+      },
+      {
+        "input": "0\n",
+        "expected_output": "ไม่ผ่าน\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-04-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 4,
+    "title": "เลขคู่หรือเลขคี่",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "if-else, %",
+    "description": "รับจำนวนเต็ม แสดง คู่ หรือ คี่",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "คู่ หรือ คี่",
+    "starter_code": "",
+    "solution": "n = int(input())\nif n % 2 == 0:\n    print(\"คู่\")\nelse:\n    print(\"คี่\")\n",
+    "hints": [
+      "เลขคู่หารด้วยอะไรลงตัว",
+      "หารลงตัวคือเศษเป็น 0 ใช้ %",
+      "เปรียบเทียบด้วย == ไม่ใช่ =",
+      "if n % 2 == 0:"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "4\n",
+        "expected_output": "คู่\n",
+        "visible": true
+      },
+      {
+        "input": "7\n",
+        "expected_output": "คี่\n",
+        "visible": false
+      },
+      {
+        "input": "0\n",
+        "expected_output": "คู่\n",
+        "visible": false
+      },
+      {
+        "input": "-3\n",
+        "expected_output": "คี่\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-04-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 4,
+    "title": "มาโรงเรียนทันไหม",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "if-else, คำนวณเวลา",
+    "description": "โรงเรียนเข้าแถว 7:40 น. รับชั่วโมงและนาทีที่มาถึง ถ้ามาถึงไม่เกิน 7:40 แสดง ทันเวลา ไม่เช่นนั้นแสดง สาย",
+    "input_format": "จำนวนเต็ม 2 บรรทัด: ชั่วโมง, นาที",
+    "output_format": "ทันเวลา หรือ สาย",
+    "starter_code": "",
+    "solution": "h = int(input())\nm = int(input())\nif h * 60 + m <= 7 * 60 + 40:\n    print(\"ทันเวลา\")\nelse:\n    print(\"สาย\")\n",
+    "hints": [
+      "เปรียบเทียบเวลาที่มีทั้งชั่วโมงและนาทีอย่างไรให้ง่าย",
+      "แปลงเป็นนาทีนับจากเที่ยงคืนก่อน",
+      "เวลาที่มา = h * 60 + m เวลาเข้าแถว = 7 * 60 + 40",
+      "if h * 60 + m <= 460:"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "7\n35\n",
+        "expected_output": "ทันเวลา\n",
+        "visible": true
+      },
+      {
+        "input": "7\n40\n",
+        "expected_output": "ทันเวลา\n",
+        "visible": false
+      },
+      {
+        "input": "7\n41\n",
+        "expected_output": "สาย\n",
+        "visible": false
+      },
+      {
+        "input": "8\n0\n",
+        "expected_output": "สาย\n",
+        "visible": false
+      },
+      {
+        "input": "6\n55\n",
+        "expected_output": "ทันเวลา\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-04-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 4,
+    "title": "ค่าส่งสินค้า",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "if-else, คำนวณ",
+    "description": "ร้านค้าออนไลน์ของชุมชน ถ้ายอดซื้อตั้งแต่ 100 บาทส่งฟรี ไม่เช่นนั้นค่าส่ง 20 บาท รับยอดซื้อแล้วแสดงยอดที่ต้องจ่าย",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "total = int(input())\nif total >= 100:\n    ship = 0\nelse:\n    ship = 20\nprint(total + ship)\n",
+    "hints": [
+      "ยอดที่ต้องจ่ายมีส่วนประกอบอะไรบ้าง",
+      "ใช้ if กำหนดค่าส่งก่อน แล้วค่อยบวก",
+      "ship = 0 หรือ ship = 20 แล้ว print(total + ship)",
+      "if total >= 100:\n    ship = 0"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "150\n",
+        "expected_output": "150\n",
+        "visible": true
+      },
+      {
+        "input": "100\n",
+        "expected_output": "100\n",
+        "visible": false
+      },
+      {
+        "input": "99\n",
+        "expected_output": "119\n",
+        "visible": false
+      },
+      {
+        "input": "20\n",
+        "expected_output": "40\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-04-5",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 4,
+    "title": "ตรวจรหัสผ่านห้องคอม",
+    "level": "ง่าย",
+    "type": "parsons",
+    "concept": "if-else กับข้อความ (เรียงบรรทัด)",
+    "description": "เรียงบรรทัดให้เป็นโปรแกรมรับรหัสผ่าน ถ้าตรงกับ kp2569 แสดง เข้าสู่ระบบสำเร็จ ไม่เช่นนั้นแสดง รหัสผ่านไม่ถูกต้อง",
+    "input_format": "ข้อความ 1 บรรทัด",
+    "output_format": "ข้อความตามโจทย์",
+    "starter_code": "# เรียงบรรทัดต่อไปนี้ให้ถูกลำดับ แล้วลบเครื่องหมาย # หน้าบรรทัดออก (ระวังการย่อหน้า)\n# if pw == \"kp2569\":\n# print(\"เข้าสู่ระบบสำเร็จ\")\n# else:\n# pw = input()\n# print(\"รหัสผ่านไม่ถูกต้อง\")\n",
+    "solution": "pw = input()\nif pw == \"kp2569\":\n    print(\"เข้าสู่ระบบสำเร็จ\")\nelse:\n    print(\"รหัสผ่านไม่ถูกต้อง\")\n",
+    "hints": [
+      "ต้องรับข้อมูลก่อนหรือตรวจก่อน",
+      "เปรียบเทียบข้อความด้วย ==",
+      "ตัวพิมพ์ใหญ่-เล็กถือว่าต่างกัน",
+      "บรรทัดแรกคือ pw = input()"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "kp2569\n",
+        "expected_output": "เข้าสู่ระบบสำเร็จ\n",
+        "visible": true
+      },
+      {
+        "input": "KP2569\n",
+        "expected_output": "รหัสผ่านไม่ถูกต้อง\n",
+        "visible": false
+      },
+      {
+        "input": "1234\n",
+        "expected_output": "รหัสผ่านไม่ถูกต้อง\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-05-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 5,
+    "title": "ตัดเกรด",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "if-elif-else",
+    "description": "รับคะแนน 0–100 แล้วแสดงเกรด: 80 ขึ้นไป 4, 70–79 3, 60–69 2, 50–59 1, ต่ำกว่า 50 0",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "เกรด 1 บรรทัด",
+    "starter_code": "",
+    "solution": "s = int(input())\nif s >= 80:\n    print(4)\nelif s >= 70:\n    print(3)\nelif s >= 60:\n    print(2)\nelif s >= 50:\n    print(1)\nelse:\n    print(0)\n",
+    "hints": [
+      "มีกี่ช่วงคะแนน",
+      "ตรวจจากช่วงสูงไปต่ำ ใช้ elif",
+      "เมื่อเงื่อนไขแรกที่จริงทำงานแล้ว ข้อที่เหลือจะไม่ถูกตรวจ",
+      "if s >= 80:\n    print(4)\nelif s >= 70:"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "85\n",
+        "expected_output": "4\n",
+        "visible": true
+      },
+      {
+        "input": "80\n",
+        "expected_output": "4\n",
+        "visible": false
+      },
+      {
+        "input": "79\n",
+        "expected_output": "3\n",
+        "visible": false
+      },
+      {
+        "input": "65\n",
+        "expected_output": "2\n",
+        "visible": false
+      },
+      {
+        "input": "50\n",
+        "expected_output": "1\n",
+        "visible": false
+      },
+      {
+        "input": "12\n",
+        "expected_output": "0\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-05-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 5,
+    "title": "ค่าฝุ่น PM2.5 วันนี้",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "if-elif-else",
+    "description": "รับค่า PM2.5 (จำนวนเต็ม) แล้วแสดงระดับ: 0–15 ดีมาก, 16–25 ดี, 26–37 ปานกลาง, 38–75 เริ่มมีผลกระทบ, มากกว่า 75 มีผลกระทบต่อสุขภาพ",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "ระดับคุณภาพอากาศ",
+    "starter_code": "",
+    "solution": "v = int(input())\nif v <= 15:\n    print(\"ดีมาก\")\nelif v <= 25:\n    print(\"ดี\")\nelif v <= 37:\n    print(\"ปานกลาง\")\nelif v <= 75:\n    print(\"เริ่มมีผลกระทบ\")\nelse:\n    print(\"มีผลกระทบต่อสุขภาพ\")\n",
+    "hints": [
+      "เรียงช่วงจากค่าน้อยไปมาก",
+      "ใช้ <= กับขอบบนของแต่ละช่วง",
+      "ช่วงสุดท้ายใช้ else",
+      "if v <= 15:\n    print(\"ดีมาก\")\nelif v <= 25:"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "10\n",
+        "expected_output": "ดีมาก\n",
+        "visible": true
+      },
+      {
+        "input": "15\n",
+        "expected_output": "ดีมาก\n",
+        "visible": false
+      },
+      {
+        "input": "25\n",
+        "expected_output": "ดี\n",
+        "visible": false
+      },
+      {
+        "input": "30\n",
+        "expected_output": "ปานกลาง\n",
+        "visible": false
+      },
+      {
+        "input": "60\n",
+        "expected_output": "เริ่มมีผลกระทบ\n",
+        "visible": false
+      },
+      {
+        "input": "120\n",
+        "expected_output": "มีผลกระทบต่อสุขภาพ\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-05-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 5,
+    "title": "ค่าเข้าชมงานกาชาด",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "if-elif-else",
+    "description": "รับอายุ แล้วแสดงค่าเข้าชม: ต่ำกว่า 6 ปี ฟรี (0), 6–12 ปี 20 บาท, 13–59 ปี 40 บาท, 60 ปีขึ้นไป 20 บาท",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "a = int(input())\nif a < 6:\n    print(0)\nelif a <= 12:\n    print(20)\nelif a < 60:\n    print(40)\nelse:\n    print(20)\n",
+    "hints": [
+      "มีกี่กลุ่มอายุ",
+      "ตรวจกลุ่มอายุน้อยก่อน",
+      "ระวังค่าที่ขอบ เช่น 6 12 60",
+      "if a < 6:\n    print(0)"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "3\n",
+        "expected_output": "0\n",
+        "visible": true
+      },
+      {
+        "input": "6\n",
+        "expected_output": "20\n",
+        "visible": false
+      },
+      {
+        "input": "12\n",
+        "expected_output": "20\n",
+        "visible": false
+      },
+      {
+        "input": "13\n",
+        "expected_output": "40\n",
+        "visible": false
+      },
+      {
+        "input": "59\n",
+        "expected_output": "40\n",
+        "visible": false
+      },
+      {
+        "input": "60\n",
+        "expected_output": "20\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-05-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 5,
+    "title": "ส่วนลดสหกรณ์",
+    "level": "ท้าทาย",
+    "type": "code",
+    "concept": "if-elif-else, คำนวณ",
+    "description": "ยอดซื้อตั้งแต่ 500 ลด 15%, ตั้งแต่ 300 ลด 10%, ตั้งแต่ 100 ลด 5%, ต่ำกว่า 100 ไม่ลด รับยอดซื้อแล้วแสดงยอดสุทธิทศนิยม 2 ตำแหน่ง",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "ทศนิยม 2 ตำแหน่ง",
+    "starter_code": "",
+    "solution": "t = int(input())\nif t >= 500:\n    d = 0.15\nelif t >= 300:\n    d = 0.10\nelif t >= 100:\n    d = 0.05\nelse:\n    d = 0\nprint(f\"{t * (1 - d):.2f}\")\n",
+    "hints": [
+      "แต่ละช่วงลดกี่เปอร์เซ็นต์",
+      "ใช้ elif หาอัตราส่วนลดก่อน แล้วคำนวณครั้งเดียว",
+      "ยอดสุทธิ = t * (1 - d)",
+      "if t >= 500:\n    d = 0.15"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "600\n",
+        "expected_output": "510.00\n",
+        "visible": true
+      },
+      {
+        "input": "500\n",
+        "expected_output": "425.00\n",
+        "visible": false
+      },
+      {
+        "input": "350\n",
+        "expected_output": "315.00\n",
+        "visible": false
+      },
+      {
+        "input": "100\n",
+        "expected_output": "95.00\n",
+        "visible": false
+      },
+      {
+        "input": "99\n",
+        "expected_output": "99.00\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-05-5",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 5,
+    "title": "ชื่อวันในสัปดาห์",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "if-elif-else หลายทาง",
+    "description": "รับตัวเลข 1–7 แสดงชื่อวัน (1=จันทร์ ... 7=อาทิตย์) ถ้าเป็นเลขอื่นแสดง ไม่มีวันนี้",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "ชื่อวัน",
+    "starter_code": "",
+    "solution": "d = int(input())\nif d == 1:\n    print(\"จันทร์\")\nelif d == 2:\n    print(\"อังคาร\")\nelif d == 3:\n    print(\"พุธ\")\nelif d == 4:\n    print(\"พฤหัสบดี\")\nelif d == 5:\n    print(\"ศุกร์\")\nelif d == 6:\n    print(\"เสาร์\")\nelif d == 7:\n    print(\"อาทิตย์\")\nelse:\n    print(\"ไม่มีวันนี้\")\n",
+    "hints": [
+      "มีคำตอบได้กี่แบบ",
+      "ใช้ == เปรียบเทียบทีละค่า",
+      "กรณีอื่น ๆ ทั้งหมดใช้ else",
+      "if d == 1:\n    print(\"จันทร์\")\nelif d == 2:"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "1\n",
+        "expected_output": "จันทร์\n",
+        "visible": true
+      },
+      {
+        "input": "5\n",
+        "expected_output": "ศุกร์\n",
+        "visible": false
+      },
+      {
+        "input": "7\n",
+        "expected_output": "อาทิตย์\n",
+        "visible": false
+      },
+      {
+        "input": "0\n",
+        "expected_output": "ไม่มีวันนี้\n",
+        "visible": false
+      },
+      {
+        "input": "9\n",
+        "expected_output": "ไม่มีวันนี้\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-06-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 6,
+    "title": "นับ 1 ถึง n",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "for, range",
+    "description": "รับจำนวนเต็ม n แล้วแสดงตัวเลข 1 ถึง n บรรทัดละตัว",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "n บรรทัด",
+    "starter_code": "",
+    "solution": "n = int(input())\nfor i in range(1, n + 1):\n    print(i)\n",
+    "hints": [
+      "ต้องแสดงกี่ครั้ง",
+      "for i in range(...) ทำซ้ำตามจำนวนรอบ",
+      "range(1, n + 1) ได้ 1 ถึง n",
+      "for i in range(1, n + 1):\n    print(i)"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "5\n",
+        "expected_output": "1\n2\n3\n4\n5\n",
+        "visible": true
+      },
+      {
+        "input": "1\n",
+        "expected_output": "1\n",
+        "visible": false
+      },
+      {
+        "input": "3\n",
+        "expected_output": "1\n2\n3\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-06-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 6,
+    "title": "สูตรคูณ",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "for, f-string",
+    "description": "รับแม่สูตรคูณ n แล้วแสดง n x 1 = ... ถึง n x 12",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "12 บรรทัด รูปแบบ n x i = ผลคูณ",
+    "starter_code": "",
+    "solution": "n = int(input())\nfor i in range(1, 13):\n    print(n, \"x\", i, \"=\", n * i)\n",
+    "hints": [
+      "อะไรเปลี่ยนไปในแต่ละบรรทัด",
+      "ตัวคูณเปลี่ยนจาก 1 ถึง 12",
+      "range(1, 13)",
+      "print(n, \"x\", i, \"=\", n * i)"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "2\n",
+        "expected_output": "2 x 1 = 2\n2 x 2 = 4\n2 x 3 = 6\n2 x 4 = 8\n2 x 5 = 10\n2 x 6 = 12\n2 x 7 = 14\n2 x 8 = 16\n2 x 9 = 18\n2 x 10 = 20\n2 x 11 = 22\n2 x 12 = 24\n",
+        "visible": true
+      },
+      {
+        "input": "9\n",
+        "expected_output": "9 x 1 = 9\n9 x 2 = 18\n9 x 3 = 27\n9 x 4 = 36\n9 x 5 = 45\n9 x 6 = 54\n9 x 7 = 63\n9 x 8 = 72\n9 x 9 = 81\n9 x 10 = 90\n9 x 11 = 99\n9 x 12 = 108\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-06-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 6,
+    "title": "ผลรวม 1 ถึง n",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "for, ตัวแปรสะสม",
+    "description": "รับ n แล้วแสดงผลรวม 1 + 2 + ... + n",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "n = int(input())\ntotal = 0\nfor i in range(1, n + 1):\n    total = total + i\nprint(total)\n",
+    "hints": [
+      "ต้องจำผลรวมระหว่างทางไว้ที่ไหน",
+      "สร้างตัวแปร total = 0 ก่อนลูป",
+      "ในลูปให้ total = total + i และ print หลังจบลูป",
+      "total = 0\nfor i in range(1, n + 1):"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "10\n",
+        "expected_output": "55\n",
+        "visible": true
+      },
+      {
+        "input": "1\n",
+        "expected_output": "1\n",
+        "visible": false
+      },
+      {
+        "input": "100\n",
+        "expected_output": "5050\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-06-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 6,
+    "title": "ออมเงินวันละนิด",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "for, ตัวแปรสะสม",
+    "description": "วันแรกออม 5 บาท วันต่อไปออมเพิ่มขึ้นวันละ 5 บาท (5, 10, 15, ...) รับจำนวนวัน แล้วแสดงยอดเงินออมรวม",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "n = int(input())\ntotal = 0\nfor day in range(1, n + 1):\n    total = total + 5 * day\nprint(total)\n",
+    "hints": [
+      "วันที่ 3 ออมเท่าไร",
+      "วันที่ day ออม 5 * day บาท",
+      "สะสมด้วย total = total + 5 * day",
+      "for day in range(1, n + 1):"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "1\n",
+        "expected_output": "5\n",
+        "visible": true
+      },
+      {
+        "input": "3\n",
+        "expected_output": "30\n",
+        "visible": false
+      },
+      {
+        "input": "30\n",
+        "expected_output": "2325\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-06-5",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 6,
+    "title": "นับถอยหลังปล่อยจรวด",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "while",
+    "description": "รับ n แล้วแสดง n, n-1, ..., 1 บรรทัดละตัว แล้วแสดง ปล่อยจรวด!",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "n+1 บรรทัด",
+    "starter_code": "",
+    "solution": "n = int(input())\nwhile n > 0:\n    print(n)\n    n = n - 1\nprint(\"ปล่อยจรวด!\")\n",
+    "hints": [
+      "ลูปควรหยุดเมื่อไร",
+      "while n > 0: ทำงานจนกว่า n จะเป็น 0",
+      "อย่าลืมลดค่า n ในลูป ไม่เช่นนั้นลูปไม่สิ้นสุด",
+      "while n > 0:\n    print(n)\n    n = n - 1"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "3\n",
+        "expected_output": "3\n2\n1\nปล่อยจรวด!\n",
+        "visible": true
+      },
+      {
+        "input": "1\n",
+        "expected_output": "1\nปล่อยจรวด!\n",
+        "visible": false
+      },
+      {
+        "input": "5\n",
+        "expected_output": "5\n4\n3\n2\n1\nปล่อยจรวด!\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-06-6",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 6,
+    "title": "รวมยอดจนกว่าจะพิมพ์ 0",
+    "level": "ท้าทาย",
+    "type": "code",
+    "concept": "while, ค่าหยุด (sentinel)",
+    "description": "รับราคาสินค้าทีละบรรทัดจนกว่าจะพิมพ์ 0 แล้วแสดงยอดรวม",
+    "input_format": "จำนวนเต็มหลายบรรทัด จบด้วย 0",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "total = 0\nx = int(input())\nwhile x != 0:\n    total = total + x\n    x = int(input())\nprint(total)\n",
+    "hints": [
+      "เรารู้ล่วงหน้าไหมว่ามีกี่ค่า",
+      "ใช้ while ตรวจว่าค่าที่รับไม่ใช่ 0",
+      "รับค่าแรกก่อนลูป และรับค่าถัดไปท้ายลูป",
+      "x = int(input())\nwhile x != 0:"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "10\n20\n5\n0\n",
+        "expected_output": "35\n",
+        "visible": true
+      },
+      {
+        "input": "0\n",
+        "expected_output": "0\n",
+        "visible": false
+      },
+      {
+        "input": "7\n0\n",
+        "expected_output": "7\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-07-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 7,
+    "title": "เมนูในลิสต์",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "ลิสต์, for กับลิสต์",
+    "description": "สร้างลิสต์ menu = [\"ข้าวมันไก่\", \"ข้าวผัด\", \"ก๋วยเตี๋ยว\"] แล้วแสดงทีละบรรทัด",
+    "input_format": "ไม่มีข้อมูลนำเข้า",
+    "output_format": "3 บรรทัด",
+    "starter_code": "",
+    "solution": "menu = [\"ข้าวมันไก่\", \"ข้าวผัด\", \"ก๋วยเตี๋ยว\"]\nfor m in menu:\n    print(m)\n",
+    "hints": [
+      "ลิสต์เขียนด้วยวงเล็บแบบใด",
+      "ใช้ [ ] และคั่นสมาชิกด้วยจุลภาค",
+      "for m in menu: วนสมาชิกทีละตัว",
+      "for m in menu:\n    print(m)"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "",
+        "expected_output": "ข้าวมันไก่\nข้าวผัด\nก๋วยเตี๋ยว\n",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "id": "W207-07-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 7,
+    "title": "คนแรกและคนสุดท้าย",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "append, ดัชนี",
+    "description": "รับ n แล้วรับชื่อ n บรรทัดเก็บในลิสต์ แสดงชื่อคนแรกและคนสุดท้ายบรรทัดละชื่อ",
+    "input_format": "บรรทัดแรก n ตามด้วยชื่อ n บรรทัด",
+    "output_format": "2 บรรทัด",
+    "starter_code": "",
+    "solution": "n = int(input())\nnames = []\nfor i in range(n):\n    names.append(input())\nprint(names[0])\nprint(names[-1])\n",
+    "hints": [
+      "สมาชิกตัวแรกอยู่ดัชนีใด",
+      "ดัชนีเริ่มที่ 0 ตัวสุดท้ายใช้ -1",
+      "names.append(input()) เพิ่มชื่อเข้าลิสต์",
+      "print(names[0])\nprint(names[-1])"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "3\nมิว\nต้น\nฝน\n",
+        "expected_output": "มิว\nฝน\n",
+        "visible": true
+      },
+      {
+        "input": "1\nบีม\n",
+        "expected_output": "บีม\nบีม\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-07-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 7,
+    "title": "นับสินค้าในตะกร้า",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "append, len",
+    "description": "รับชื่อสินค้าทีละบรรทัดจนกว่าจะพิมพ์ จบ แล้วแสดง มีสินค้า <จำนวน> ชิ้น",
+    "input_format": "ข้อความหลายบรรทัด จบด้วย จบ",
+    "output_format": "มีสินค้า <n> ชิ้น",
+    "starter_code": "",
+    "solution": "cart = []\nitem = input()\nwhile item != \"จบ\":\n    cart.append(item)\n    item = input()\nprint(\"มีสินค้า\", len(cart), \"ชิ้น\")\n",
+    "hints": [
+      "นับจำนวนสมาชิกในลิสต์ใช้ฟังก์ชันใด",
+      "len(cart) ให้จำนวนสมาชิก",
+      "ใช้ while รับจนกว่าจะเจอคำว่า จบ",
+      "print(\"มีสินค้า\", len(cart), \"ชิ้น\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "นม\nขนมปัง\nน้ำ\nจบ\n",
+        "expected_output": "มีสินค้า 3 ชิ้น\n",
+        "visible": true
+      },
+      {
+        "input": "จบ\n",
+        "expected_output": "มีสินค้า 0 ชิ้น\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-07-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 7,
+    "title": "ค้นหาชื่อในรายชื่อ",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "in กับลิสต์",
+    "description": "รายชื่อสมาชิกชุมนุม = [\"มิว\", \"ต้น\", \"ฝน\", \"บีม\", \"เจได\"] รับชื่อ 1 บรรทัด ถ้ามีในรายชื่อแสดง เป็นสมาชิก ไม่เช่นนั้นแสดง ไม่พบชื่อ",
+    "input_format": "ข้อความ 1 บรรทัด",
+    "output_format": "เป็นสมาชิก หรือ ไม่พบชื่อ",
+    "starter_code": "",
+    "solution": "members = [\"มิว\", \"ต้น\", \"ฝน\", \"บีม\", \"เจได\"]\nname = input()\nif name in members:\n    print(\"เป็นสมาชิก\")\nelse:\n    print(\"ไม่พบชื่อ\")\n",
+    "hints": [
+      "ตรวจว่าค่าอยู่ในลิสต์หรือไม่ทำอย่างไร",
+      "ใช้คำสั่ง in",
+      "if name in members:",
+      "if name in members:\n    print(\"เป็นสมาชิก\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "ฝน\n",
+        "expected_output": "เป็นสมาชิก\n",
+        "visible": true
+      },
+      {
+        "input": "เจได\n",
+        "expected_output": "เป็นสมาชิก\n",
+        "visible": false
+      },
+      {
+        "input": "ปอ\n",
+        "expected_output": "ไม่พบชื่อ\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-07-5",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 7,
+    "title": "เรียงลำดับคิวใหม่",
+    "level": "ปานกลาง",
+    "type": "parsons",
+    "concept": "ลิสต์ วนจากท้าย (เรียงบรรทัด)",
+    "description": "เรียงบรรทัดให้เป็นโปรแกรมรับ n และชื่อ n บรรทัด แล้วแสดงชื่อจากคนสุดท้ายไปคนแรก",
+    "input_format": "บรรทัดแรก n ตามด้วยชื่อ n บรรทัด",
+    "output_format": "n บรรทัด",
+    "starter_code": "# เรียงบรรทัดต่อไปนี้ให้ถูกลำดับ แล้วลบเครื่องหมาย # หน้าบรรทัดออก (ระวังการย่อหน้า)\n# for i in range(n):\n# q.append(input())\n# n = int(input())\n# q = []\n# print(q[i])\n# for i in range(n - 1, -1, -1):\n",
+    "solution": "n = int(input())\nq = []\nfor i in range(n):\n    q.append(input())\nfor i in range(n - 1, -1, -1):\n    print(q[i])\n",
+    "hints": [
+      "ดัชนีของคนสุดท้ายคือเท่าไร",
+      "range(n - 1, -1, -1) นับถอยหลัง",
+      "ต้องรับชื่อให้ครบก่อนจึงแสดงย้อนกลับได้",
+      "for i in range(n - 1, -1, -1):"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "3\nA\nB\nC\n",
+        "expected_output": "C\nB\nA\n",
+        "visible": true
+      },
+      {
+        "input": "2\nมิว\nต้น\n",
+        "expected_output": "ต้น\nมิว\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-08-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 8,
+    "title": "ฟังก์ชันทักทาย",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "def, return",
+    "description": "เขียนฟังก์ชัน greet(name) ส่งกลับข้อความ สวัสดี <name> แล้วรับชื่อมาเรียกใช้และแสดงผล",
+    "input_format": "ข้อความ 1 บรรทัด",
+    "output_format": "สวัสดี <ชื่อ>",
+    "starter_code": "def greet(name):\n    # ส่งกลับข้อความทักทาย\n    pass\n\nprint(greet(input()))\n",
+    "solution": "def greet(name):\n    return \"สวัสดี \" + name\n\nprint(greet(input()))\n",
+    "hints": [
+      "ฟังก์ชันนิยามด้วยคำใด",
+      "def ชื่อ(พารามิเตอร์): แล้วใช้ return ส่งค่ากลับ",
+      "return \"สวัสดี \" + name มีช่องว่างหลังคำว่าสวัสดี",
+      "def greet(name):\n    return ..."
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "มิว\n",
+        "expected_output": "สวัสดี มิว\n",
+        "visible": true
+      },
+      {
+        "input": "ครูอัศวิน\n",
+        "expected_output": "สวัสดี ครูอัศวิน\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-08-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 8,
+    "title": "ฟังก์ชันพื้นที่",
+    "level": "ง่าย",
+    "type": "code",
+    "concept": "def หลายพารามิเตอร์",
+    "description": "เขียนฟังก์ชัน area(w, h) ส่งกลับพื้นที่ แล้วรับ w และ h (จำนวนเต็ม) มาแสดงพื้นที่",
+    "input_format": "จำนวนเต็ม 2 บรรทัด",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "def area(w, h):\n    return w * h\n\nw = int(input())\nh = int(input())\nprint(area(w, h))\n",
+    "hints": [
+      "ฟังก์ชันต้องรับข้อมูลกี่ค่า",
+      "def area(w, h):",
+      "return w * h",
+      "print(area(w, h))"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "3\n4\n",
+        "expected_output": "12\n",
+        "visible": true
+      },
+      {
+        "input": "10\n1\n",
+        "expected_output": "10\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-08-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 8,
+    "title": "ฟังก์ชันตัดเกรด",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "def + if-elif",
+    "description": "เขียนฟังก์ชัน grade(score) ส่งกลับเกรดตามเกณฑ์แผน 5 แล้วรับคะแนน n คน (บรรทัดแรก n) แสดงเกรดของแต่ละคน",
+    "input_format": "บรรทัดแรก n ตามด้วยคะแนน n บรรทัด",
+    "output_format": "n บรรทัด",
+    "starter_code": "",
+    "solution": "def grade(s):\n    if s >= 80:\n        return 4\n    elif s >= 70:\n        return 3\n    elif s >= 60:\n        return 2\n    elif s >= 50:\n        return 1\n    return 0\n\nn = int(input())\nfor i in range(n):\n    print(grade(int(input())))\n",
+    "hints": [
+      "ใช้โค้ดตัดเกรดซ้ำหลายคนได้อย่างไร",
+      "ย้ายโค้ดตัดเกรดไปไว้ในฟังก์ชัน แล้วใช้ return แทน print",
+      "เรียก grade() ในลูป for",
+      "def grade(s):\n    if s >= 80:\n        return 4"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "3\n85\n55\n20\n",
+        "expected_output": "4\n1\n0\n",
+        "visible": true
+      },
+      {
+        "input": "2\n70\n69\n",
+        "expected_output": "3\n2\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-08-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 8,
+    "title": "ภาษีมูลค่าเพิ่ม",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "def, float",
+    "description": "เขียนฟังก์ชัน with_vat(price) ส่งกลับราคารวม VAT 7% รับราคาแล้วแสดงทศนิยม 2 ตำแหน่ง",
+    "input_format": "ทศนิยม 1 บรรทัด",
+    "output_format": "ทศนิยม 2 ตำแหน่ง",
+    "starter_code": "",
+    "solution": "def with_vat(price):\n    return price * 1.07\n\np = float(input())\nprint(f\"{with_vat(p):.2f}\")\n",
+    "hints": [
+      "รวม VAT 7% คือกี่เท่าของราคาเดิม",
+      "price * 1.07",
+      "แสดงผลด้วย f\"{...:.2f}\"",
+      "def with_vat(price):\n    return price * 1.07"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "100\n",
+        "expected_output": "107.00\n",
+        "visible": true
+      },
+      {
+        "input": "59.5\n",
+        "expected_output": "63.67\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-08-5",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 8,
+    "title": "ฟังก์ชันตรวจเลขคู่",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "def คืนค่า True/False",
+    "description": "เขียนฟังก์ชัน is_even(n) ส่งกลับ True ถ้าเป็นเลขคู่ แล้วรับตัวเลข 1 ค่า แสดง คู่ หรือ คี่ โดยเรียกใช้ฟังก์ชัน",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "คู่ หรือ คี่",
+    "starter_code": "",
+    "solution": "def is_even(n):\n    return n % 2 == 0\n\nx = int(input())\nif is_even(x):\n    print(\"คู่\")\nelse:\n    print(\"คี่\")\n",
+    "hints": [
+      "ฟังก์ชันส่งค่าจริง/เท็จได้หรือไม่",
+      "return n % 2 == 0 ส่งกลับ True หรือ False",
+      "นำไปใช้ใน if is_even(x):",
+      "def is_even(n):\n    return n % 2 == 0"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "8\n",
+        "expected_output": "คู่\n",
+        "visible": true
+      },
+      {
+        "input": "3\n",
+        "expected_output": "คี่\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-09-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 9,
+    "title": "ยอดขายสหกรณ์รายสัปดาห์",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "ลิสต์, sum, ค่าเฉลี่ย",
+    "description": "รับ n แล้วรับยอดขาย n วัน แสดงยอดรวม และค่าเฉลี่ยต่อวันทศนิยม 2 ตำแหน่ง",
+    "input_format": "บรรทัดแรก n ตามด้วยจำนวนเต็ม n บรรทัด",
+    "output_format": "บรรทัดแรก รวม <ค่า> บรรทัดสอง เฉลี่ย <ค่า>",
+    "starter_code": "",
+    "solution": "n = int(input())\nsales = []\nfor i in range(n):\n    sales.append(int(input()))\ntotal = sum(sales)\nprint(\"รวม\", total)\nprint(\"เฉลี่ย\", f\"{total / n:.2f}\")\n",
+    "hints": [
+      "ต้องเก็บยอดขายทุกวันไว้ที่ไหน",
+      "เก็บลงลิสต์ แล้วใช้ sum()",
+      "ค่าเฉลี่ย = ผลรวม / จำนวนวัน",
+      "print(\"เฉลี่ย\", f\"{total / n:.2f}\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "5\n120\n80\n150\n90\n110\n",
+        "expected_output": "รวม 550\nเฉลี่ย 110.00\n",
+        "visible": true
+      },
+      {
+        "input": "1\n50\n",
+        "expected_output": "รวม 50\nเฉลี่ย 50.00\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-09-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 9,
+    "title": "คะแนนสูงสุด-ต่ำสุด",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "max, min",
+    "description": "รับ n แล้วรับคะแนน n คน แสดงคะแนนสูงสุดและต่ำสุด",
+    "input_format": "บรรทัดแรก n ตามด้วยคะแนน n บรรทัด",
+    "output_format": "สูงสุด <ค่า> แล้ว ต่ำสุด <ค่า>",
+    "starter_code": "",
+    "solution": "n = int(input())\nsc = []\nfor i in range(n):\n    sc.append(int(input()))\nprint(\"สูงสุด\", max(sc))\nprint(\"ต่ำสุด\", min(sc))\n",
+    "hints": [
+      "มีฟังก์ชันสำเร็จรูปหาค่ามากสุดไหม",
+      "max(ลิสต์) และ min(ลิสต์)",
+      "เก็บคะแนนลงลิสต์ก่อน",
+      "print(\"สูงสุด\", max(sc))"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "4\n15\n18\n9\n20\n",
+        "expected_output": "สูงสุด 20\nต่ำสุด 9\n",
+        "visible": true
+      },
+      {
+        "input": "1\n7\n",
+        "expected_output": "สูงสุด 7\nต่ำสุด 7\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-09-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 9,
+    "title": "นับคนผ่านเกณฑ์",
+    "level": "ปานกลาง",
+    "type": "code",
+    "concept": "for + if นับ",
+    "description": "รับ n และคะแนน n คน นับจำนวนคนที่ได้ 50 ขึ้นไป แสดง ผ่าน <จำนวน> คน",
+    "input_format": "บรรทัดแรก n ตามด้วยคะแนน n บรรทัด",
+    "output_format": "ผ่าน <n> คน",
+    "starter_code": "",
+    "solution": "n = int(input())\ncount = 0\nfor i in range(n):\n    s = int(input())\n    if s >= 50:\n        count = count + 1\nprint(\"ผ่าน\", count, \"คน\")\n",
+    "hints": [
+      "ต้องมีตัวแปรอะไรไว้นับ",
+      "count = 0 ก่อนลูป",
+      "ถ้าผ่าน ให้ count = count + 1",
+      "if s >= 50:\n    count = count + 1"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "5\n70\n45\n50\n90\n10\n",
+        "expected_output": "ผ่าน 3 คน\n",
+        "visible": true
+      },
+      {
+        "input": "2\n0\n49\n",
+        "expected_output": "ผ่าน 0 คน\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-09-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 9,
+    "title": "สรุปขยะคัดแยก",
+    "level": "ท้าทาย",
+    "type": "code",
+    "concept": "นับตามประเภท",
+    "description": "รับ n แล้วรับประเภทขยะ n บรรทัด (พลาสติก กระดาษ ขวด หรืออื่นๆ) แสดงจำนวนแต่ละประเภทตามลำดับ พลาสติก กระดาษ ขวด อื่นๆ",
+    "input_format": "บรรทัดแรก n ตามด้วยข้อความ n บรรทัด",
+    "output_format": "4 บรรทัด รูปแบบ <ประเภท> <จำนวน>",
+    "starter_code": "",
+    "solution": "n = int(input())\nkinds = [\"พลาสติก\", \"กระดาษ\", \"ขวด\", \"อื่นๆ\"]\ncounts = [0, 0, 0, 0]\nfor i in range(n):\n    k = input()\n    if k in kinds:\n        counts[kinds.index(k)] += 1\n    else:\n        counts[3] += 1\nfor i in range(4):\n    print(kinds[i], counts[i])\n",
+    "hints": [
+      "ต้องมีตัวนับกี่ตัว",
+      "ใช้ลิสต์ counts 4 ช่องคู่กับลิสต์ kinds",
+      "kinds.index(k) บอกตำแหน่งของประเภท ประเภทที่ไม่รู้จักนับเป็นอื่นๆ",
+      "counts[kinds.index(k)] += 1"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "6\nพลาสติก\nขวด\nพลาสติก\nกระดาษ\nเศษอาหาร\nพลาสติก\n",
+        "expected_output": "พลาสติก 3\nกระดาษ 1\nขวด 1\nอื่นๆ 1\n",
+        "visible": true
+      },
+      {
+        "input": "1\nขวด\n",
+        "expected_output": "พลาสติก 0\nกระดาษ 0\nขวด 1\nอื่นๆ 0\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-09-5",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 9,
+    "title": "สินค้าขายดีที่สุด",
+    "level": "ท้าทาย",
+    "type": "code",
+    "concept": "ลิสต์คู่ขนาน, ค้นหาค่ามากสุด",
+    "description": "รับ n แล้วรับข้อมูล n ชุด ชุดละ 2 บรรทัด คือชื่อสินค้าและจำนวนที่ขาย แสดงชื่อสินค้าที่ขายได้มากที่สุด (ถ้าเท่ากันให้ตัวที่มาก่อน)",
+    "input_format": "บรรทัดแรก n ตามด้วย ชื่อ/จำนวน สลับกัน",
+    "output_format": "ชื่อสินค้า 1 บรรทัด",
+    "starter_code": "",
+    "solution": "n = int(input())\nnames = []\nqty = []\nfor i in range(n):\n    names.append(input())\n    qty.append(int(input()))\nbest = 0\nfor i in range(1, n):\n    if qty[i] > qty[best]:\n        best = i\nprint(names[best])\n",
+    "hints": [
+      "ต้องจำอะไรระหว่างการวนหา",
+      "จำตำแหน่ง (ดัชนี) ของสินค้าที่ขายมากสุดไว้ในตัวแปร best",
+      "ถ้า qty[i] > qty[best] ให้ best = i",
+      "best = 0\nfor i in range(1, n):"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "3\nนม\n12\nขนมปัง\n20\nน้ำ\n15\n",
+        "expected_output": "ขนมปัง\n",
+        "visible": true
+      },
+      {
+        "input": "2\nA\n5\nB\n5\n",
+        "expected_output": "A\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-MID-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 0,
+    "title": "ค่าจอดรถจักรยานยนต์",
+    "level": "สอบ",
+    "type": "code",
+    "concept": "if-else",
+    "description": "จอดไม่เกิน 2 ชั่วโมงฟรี เกินจากนั้นชั่วโมงละ 10 บาท รับจำนวนชั่วโมง (จำนวนเต็ม) แสดงค่าจอด",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "h = int(input())\nif h <= 2:\n    print(0)\nelse:\n    print((h - 2) * 10)\n",
+    "hints": [],
+    "hints_enabled": false,
+    "test_cases": [
+      {
+        "input": "1\n",
+        "expected_output": "0\n",
+        "visible": true
+      },
+      {
+        "input": "2\n",
+        "expected_output": "0\n",
+        "visible": false
+      },
+      {
+        "input": "3\n",
+        "expected_output": "10\n",
+        "visible": false
+      },
+      {
+        "input": "8\n",
+        "expected_output": "60\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-MID-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 0,
+    "title": "สูตรคูณย้อนกลับ",
+    "level": "สอบ",
+    "type": "code",
+    "concept": "for",
+    "description": "รับ n แสดง n x 12 ลงไปถึง n x 1",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "12 บรรทัด",
+    "starter_code": "",
+    "solution": "n = int(input())\nfor i in range(12, 0, -1):\n    print(n, \"x\", i, \"=\", n * i)\n",
+    "hints": [],
+    "hints_enabled": false,
+    "test_cases": [
+      {
+        "input": "3\n",
+        "expected_output": "3 x 12 = 36\n3 x 11 = 33\n3 x 10 = 30\n3 x 9 = 27\n3 x 8 = 24\n3 x 7 = 21\n3 x 6 = 18\n3 x 5 = 15\n3 x 4 = 12\n3 x 3 = 9\n3 x 2 = 6\n3 x 1 = 3\n",
+        "visible": true
+      },
+      {
+        "input": "7\n",
+        "expected_output": "7 x 12 = 84\n7 x 11 = 77\n7 x 10 = 70\n7 x 9 = 63\n7 x 8 = 56\n7 x 7 = 49\n7 x 6 = 42\n7 x 5 = 35\n7 x 4 = 28\n7 x 3 = 21\n7 x 2 = 14\n7 x 1 = 7\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-MID-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 0,
+    "title": "ค่าเฉลี่ยคะแนนเก็บ",
+    "level": "สอบ",
+    "type": "code",
+    "concept": "ลิสต์, sum",
+    "description": "รับ n และคะแนน n ค่า แสดงค่าเฉลี่ยทศนิยม 2 ตำแหน่ง และจำนวนคนที่ได้มากกว่าค่าเฉลี่ย",
+    "input_format": "บรรทัดแรก n ตามด้วยคะแนน n บรรทัด",
+    "output_format": "2 บรรทัด",
+    "starter_code": "",
+    "solution": "n = int(input())\nsc = [int(input()) for i in range(n)]\navg = sum(sc) / n\nprint(f\"{avg:.2f}\")\nc = 0\nfor s in sc:\n    if s > avg:\n        c += 1\nprint(c)\n",
+    "hints": [],
+    "hints_enabled": false,
+    "test_cases": [
+      {
+        "input": "4\n10\n20\n30\n40\n",
+        "expected_output": "25.00\n2\n",
+        "visible": true
+      },
+      {
+        "input": "3\n5\n5\n5\n",
+        "expected_output": "5.00\n0\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-MID-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 0,
+    "title": "ฟังก์ชันค่าน้ำประปา",
+    "level": "สอบ",
+    "type": "code",
+    "concept": "def + if-elif",
+    "description": "เขียนฟังก์ชัน water(u) คิดค่าน้ำ: 1–10 หน่วยแรก หน่วยละ 10 บาท หน่วยที่ 11–20 หน่วยละ 15 บาท หน่วยที่เกิน 20 หน่วยละ 20 บาท รับจำนวนหน่วยแล้วแสดงค่าน้ำ",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "def water(u):\n    if u <= 10:\n        return u * 10\n    elif u <= 20:\n        return 100 + (u - 10) * 15\n    else:\n        return 250 + (u - 20) * 20\n\nprint(water(int(input())))\n",
+    "hints": [],
+    "hints_enabled": false,
+    "test_cases": [
+      {
+        "input": "5\n",
+        "expected_output": "50\n",
+        "visible": true
+      },
+      {
+        "input": "10\n",
+        "expected_output": "100\n",
+        "visible": false
+      },
+      {
+        "input": "15\n",
+        "expected_output": "175\n",
+        "visible": false
+      },
+      {
+        "input": "20\n",
+        "expected_output": "250\n",
+        "visible": false
+      },
+      {
+        "input": "25\n",
+        "expected_output": "350\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-CH-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 15,
+    "title": "ตะกร้าสินค้า",
+    "level": "ท้าทาย",
+    "type": "code",
+    "concept": "ลิสต์ + ราคา",
+    "description": "เมนู: น้ำ 7, ขนมปัง 10, นม 12 (บาท) รับชื่อสินค้าทีละบรรทัดจนพิมพ์ จบ แสดงยอดรวม ถ้าพิมพ์ชื่อที่ไม่มีในเมนูให้ข้าม",
+    "input_format": "ข้อความหลายบรรทัด จบด้วย จบ",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "menu = [\"น้ำ\", \"ขนมปัง\", \"นม\"]\nprice = [7, 10, 12]\ntotal = 0\nx = input()\nwhile x != \"จบ\":\n    if x in menu:\n        total += price[menu.index(x)]\n    x = input()\nprint(total)\n",
+    "hints": [
+      "ราคาของแต่ละสินค้าเก็บอย่างไร",
+      "ใช้ลิสต์คู่ขนาน menu กับ price",
+      "menu.index(x) หาตำแหน่ง แล้วนำไปเปิด price",
+      "total += price[menu.index(x)]"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "น้ำ\nนม\nนม\nจบ\n",
+        "expected_output": "31\n",
+        "visible": true
+      },
+      {
+        "input": "ชา\nขนมปัง\nจบ\n",
+        "expected_output": "10\n",
+        "visible": false
+      },
+      {
+        "input": "จบ\n",
+        "expected_output": "0\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-CH-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 15,
+    "title": "สรุปการเช็คชื่อ",
+    "level": "ท้าทาย",
+    "type": "code",
+    "concept": "นับตามสถานะ",
+    "description": "รับ n แล้วรับสถานะ n บรรทัด (ม = มา, ส = สาย, ข = ขาด) แสดง มา x สาย y ขาด z และร้อยละการมาเรียน (มา+สาย) ทศนิยม 1 ตำแหน่ง",
+    "input_format": "บรรทัดแรก n ตามด้วยสถานะ n บรรทัด",
+    "output_format": "2 บรรทัด",
+    "starter_code": "",
+    "solution": "n = int(input())\nm = s = k = 0\nfor i in range(n):\n    x = input()\n    if x == \"ม\":\n        m += 1\n    elif x == \"ส\":\n        s += 1\n    else:\n        k += 1\nprint(\"มา\", m, \"สาย\", s, \"ขาด\", k)\nprint(f\"{(m + s) * 100 / n:.1f}\")\n",
+    "hints": [
+      "ต้องมีตัวนับกี่ตัว",
+      "ใช้ if-elif แยกสถานะแล้วเพิ่มตัวนับ",
+      "ร้อยละ = (มา + สาย) × 100 / n",
+      "print(f\"{(m + s) * 100 / n:.1f}\")"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "5\nม\nม\nส\nข\nม\n",
+        "expected_output": "มา 3 สาย 1 ขาด 1\n80.0\n",
+        "visible": true
+      },
+      {
+        "input": "2\nข\nข\n",
+        "expected_output": "มา 0 สาย 0 ขาด 2\n0.0\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-CH-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 16,
+    "title": "ระบบยืม-คืนลูกบอล",
+    "level": "ท้าทาย",
+    "type": "code",
+    "concept": "append, remove",
+    "description": "เริ่มต้นไม่มีใครยืม รับคำสั่งทีละบรรทัดจนพิมพ์ จบ: ยืม <ชื่อ> ให้เพิ่มชื่อ, คืน <ชื่อ> ให้ลบชื่อ (ถ้ามี) แล้วแสดงจำนวนคนที่ยังไม่คืน",
+    "input_format": "คำสั่งหลายบรรทัด จบด้วย จบ",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "borrow = []\nx = input()\nwhile x != \"จบ\":\n    cmd, name = x.split()\n    if cmd == \"ยืม\":\n        borrow.append(name)\n    elif cmd == \"คืน\" and name in borrow:\n        borrow.remove(name)\n    x = input()\nprint(len(borrow))\n",
+    "hints": [
+      "คำสั่งหนึ่งบรรทัดมีกี่ส่วน",
+      "x.split() แยกเป็นคำสั่งกับชื่อ",
+      "ใช้ append และ remove กับลิสต์",
+      "cmd, name = x.split()"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "ยืม มิว\nยืม ต้น\nคืน มิว\nจบ\n",
+        "expected_output": "1\n",
+        "visible": true
+      },
+      {
+        "input": "คืน บีม\nยืม ฝน\nจบ\n",
+        "expected_output": "1\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-CH-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 16,
+    "title": "เกรดเฉลี่ยถ่วงหน่วยกิต",
+    "level": "ท้าทาย",
+    "type": "code",
+    "concept": "ลิสต์ + คำนวณ",
+    "description": "รับ n แล้วรับข้อมูล n วิชา วิชาละ 2 บรรทัด: หน่วยกิต (ทศนิยม) และเกรด (ทศนิยม) แสดง GPA ทศนิยม 2 ตำแหน่ง",
+    "input_format": "บรรทัดแรก n ตามด้วย หน่วยกิต/เกรด สลับกัน",
+    "output_format": "ทศนิยม 2 ตำแหน่ง",
+    "starter_code": "",
+    "solution": "n = int(input())\nsum_cg = 0\nsum_c = 0\nfor i in range(n):\n    c = float(input())\n    g = float(input())\n    sum_cg += c * g\n    sum_c += c\nprint(f\"{sum_cg / sum_c:.2f}\")\n",
+    "hints": [
+      "GPA ไม่ใช่ค่าเฉลี่ยธรรมดา ต่างกันอย่างไร",
+      "ผลรวม(หน่วยกิต × เกรด) / ผลรวมหน่วยกิต",
+      "สะสมสองตัวแปรในลูป",
+      "sum_cg += c * g\nsum_c += c"
+    ],
+    "hints_enabled": true,
+    "test_cases": [
+      {
+        "input": "3\n1.5\n4\n1.0\n3\n0.5\n2\n",
+        "expected_output": "3.33\n",
+        "visible": true
+      },
+      {
+        "input": "1\n1\n3.5\n",
+        "expected_output": "3.50\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-FIN-1",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 0,
+    "title": "ระดับน้ำในคลอง",
+    "level": "สอบ",
+    "type": "code",
+    "concept": "if-elif-else",
+    "description": "รับระดับน้ำ (เซนติเมตร) แสดง ปกติ (ต่ำกว่า 150) เฝ้าระวัง (150–199) อันตราย (200 ขึ้นไป)",
+    "input_format": "จำนวนเต็ม 1 บรรทัด",
+    "output_format": "ข้อความ",
+    "starter_code": "",
+    "solution": "v = int(input())\nif v < 150:\n    print(\"ปกติ\")\nelif v < 200:\n    print(\"เฝ้าระวัง\")\nelse:\n    print(\"อันตราย\")\n",
+    "hints": [],
+    "hints_enabled": false,
+    "test_cases": [
+      {
+        "input": "120\n",
+        "expected_output": "ปกติ\n",
+        "visible": true
+      },
+      {
+        "input": "150\n",
+        "expected_output": "เฝ้าระวัง\n",
+        "visible": false
+      },
+      {
+        "input": "199\n",
+        "expected_output": "เฝ้าระวัง\n",
+        "visible": false
+      },
+      {
+        "input": "200\n",
+        "expected_output": "อันตราย\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-FIN-2",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 0,
+    "title": "โหวตเมนูอาหารกลางวัน",
+    "level": "สอบ",
+    "type": "code",
+    "concept": "นับตามตัวเลือก",
+    "description": "รับ n แล้วรับเลขเมนูที่โหวต n บรรทัด (1, 2 หรือ 3) แสดงเลขเมนูที่ได้คะแนนมากที่สุด (ถ้าเท่ากันให้เลขน้อยกว่า)",
+    "input_format": "บรรทัดแรก n ตามด้วยตัวเลข n บรรทัด",
+    "output_format": "ตัวเลข 1 บรรทัด",
+    "starter_code": "",
+    "solution": "n = int(input())\nv = [0, 0, 0]\nfor i in range(n):\n    v[int(input()) - 1] += 1\nbest = 0\nfor i in range(3):\n    if v[i] > v[best]:\n        best = i\nprint(best + 1)\n",
+    "hints": [],
+    "hints_enabled": false,
+    "test_cases": [
+      {
+        "input": "5\n2\n3\n2\n1\n2\n",
+        "expected_output": "2\n",
+        "visible": true
+      },
+      {
+        "input": "2\n3\n1\n",
+        "expected_output": "1\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-FIN-3",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 0,
+    "title": "ฟังก์ชันคะแนนความพึงพอใจ",
+    "level": "สอบ",
+    "type": "code",
+    "concept": "def + ลิสต์",
+    "description": "เขียนฟังก์ชัน summary(scores) ส่งกลับค่าเฉลี่ย รับ n และคะแนนความพึงพอใจ n ค่า (1–5) แสดงค่าเฉลี่ยทศนิยม 2 ตำแหน่ง และแสดง ควรปรับปรุง ถ้าค่าเฉลี่ยต่ำกว่า 3.50 ไม่เช่นนั้นแสดง พร้อมใช้งาน",
+    "input_format": "บรรทัดแรก n ตามด้วยคะแนน n บรรทัด",
+    "output_format": "2 บรรทัด",
+    "starter_code": "",
+    "solution": "def summary(scores):\n    return sum(scores) / len(scores)\n\nn = int(input())\nsc = [int(input()) for i in range(n)]\na = summary(sc)\nprint(f\"{a:.2f}\")\nif a < 3.5:\n    print(\"ควรปรับปรุง\")\nelse:\n    print(\"พร้อมใช้งาน\")\n",
+    "hints": [],
+    "hints_enabled": false,
+    "test_cases": [
+      {
+        "input": "4\n5\n4\n3\n4\n",
+        "expected_output": "4.00\nพร้อมใช้งาน\n",
+        "visible": true
+      },
+      {
+        "input": "3\n3\n3\n4\n",
+        "expected_output": "3.33\nควรปรับปรุง\n",
+        "visible": false
+      }
+    ]
+  },
+  {
+    "id": "W207-FIN-4",
+    "course": "ว23207",
+    "language": "python",
+    "plan": 0,
+    "title": "สต็อกสินค้าสหกรณ์",
+    "level": "สอบ",
+    "type": "code",
+    "concept": "ลิสต์ + while + เงื่อนไข",
+    "description": "สต็อกเริ่มต้นรับจากบรรทัดแรก รับรายการทีละบรรทัดจนพิมพ์ 0: จำนวนบวกคือรับสินค้าเข้า จำนวนลบคือขายออก ถ้าขายมากกว่าที่มีให้ข้ามรายการนั้น แสดงสต็อกคงเหลือ",
+    "input_format": "จำนวนเต็มหลายบรรทัด จบด้วย 0",
+    "output_format": "จำนวนเต็ม",
+    "starter_code": "",
+    "solution": "stock = int(input())\nx = int(input())\nwhile x != 0:\n    if stock + x >= 0:\n        stock += x\n    x = int(input())\nprint(stock)\n",
+    "hints": [],
+    "hints_enabled": false,
+    "test_cases": [
+      {
+        "input": "10\n-3\n5\n-20\n-2\n0\n",
+        "expected_output": "10\n",
+        "visible": true
+      },
+      {
+        "input": "0\n-1\n0\n",
+        "expected_output": "0\n",
+        "visible": false
+      }
+    ]
+  }
+]
