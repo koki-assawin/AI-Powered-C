@@ -102,6 +102,8 @@ const renderRoute = (route, role) => {
             return guard(React.createElement(PollPresent));
         if (route.startsWith('#/teacher/poll'))
             return guard(React.createElement(PollControl));
+        if (route.startsWith('#/teacher/studio/templates'))   // APCC Studio v6 (lazy)
+            return guard(React.createElement(StudioPage, { name: 'TemplateManager' }));
 
         return guard(React.createElement(TeacherDashboard));
     }

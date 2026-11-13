@@ -318,5 +318,28 @@ service cloud.firestore {
         );
       }
     }
+
+    // ══ APCC Studio v6.0 — บล็อกใหม่ทั้งหมด (ไม่แก้กฎเดิมด้านบน) ══════════════════
+
+    // Studio templates — คลังชุดโจทย์ (มีเฉลย) อ่านได้เฉพาะครู/แอดมิน; เจ้าของหรือแอดมินแก้/ลบได้
+    match /studio_templates/{templateId} {
+      allow read, create: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      allow update, delete: if request.auth != null && (
+        resource.data.get('ownerId', '') == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // Studio events — log ของ Studio แยกจาก usageEvents; สร้างได้เฉพาะของตนเอง อ่านได้เฉพาะครู/แอดมิน ไม่มีการแก้/ลบ
+    match /studio_events/{eventId} {
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow read: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
   }
 }

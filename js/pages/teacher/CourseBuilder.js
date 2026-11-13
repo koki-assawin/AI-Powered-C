@@ -719,6 +719,10 @@ const CourseBuilder = () => {
                                     {saving ? 'กำลังบันทึก...' : selectedCourse ? '💾 บันทึกการเปลี่ยนแปลง' : '✨ สร้างรายวิชา'}
                                 </button>
                             </form>
+                            {selectedCourse && typeof StudioCoursePanel === 'function' && (   /* APCC Studio v6 */
+                                <StudioCoursePanel key={selectedCourse.id} course={selectedCourse}
+                                    onSaved={studio => { setSelectedCourse(c => ({ ...c, studio })); setCourses(cs => cs.map(c => c.id === selectedCourse.id ? { ...c, studio } : c)); }} />
+                            )}
                         </div>
                     </div>
                 )}
