@@ -152,6 +152,7 @@ const Navbar = ({ title, subtitle }) => {
                 { hash: '#/teacher/courses',  label: 'จัดการรายวิชา',  icon: '📚' },
                 { hash: '#/teacher/content',  label: 'จัดการเนื้อหา',  icon: '📖' },
                 { hash: '#/teacher/studio/templates', label: 'APCC Studio ชุดโจทย์', icon: '🎨' },
+                { hash: '#/teacher/studio/gates', label: 'APCC Studio ด่านทักษะ', icon: '🎯' },
                 { hash: '#/teacher/students', label: 'จัดการนักเรียน', icon: '👥' },
             ],
         },

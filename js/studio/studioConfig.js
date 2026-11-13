@@ -89,10 +89,17 @@ const buildStudioConfig = (templateId, features) => {
 const logStudioEvent = (type, courseId, data = {}) => {
     const uid = (typeof auth !== 'undefined' && auth.currentUser) ? auth.currentUser.uid : null;
     if (!uid) return Promise.resolve(null);
-    return db.collection('studio_events').add({
-        type, courseId: courseId || null, uid, ...data,
-        createdAt: serverTimestamp(), updatedAt: serverTimestamp(), schemaVersion: 1,
-    }).catch(err => { console.warn('[studio] log failed', type, err.message); return null; });
+    // Firestore ไม่รับค่า undefined และ add() จะ throw ทันที (ก่อนถึง .catch) — ตัดทิ้งก่อน และไม่ให้ error หลุดไปถึงผู้เรียก
+    const clean = Object.fromEntries(Object.entries(data || {}).filter(([, v]) => v !== undefined));
+    try {
+        return db.collection('studio_events').add({
+            type, courseId: courseId || null, uid, ...clean,
+            createdAt: serverTimestamp(), updatedAt: serverTimestamp(), schemaVersion: 1,
+        }).catch(err => { console.warn('[studio] log failed', type, err.message); return null; });
+    } catch (err) {
+        console.warn('[studio] log failed', type, err.message);
+        return Promise.resolve(null);
+    }
 };
 
 // ── Hint Ladder (Phase 2) — หลักการ P, A₁ ────────────────────────────────────
@@ -125,6 +132,13 @@ const studioLadderHint = (course, assignment, level, uid) => {
 const studioUsesParsons = (course, assignment) =>
     hasFeature(course, 'parsons') && !!assignment && assignment.studioType === 'parsons'
     && !!(assignment.parsons && Array.isArray(assignment.parsons.lines) && assignment.parsons.lines.length);
+
+// Explain-Back (Phase 3): ถามหลังผ่านโจทย์ฝึกที่ "สำคัญ" ครบทุก test case
+// สำคัญ = ครูตั้ง assignment.explainBack === true หรือ (ไม่ได้ปิดไว้ และความยากไม่ใช่ "ง่าย")
+const studioWantsExplainBack = (course, assignment, gradeResult) =>
+    hasFeature(course, 'explainBack') && !!assignment && assignment.assignmentType !== 'exam'
+    && !!gradeResult && gradeResult.score === 100
+    && (assignment.explainBack === true || (assignment.explainBack !== false && assignment.difficulty !== 'ง่าย'));
 
 // ── ส่วน "เปิดใช้ APCC Studio" ในหน้าแก้ไขรายวิชา (CourseBuilder) ─────────────
 const StudioCoursePanel = ({ course, onSaved }) => {
@@ -197,6 +211,11 @@ const StudioCoursePanel = ({ course, onSaved }) => {
                         📦 นำเข้า/ส่งออกชุดโจทย์
                     </a>
                 )}
+                {isStudio(course) && (
+                    <a href={`#/teacher/studio/gates?course=${course.id}`} className="text-sm underline" style={{ color: '#5E35B1' }}>
+                        🎯 ด่านทักษะ & Explain-Back
+                    </a>
+                )}
                 {msg && <span className="text-xs">{msg}</span>}
             </div>
         </div>
@@ -210,3 +229,4 @@ window.logStudioEvent = logStudioEvent;
 window.StudioCoursePanel = StudioCoursePanel;
 window.studioLadderHint = studioLadderHint;
 window.studioUsesParsons = studioUsesParsons;
+window.studioWantsExplainBack = studioWantsExplainBack;

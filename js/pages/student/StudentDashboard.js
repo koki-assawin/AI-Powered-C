@@ -184,6 +184,10 @@ const StudentDashboard = () => {
                     <p style={{ color: '#C2185B', fontSize: '14px' }}>พร้อมเรียนรู้การเขียนโปรแกรมวันนี้แล้วหรือยัง?</p>
                 </div>
 
+                {typeof isStudio === 'function' && courses.some(c => hasFeature(c, 'skillGate')) && (   /* APCC Studio v6: ฝึก–สร้าง–แบ่งปัน */
+                    <StudioPage name="StudioStageStrip" courses={courses} userId={userDoc?.id} />
+                )}
+
                 {/* XP / Rank Card (shows even while loading other data) */}
                 {typeof XPBar !== 'undefined' && (
                     <div className="mb-6">

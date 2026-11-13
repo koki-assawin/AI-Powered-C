@@ -1516,6 +1516,11 @@ const CodingWorkspace = () => {
                                                 </div>
                                             ))}
 
+                                            {typeof studioWantsExplainBack === 'function' && studioWantsExplainBack(course, currentAssignment, gradeResult) && (   /* APCC Studio v6 */
+                                                <StudioPage name="ExplainBack" key={currentAssignment.id} course={course} assignment={currentAssignment}
+                                                    userId={userDoc?.id} code={submittedCodeRef.current || code} />
+                                            )}
+
                                             {/* AI Scaffolding Hints — practice mode only, show when failed */}
                                             {!isExamMode && gradeResult.status !== 'accepted' && (
                                                 <div className="mt-4" style={{ borderTop: '1px solid #fce7f3', paddingTop: '16px' }}>

@@ -51,7 +51,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
         executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true, protocolTimeout: 900000,
         userDataDir: path.join(SCR, 'chrome-profile-2'), args: ['--no-first-run'], defaultViewport: { width: 1400, height: 950 },
     });
-    const page = await browser.newPage();
+    const page = await (await browser.createBrowserContext()).newPage();   // หน้าต่างแบบไม่ระบุตัวตน ไม่จำการล็อกอินรอบก่อน
     const errors = [];
     page.on('pageerror', e => errors.push('pageerror: ' + e.message));
     page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });

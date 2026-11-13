@@ -40,7 +40,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
     const browser = await puppeteer.launch({
         executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true, protocolTimeout: 900000,
-        userDataDir: path.join(SCR, 'chrome-profile'), args: ['--no-first-run', '--window-size=1400,1000'],
+        userDataDir: path.join(SCR, 'apcc-e2e-p1-' + Date.now()),   // โปรไฟล์ใหม่ทุกครั้ง ไม่จำการล็อกอินรอบก่อน
+        args: ['--no-first-run', '--window-size=1400,1000'],
         defaultViewport: { width: 1400, height: 1000 },
     });
     const page = await browser.newPage();
