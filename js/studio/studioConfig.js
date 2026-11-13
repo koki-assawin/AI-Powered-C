@@ -95,6 +95,37 @@ const logStudioEvent = (type, courseId, data = {}) => {
     }).catch(err => { console.warn('[studio] log failed', type, err.message); return null; });
 };
 
+// ── Hint Ladder (Phase 2) — หลักการ P, A₁ ────────────────────────────────────
+// ใช้คำใบ้ที่ครูเขียนและอนุมัติแล้ว (assignment.hintLadder) ก่อนเรียก AI
+// คืนข้อความคำใบ้ หรือ null ถ้าไม่ใช่กรณีของ Studio (ให้ CodingWorkspace ใช้ AI ตามเดิม)
+// ไม่เรียก Gemini จึงไม่กินโควตา และใช้ได้แม้โควตาหมด (ข้อ 7.6)
+const studioLadderHint = (course, assignment, level, uid) => {
+    if (!isStudio(course) || !assignment || assignment.assignmentType === 'exam') return null;
+    const ladder = Array.isArray(assignment.hintLadder) ? assignment.hintLadder.filter(h => (h || '').trim()) : [];
+    const max = Math.min(ladder.length, (course.studio.hintPolicy && course.studio.hintPolicy.maxLevelDefault) || 4);
+    if (!max || level < 1 || level > max) return null;
+    const hint = ladder[level - 1];
+    // บันทึกรูปแบบเดิมของ coachInteractions (prompt ≤ 500, response ≤ 1000) triggerEvent ใหม่ 'studio_ladder'
+    if (uid) {
+        db.collection('coachInteractions').add({
+            uid, coachRole: 'socratic', triggerEvent: 'studio_ladder', relatedId: assignment.title || null,
+            prompt: `title: ${assignment.title}, level: ${level}, source: hintLadder`.slice(0, 500),
+            response: hint.slice(0, 1000),
+            createdAt: serverTimestamp(),
+        }).catch(err => console.warn('[studio] ladder log failed', err.message));
+        logStudioEvent('ladder_hint', course.id, { assignmentId: assignment.id, level });
+    }
+    const tail = level >= max
+        ? '\n\n— นี่คือคำใบ้ระดับสุดท้ายจากครู ถ้ายังติด ลองแก้โค้ดแล้วส่งอีกครั้ง จากนั้นกด 🔄 วิเคราะห์โค้ดที่ส่งล่าสุด ให้ AI ช่วยดูโค้ดของคุณ'
+        : '';
+    return `👩‍🏫 คำใบ้จากครู (${level}/${max})\n\n${hint}${tail}`;
+};
+
+// โจทย์นี้ควรแสดงเป็น Parsons หรือไม่
+const studioUsesParsons = (course, assignment) =>
+    hasFeature(course, 'parsons') && !!assignment && assignment.studioType === 'parsons'
+    && !!(assignment.parsons && Array.isArray(assignment.parsons.lines) && assignment.parsons.lines.length);
+
 // ── ส่วน "เปิดใช้ APCC Studio" ในหน้าแก้ไขรายวิชา (CourseBuilder) ─────────────
 const StudioCoursePanel = ({ course, onSaved }) => {
     const cur = course.studio || null;
@@ -177,3 +208,5 @@ window.hasFeature = hasFeature;
 window.isProtectedCourse = isProtectedCourse;
 window.logStudioEvent = logStudioEvent;
 window.StudioCoursePanel = StudioCoursePanel;
+window.studioLadderHint = studioLadderHint;
+window.studioUsesParsons = studioUsesParsons;

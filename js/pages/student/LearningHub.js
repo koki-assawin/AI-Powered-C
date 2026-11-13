@@ -790,7 +790,7 @@ function _LH_TopicView({ topic, extraItems }) {
     const [readMore, setReadMore] = React.useState(false);
     const [showTool, setShowTool] = React.useState(false);
 
-    const unit = _LH_UNITS.find(u => u.id === topic.unitId) || _LH_UNITS[0];
+    const unit = topic.unitInfo || _LH_UNITS.find(u => u.id === topic.unitId) || _LH_UNITS[0];   // unitInfo: หัวข้อ Python ของ APCC Studio
 
     const goStep = (n) => {
         const max = (topic.steps || []).length;
@@ -944,6 +944,14 @@ const LearningHub = () => {
     const [activeTopic, setActiveTopic] = React.useState(_LH_TOPICS[0]);
     const [extraMap, setExtraMap] = React.useState({});  // builtinTopicId → extra items
     const [fsTopics, setFsTopics] = React.useState([]);  // standalone teacher topics
+    const [courseDoc, setCourseDoc] = React.useState(null);  // APCC Studio v6
+    const [pyTopics, setPyTopics] = React.useState([]);      // หัวข้อ Python built-in (เฉพาะรายวิชาที่เปิด pythonLearningHub)
+    React.useEffect(() => {
+        if (!courseDoc || courseDoc.language !== 'python' || typeof hasFeature !== 'function' || !hasFeature(courseDoc, 'pythonLearningHub')) return;
+        loadStudioModules(['js/studio/content/pythonTopics.js'])
+            .then(() => { setPyTopics(window.STUDIO_PYTHON_TOPICS || []); setActiveTopic((window.STUDIO_PYTHON_TOPICS || [])[0] || null); })
+            .catch(() => {});
+    }, [courseDoc]);
 
     // Load course info
     React.useEffect(() => {
@@ -953,6 +961,7 @@ const LearningHub = () => {
                 const d = snap.data();
                 setCourseLanguage(d.language || 'c');
                 setCourseTitle(d.title || '');
+                setCourseDoc({ id: snap.id, ...d });
             }
         }).catch(() => {});
     }, [courseId]);
@@ -990,7 +999,7 @@ const LearningHub = () => {
     const allUnitTopics = [...builtInForUnit, ...teacherStandalone.map(t => ({...t, isTeacher:true}))];
 
     // For non-C courses: show all teacher topics grouped (or flat if no unitId)
-    const allFsFlat = fsTopics; // for non-C display
+    const allFsFlat = [...pyTopics, ...fsTopics]; // for non-C display (+ หัวข้อ Python ของ APCC Studio)
 
     const unit = _LH_UNITS.find(u => u.id === activeUnit) || _LH_UNITS[0];
 

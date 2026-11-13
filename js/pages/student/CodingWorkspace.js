@@ -197,6 +197,10 @@ const CodingWorkspace = () => {
         if (!currentAssignment) return;
         const nextLevel = reanalyze === true ? Math.max(hintLevel, 1) : Math.min(hintLevel + 1, 4);
         setHintLevel(nextLevel);
+        // APCC Studio v6: คำใบ้ที่ครูอนุมัติ (hintLadder) มาก่อน AI — ไม่เรียก Gemini และไม่นับเป็น ai_hint
+        const ladderHint = reanalyze !== true && typeof studioLadderHint === 'function'
+            ? studioLadderHint(course, currentAssignment, nextLevel, userDoc?.id) : null;
+        if (ladderHint) { hintSourceRef.current = gradeResult; setScaffoldHint(ladderHint); return; }
         if (typeof logUsageEvent === 'function') logUsageEvent(userDoc?.id, 'ai_hint', { courseId, assignmentId: currentAssignment.id, hintLevel: nextLevel, userType: userDoc?.role || 'student' });
         setHintLoading(true);
         setScaffoldHint('');
@@ -1127,6 +1131,10 @@ const CodingWorkspace = () => {
                         </div>
 
                         <div className="flex-1 min-h-0 overflow-hidden">
+                            {typeof studioUsesParsons === 'function' && studioUsesParsons(course, currentAssignment) ? (   /* APCC Studio v6 */
+                                <StudioPage name="ParsonsPlayer" key={currentAssignment.id} assignment={currentAssignment}
+                                    userId={userDoc?.id} courseId={courseId} onCode={setCode} />
+                            ) : (
                             <CodeEditor
                                 value={code}
                                 onChange={setCode}
@@ -1138,6 +1146,7 @@ const CodingWorkspace = () => {
                                 fontFamily={fontFamily}
                                 highlightLine={view === 'trace' ? highlightedLine : null}
                             />
+                            )}
                         </div>
 
                     </div>

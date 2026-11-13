@@ -9,11 +9,12 @@
  * ไฟล์ที่โหลดแบบ lazy ต้องประกาศของที่ใช้ข้ามไฟล์ไว้บน window (เช่น window.TemplateManager = TemplateManager)
  */
 
-const STUDIO_ASSET_VERSION = '6.0.1';
+const STUDIO_ASSET_VERSION = '6.0.2';
 
 // หน้า Studio → ไฟล์ที่ต้องโหลด (ตามลำดับ)
 const STUDIO_PAGES = {
     TemplateManager: ['js/studio/content/templates.js', 'js/studio/templatePack.js', 'js/pages/studio/TemplateManager.js'],
+    ParsonsPlayer:   ['js/studio/ParsonsPlayer.js'],
 };
 
 const _studioScripts = {};
