@@ -676,4 +676,179 @@ const LOPath = ({ ctx }) => {
 };
 LO_VIEW_COMPONENTS.path = LOPath;
 
+// ════════════════════════════════════════════════════════════════════════════
+// มุมมอง 4: การ์ดผลลัพธ์รายบุคคล (1 คน ต่อ 1 จอ / 1 หน้า A4)
+// ════════════════════════════════════════════════════════════════════════════
+const LONote = ({ ctx, uid, readOnly }) => {
+    const { notes, setNotes, me, selectedCourse, setErr } = ctx;
+    const saved = (notes[uid] && notes[uid].text) || '';
+    const [text, setText] = React.useState(saved);
+    const [state, setState] = React.useState('');
+    React.useEffect(() => { setText(saved); setState(''); }, [uid, saved]);
+    if (readOnly) return saved ? <div style={{ whiteSpace: 'pre-wrap', fontSize: 13 }}>{saved}</div> : <div className="text-gray-400 text-sm">—</div>;
+    const save = async () => {
+        setState('saving');
+        try {
+            const id = `${me}_${selectedCourse}_${uid}`;
+            await db.collection('outcome_notes').doc(id).set({ ownerId: me, courseId: selectedCourse, studentId: uid, text: text.slice(0, 5000), updatedAt: loTs() });
+            setNotes(n => ({ ...n, [uid]: { id, text: text.slice(0, 5000) } }));
+            setState('saved');
+        } catch (e) { setState(''); setErr('บันทึกข้อสังเกตไม่สำเร็จ: ' + (e.message || e)); }
+    };
+    return (
+        <div>
+            <textarea className="k-input" rows={3} style={{ width: '100%', fontFamily: LO_FONT }} value={text}
+                placeholder="ข้อสังเกตของครู เช่น พัฒนาการ จุดที่ติด วิธีที่ใช้ช่วย (เก็บแยก เห็นเฉพาะครูผู้บันทึก)"
+                onChange={e => { setText(e.target.value); setState(''); }} />
+            <div className="flex items-center gap-2 mt-1">
+                <button onClick={save} disabled={text === saved || state === 'saving'} className="text-xs px-3 py-1 rounded"
+                    style={{ background: text === saved ? '#f3f4f6' : '#ec4899', color: text === saved ? '#9ca3af' : '#fff' }}>💾 บันทึกข้อสังเกต</button>
+                <span className="text-xs text-gray-500">{state === 'saving' ? 'กำลังบันทึก…' : state === 'saved' ? '✓ บันทึกแล้ว' : text !== saved ? 'ยังไม่ได้บันทึก' : ''}</span>
+            </div>
+        </div>
+    );
+};
+
+const LOCardBody = ({ ctx, uid, evidence }) => {
+    const { LO, problems, matrix, labelOf, pCode, groups, scoreDoc, scoreByUid, studio, submissions, submissionsV2, assignments, gradingPolicy } = ctx;
+    const allSubs = React.useMemo(() => [...submissions.filter(s => s.studentId === uid), ...submissionsV2.filter(s => s.studentId === uid)], [uid, submissions, submissionsV2]);
+    const row = matrix.rows[uid];
+    if (!row) return null;
+    const g = groups[uid];
+    const sc = scoreByUid[uid];
+    const k = problems.length;
+    const lv = row.sum.lv;
+    const testsOf = (c) => (gradingPolicy === 'latest' ? c.lastTests : c.bestTests);
+
+    // Peer review / Exit ticket: Studio ก่อน แล้วค่อย CSV
+    const aidSet = new Set(problems.map(p => p.id));
+    const peerWritten = studio ? studio.reviews.filter(r => r.reviewerType === 'peer' && r.reviewerUid === uid && r.comment) : [];
+    const myProjects = studio ? new Set(studio.projects.filter(p => (p.members || []).includes(uid)).map(p => p.id)) : new Set();
+    const peerGot = studio ? studio.reviews.filter(r => r.reviewerType === 'peer' && myProjects.has(r.projectId) && r.comment) : [];
+    const eb = studio ? studio.explainBack.filter(e => e.uid === uid && aidSet.has(e.assignmentId)) : [];
+    const box = { border: '1px solid #fbcfe8', borderRadius: 10, padding: 10, background: '#fff' };
+    const H = ({ children }) => <div className="font-bold mb-1" style={{ color: '#9d174d', fontSize: 14 }}>{children}</div>;
+
+    return (
+        <div style={{ fontFamily: LO_FONT }}>
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+                <div style={{ fontSize: 30, fontWeight: 800, color: '#be185d', fontFamily: LO_MONO }}>{labelOf(uid)}</div>
+                {g && <span className="px-3 py-1 rounded-full text-sm font-bold" style={{ background: '#f9fafb', border: '2px solid ' + LO_GROUP_COLOR[g.group], color: LO_GROUP_COLOR[g.group] }}>
+                    กลุ่ม{LO.GROUP3_LABEL[g.group]} <span className="font-normal text-xs">({g.letter})</span></span>}
+                <span className="text-sm text-gray-600">ผ่าน <b>{row.sum.passed}/{k}</b> ข้อ · ส่งรวม {row.sum.subs} · รัน {row.sum.runs} · คำใบ้ {row.sum.hints} · คะแนน <b>{row.sum.raw}/{matrix.rawMax}</b></span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10, marginBottom: 10 }}>
+                <div style={box} className="lo-avoid">
+                    <H>คะแนนก่อน/หลังเรียน</H>
+                    {sc ? (
+                        <table style={{ fontSize: 13, width: '100%' }}><tbody>
+                            {[['ก่อนเรียน', sc.pre, scoreDoc.maxPre], ['หลังเรียน', sc.post, scoreDoc.maxPost], ['ภ.19-2', sc.p19_2, scoreDoc.maxP19], ['S3', sc.s3], ['A', sc.a], ['C', sc.c]]
+                                .filter(r => r[1] != null).map(([l, v, m]) => (
+                                    <tr key={l}><td className="text-gray-600">{l}</td><td className="text-right font-bold">{v}{m ? ` / ${m}` : ''}</td></tr>
+                                ))}
+                            {sc.pre != null && sc.post != null && <tr><td className="text-gray-600">ผลต่าง</td><td className="text-right font-bold" style={{ color: sc.post >= sc.pre ? '#16a34a' : '#dc2626' }}>{sc.post - sc.pre >= 0 ? '+' : ''}{(sc.post - sc.pre).toFixed(2).replace(/\.00$/, '')}</td></tr>}
+                        </tbody></table>
+                    ) : <div className="text-sm text-gray-400">ยังไม่ได้นำเข้าคะแนนสำหรับ preset นี้</div>}
+                </div>
+                <div style={box} className="lo-avoid">
+                    <H>คำใบ้ที่ขอ (รายระดับ)</H>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 4, textAlign: 'center' }}>
+                        {lv.map((n, i) => <div key={i} style={{ background: '#fffbeb', borderRadius: 6, padding: 4 }}><div style={{ fontSize: 11, color: '#92400e' }}>ระดับ {i + 1}</div><div style={{ fontWeight: 800, fontSize: 18 }}>{n}</div></div>)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">รวม {row.sum.hints} ครั้ง ในโจทย์ที่เลือก {k} ข้อ</div>
+                </div>
+                <div style={box} className="lo-avoid">
+                    <H>Radar 5 มิติ (ทุกโจทย์ในรายวิชา)</H>
+                    {typeof _StudentRadarChart === 'function'
+                        ? <_StudentRadarChart subs={allSubs} totalAssignments={assignments.length} />
+                        : <div className="text-sm text-gray-400">ไม่พบกราฟ Radar</div>}
+                </div>
+            </div>
+
+            <div style={{ ...box, marginBottom: 10 }} className="lo-avoid">
+                <H>ผลรายข้อและเส้นทางการส่ง (ย่อ)</H>
+                <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                    <thead><tr style={{ color: '#9d174d', borderBottom: '1px solid #fbcfe8' }}>
+                        <th className="text-left">โจทย์</th><th>สถานะ</th><th>ส่ง</th><th>ครั้งแรก</th><th>คะแนน</th><th>เคส</th><th>คำใบ้ L1–L4</th><th className="text-left">เส้นทาง (ครั้งที่ 1 → สุดท้าย)</th>
+                    </tr></thead>
+                    <tbody>
+                        {problems.map(p => {
+                            const c = row.cells[p.id];
+                            const at = matrix.attempts[LO.pairKey(uid, p.id)] || [];
+                            const t = testsOf(c);
+                            const vs = at.map(s => LO.verdictOf(s));
+                            const shown = vs.length > 12 ? [...vs.slice(0, 5), '…', ...vs.slice(-5)] : vs;
+                            return (
+                                <tr key={p.id} style={{ borderBottom: '1px solid #fce7f3' }}>
+                                    <td style={{ fontFamily: LO_MONO, fontWeight: 700 }}>{pCode(p)}</td>
+                                    <td className="text-center"><span className="px-1 rounded" style={{ background: LO_STATUS[c.status].bg, color: LO_STATUS[c.status].color, fontSize: 11 }}>{LO_STATUS[c.status].label}</span></td>
+                                    <td className="text-center">{c.n}</td>
+                                    <td className="text-center"><LOVerdict v={c.firstVerdict} small /></td>
+                                    <td className="text-center">{LO.rawEarned(c.counted, p.rawScore)}/{p.rawScore || 0}</td>
+                                    <td className="text-center">{t ? `${t[0]}/${t[1]}` : '–'}</td>
+                                    <td className="text-center" style={{ fontFamily: LO_MONO, fontSize: 11 }}>{c.hintLv.join('/')}</td>
+                                    <td>{shown.length ? shown.map((v, i) => v === '…'
+                                        ? <span key={i} className="mx-1 text-gray-400">…</span>
+                                        : <span key={i} className="mr-1"><LOVerdict v={v} small /></span>) : <span className="text-gray-400">ไม่ได้ส่ง</span>}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10, marginBottom: 10 }}>
+                <div style={box} className="lo-avoid">
+                    <H>Peer Review</H>
+                    {peerWritten.length || peerGot.length ? (
+                        <div style={{ fontSize: 13 }}>
+                            <div className="text-xs text-gray-500">ที่เขียนให้เพื่อน ({peerWritten.length})</div>
+                            {peerWritten.slice(0, 3).map((r, i) => <div key={i}>💬 {r.comment}</div>)}
+                            <div className="text-xs text-gray-500 mt-1">ที่ได้รับ ({peerGot.length})</div>
+                            {peerGot.slice(0, 3).map((r, i) => <div key={i}>💬 {r.comment}</div>)}
+                        </div>
+                    ) : sc && sc.peer ? <div style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{sc.peer}<div className="text-xs text-gray-400">(จากคะแนนที่นำเข้า)</div></div>
+                        : <div className="text-sm text-gray-400">ไม่มีข้อมูลในระบบ</div>}
+                </div>
+                <div style={box} className="lo-avoid">
+                    <H>Exit Ticket / เป้าหมาย</H>
+                    {eb.length ? eb.slice(0, 3).map((e, i) => (
+                        <div key={i} style={{ fontSize: 13 }} className="mb-1">
+                            <span className="text-xs text-gray-500">{pCode(ctx.aById[e.assignmentId] || { title: e.assignmentTitle })} · {e.mode === 'predict' ? (e.predictCorrect ? 'ทำนายผลถูก' : 'ทำนายผลไม่ตรง') : `อธิบายโค้ด ระดับ ${e.aiLevel}`}</span>
+                            <div>“{e.explanation || e.predictAnswer}”</div>
+                        </div>
+                    )) : sc && sc.exit ? <div style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{sc.exit}<div className="text-xs text-gray-400">(จากคะแนนที่นำเข้า)</div></div>
+                        : <div className="text-sm text-gray-400">ไม่มีข้อมูลในระบบ</div>}
+                </div>
+                <div style={box} className="lo-avoid">
+                    <H>บันทึกของครู</H>
+                    <LONote ctx={ctx} uid={uid} readOnly={evidence} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const LOCards = ({ ctx }) => {
+    const { uid } = loFocus(ctx);
+    if (ctx.evidence && ctx.allCards) {
+        return <div>{ctx.uids.map((u, i) => (
+            <div key={u} className={i < ctx.uids.length - 1 ? 'lo-break' : ''} style={{ marginBottom: 24 }}>
+                {i > 0 && <LOEvidenceHeaderSlot ctx={ctx} />}
+                <LOCardBody ctx={ctx} uid={u} evidence />
+            </div>
+        ))}</div>;
+    }
+    return (
+        <div>
+            <LOPicker ctx={ctx} showProblem={false} />
+            {uid ? <LOCardBody ctx={ctx} uid={uid} evidence={ctx.evidence} /> : <div className="text-gray-400 text-center py-10">ไม่มีผู้เรียน</div>}
+        </div>
+    );
+};
+// หัวรายงานซ้ำในแต่ละหน้าเมื่อพิมพ์การ์ดทุกคน (กำหนดจริงในส่วนโหมดหลักฐาน)
+const LOEvidenceHeaderSlot = ({ ctx }) => (ctx.EvidenceHeader ? <ctx.EvidenceHeader /> : null);
+LO_VIEW_COMPONENTS.card = LOCards;
+
 window.LearningOutcomesTab = LearningOutcomesTab;
