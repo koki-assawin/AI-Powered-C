@@ -247,7 +247,7 @@ const LearningOutcomesTab = ({ selectedCourse, course, userDoc, assignments = []
     const openPath = (uid, aid) => { setFocus({ uid, aid }); setView('path'); };
 
     const ctx = {
-        LO, codes, allUids, uids, problems, matrix, reconcile, usage, coach, groups, labelOf, pCode, aById,
+        LO, codes, allUids, uidSet, uids, problems, matrix, reconcile, usage, coach, groups, labelOf, pCode, aById,
         submissions, submissionsV2, grades, gradingPolicy, gradesLocked, assignments, focus, setFocus, openPath,
         notes, setNotes, scoreDoc, scoreByUid, setScoreDocs, scoreDocs, polls, studio, presetId, presetName,
         presets, selectedCourse, course, me, setErr, setMsg, mask,
@@ -366,7 +366,7 @@ const LearningOutcomesTab = ({ selectedCourse, course, userDoc, assignments = []
 const LO_VIEW_COMPONENTS = {};
 const LOViewSwitch = ({ view, ctx }) => {
     const C = LO_VIEW_COMPONENTS[view];
-    return C ? <C ctx={ctx} /> : <div className="text-center py-10 text-gray-400">มุมมองนี้กำลังพัฒนา</div>;
+    return C ? <C key={view === 'import' ? 'import_' + ctx.presetId : view} ctx={ctx} /> :<div className="text-center py-10 text-gray-400">มุมมองนี้กำลังพัฒนา</div>;
 };
 
 // คำอธิบายสีของช่อง
@@ -905,5 +905,324 @@ const LOGallery = ({ ctx }) => {
     );
 };
 LO_VIEW_COMPONENTS.gallery = LOGallery;
+
+// ════════════════════════════════════════════════════════════════════════════
+// มุมมอง 6: สรุปภาพรวมตามโจทย์ที่เลือก
+// ════════════════════════════════════════════════════════════════════════════
+const loGroupStats = (ctx, us) => {
+    const { matrix, problems } = ctx;
+    const k = problems.length;
+    let passed = 0, first = 0, subs = 0, submitted = 0, runs = 0, hints = 0;
+    us.forEach(u => {
+        const r = matrix.rows[u];
+        problems.forEach(p => {
+            const c = r.cells[p.id];
+            if (c.passed) passed++;
+            if (c.firstPassed) first++;
+            if (c.n > 0) { submitted++; subs += c.n; }
+            runs += c.runs; hints += c.hints;
+        });
+    });
+    const n = us.length, pairs = n * k;
+    return {
+        n, pctPassed: pairs ? passed / pairs * 100 : NaN, pctFirst: pairs ? first / pairs * 100 : NaN,
+        avgSubs: submitted ? subs / submitted : NaN, runsPer: n ? runs / n : NaN, hintsPer: n ? hints / n : NaN,
+        passed, first, pairs,
+    };
+};
+
+const LOSummary = ({ ctx }) => {
+    const { LO, uids, problems, matrix, groups, pCode, labelOf, scoreDoc, scoreByUid, polls, uidSet } = ctx;
+    const [threshold, setThreshold] = React.useState(80);
+    const [pollSel, setPollSel] = React.useState([]);
+    const [pollResp, setPollResp] = React.useState({});
+    const respCache = React.useRef({});
+    const G = ['fast', 'mid', 'stuck'];
+    const byGroup = { all: uids };
+    G.forEach(g => { byGroup[g] = uids.filter(u => groups[u] && groups[u].group === g); });
+
+    // QuickPoll: โหลดคำตอบเฉพาะชุดที่ติ๊ก
+    React.useEffect(() => {
+        const need = pollSel.filter(id => !respCache.current[id]);
+        if (!need.length) return;
+        let alive = true;
+        Promise.all(need.map(id => db.collection('pollSessions').doc(id).collection('responses').get().then(s => {
+            respCache.current[id] = s.docs.map(d => ({ id: d.id, ...d.data() }));
+        }))).then(() => { if (alive) setPollResp({ ...respCache.current }); })
+            .catch(e => ctx.setErr('โหลดคำตอบ QuickPoll ไม่สำเร็จ: ' + (e.message || e)));
+        return () => { alive = false; };
+    }, [pollSel]);
+
+    // ── ผลครั้งแรก vs สุดท้าย ต่อข้อ ──
+    const VS = [['AC', 'ผ่านทุกกรณี (AC)'], ['WA', 'คำตอบผิด (WA)'], ['CE', 'คอมไพล์ไม่ผ่าน (CE)'], ['RE', 'รันไม่สำเร็จ/เกินเวลา (RE/TLE)'], ['', 'ไม่ได้ส่ง']];
+    const labels = []; const counts = VS.map(() => []);
+    problems.forEach(p => {
+        ['first', 'last'].forEach(ph => {
+            labels.push(`${pCode(p)} ${ph === 'first' ? 'ครั้งแรก' : 'สุดท้าย'}`);
+            const tally = VS.map(() => 0);
+            uids.forEach(u => {
+                const c = matrix.rows[u].cells[p.id];
+                let v = ph === 'first' ? c.firstVerdict : c.lastVerdict;
+                if (v === 'TLE') v = 'RE';
+                const i = VS.findIndex(x => x[0] === v);
+                tally[i < 0 ? VS.length - 1 : i]++;
+            });
+            tally.forEach((n, i) => counts[i].push(uids.length ? +(n / uids.length * 100).toFixed(1) : 0));
+        });
+    });
+    const vColors = [LO_VERDICT_COLOR.AC, LO_VERDICT_COLOR.WA, LO_VERDICT_COLOR.CE, LO_VERDICT_COLOR.RE, '#d1d5db'];
+    const chart1 = {
+        type: 'bar',
+        data: { labels, datasets: VS.map(([, l], i) => ({ label: l, data: counts[i], backgroundColor: vColors[i] })) },
+        options: { scales: { x: { stacked: true, ticks: { font: { family: 'Prompt', size: 10 } } }, y: { stacked: true, max: 100, title: { display: true, text: '% ของผู้เรียน' } } },
+            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Prompt', size: 11 }, boxWidth: 12 } } } },
+    };
+    const chart2 = {
+        type: 'bar',
+        data: {
+            labels: ['ระดับ 1', 'ระดับ 2', 'ระดับ 3', 'ระดับ 4'],
+            datasets: G.map(g => ({
+                label: `กลุ่ม${LO.GROUP3_LABEL[g]} (${byGroup[g].length} คน)`, backgroundColor: LO_GROUP_COLOR[g],
+                data: [0, 1, 2, 3].map(i => byGroup[g].reduce((s, u) => s + matrix.rows[u].sum.lv[i], 0)),
+            })),
+        },
+        options: { scales: { y: { beginAtZero: true, title: { display: true, text: 'จำนวนครั้งที่ขอคำใบ้' } } },
+            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Prompt', size: 11 }, boxWidth: 12 } } } },
+    };
+
+    // ── ก่อน–หลัง ──
+    const maxPre = scoreDoc && +scoreDoc.maxPre, maxPost = scoreDoc && +scoreDoc.maxPost;
+    const sameScale = maxPre > 0 && maxPost > 0 && maxPre === maxPost;
+    const toScale = (v, m) => (sameScale ? v : (m > 0 ? v / m * 100 : v));
+    const maxS = sameScale ? maxPost : 100;
+    const pp = uids.map(u => ({ u, r: scoreByUid[u] })).filter(x => x.r && x.r.pre != null && x.r.post != null)
+        .map(x => ({ u: x.u, pre: toScale(x.r.pre, maxPre), post: toScale(x.r.post, maxPost) }));
+    const ps = LO.pairedStats(pp, maxS, +threshold);
+    const chart3 = {
+        type: 'bar',
+        data: { labels: pp.map(x => labelOf(x.u)), datasets: [
+            { label: 'ก่อนเรียน', data: pp.map(x => +x.pre.toFixed(2)), backgroundColor: '#f9a8d4' },
+            { label: 'หลังเรียน', data: pp.map(x => +x.post.toFixed(2)), backgroundColor: '#be185d' },
+        ] },
+        options: { scales: { y: { beginAtZero: true, max: maxS, title: { display: true, text: sameScale ? `คะแนน (เต็ม ${maxS})` : 'ร้อยละของคะแนนเต็ม' } },
+            x: { ticks: { font: { family: 'JetBrains Mono', size: 9 } } } },
+            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Prompt', size: 11 }, boxWidth: 12 } } } },
+    };
+
+    const th = { padding: '6px 8px', background: '#fdf2f8', color: '#9d174d', fontSize: 12, borderBottom: '2px solid #f9a8d4' };
+    const td = { padding: '5px 8px', borderBottom: '1px solid #fce7f3', fontSize: 13, textAlign: 'center' };
+    const sec = { marginBottom: 18 };
+    const H = ({ children }) => <h4 className="font-bold mb-2" style={{ color: '#9d174d', fontSize: 15 }}>{children}</h4>;
+    return (
+        <div>
+            <div style={sec} className="lo-avoid">
+                <H>สถิติตามโจทย์ที่เลือก ({problems.map(pCode).join(', ')}) แยกตามกลุ่มผู้เรียน</H>
+                <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                    <thead><tr>
+                        <th style={{ ...th, textAlign: 'left' }}>กลุ่ม</th><th style={th}>จำนวนคน</th><th style={th}>% ผ่าน</th><th style={th}>% ผ่านครั้งแรก</th>
+                        <th style={th}>ส่งเฉลี่ย/ข้อ</th><th style={th}>รันเฉลี่ย/คน</th><th style={th}>คำใบ้เฉลี่ย/คน</th>
+                    </tr></thead>
+                    <tbody>
+                        {[['all', 'ทั้งหมด'], ...G.map(g => [g, 'กลุ่ม' + LO.GROUP3_LABEL[g]])].map(([g, l]) => {
+                            const s = loGroupStats(ctx, byGroup[g]);
+                            return (
+                                <tr key={g} style={g === 'all' ? { fontWeight: 700 } : {}}>
+                                    <td style={{ ...td, textAlign: 'left', color: LO_GROUP_COLOR[g] || '#111827' }}>{l}</td>
+                                    <td style={td}>{s.n}</td>
+                                    <td style={td}>{s.n ? `${loPct(s.pctPassed)} (${s.passed}/${s.pairs})` : '–'}</td>
+                                    <td style={td}>{s.n ? `${loPct(s.pctFirst)} (${s.first}/${s.pairs})` : '–'}</td>
+                                    <td style={td}>{LO.fmt(s.avgSubs, 2)}</td>
+                                    <td style={td}>{LO.fmt(s.runsPer, 2)}</td>
+                                    <td style={td}>{LO.fmt(s.hintsPer, 2)}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+                <div className="text-xs text-gray-500 mt-1">% ผ่าน = คู่ (ผู้เรียน × ข้อ) ที่คะแนนที่นับเต็ม ÷ (จำนวนคน × {problems.length} ข้อ) · ส่งเฉลี่ย/ข้อ คิดเฉพาะคู่ที่มีการส่ง · กลุ่มมาจากแท็บกลุ่มผู้เรียน (A → ไว, B+C → กลาง, D → ติดขัด)</div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, ...sec }}>
+                <div className="lo-avoid"><H>ผลครั้งแรกเทียบผลสุดท้าย (ร้อยละของผู้เรียน)</H><LOChart config={chart1} height={280} /></div>
+                <div className="lo-avoid"><H>คำใบ้ตามระดับ แยกกลุ่ม</H><LOChart config={chart2} height={280} /></div>
+            </div>
+
+            <div style={sec} className="lo-avoid">
+                <H>คะแนนก่อน–หลังเรียน {scoreDoc ? `(นำเข้าสำหรับ preset "${scoreDoc.presetName || ''}")` : ''}</H>
+                {!scoreDoc ? <div className="text-sm text-gray-400">ยังไม่มีคะแนนนำเข้าสำหรับ preset นี้ — ไปที่ "นำเข้าคะแนนนอกระบบ"</div> : !pp.length ? <div className="text-sm text-gray-400">ไม่มีผู้เรียนที่มีคะแนนครบทั้งก่อนและหลังเรียน</div> : (
+                    <>
+                        <LOChart config={chart3} height={260} />
+                        <div className="flex items-center gap-2 mt-3 lo-noprint">
+                            <label className="text-sm">เกณฑ์ผ่าน ≥</label>
+                            <input type="number" className="k-input" style={{ width: 80 }} value={threshold} min={0} max={100} onChange={e => setThreshold(e.target.value)} />
+                            <span className="text-sm">% ของคะแนนเต็ม</span>
+                        </div>
+                        <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: 8 }}>
+                            <thead><tr><th style={{ ...th, textAlign: 'left' }}>รายการ</th><th style={th}>ก่อนเรียน</th><th style={th}>หลังเรียน</th></tr></thead>
+                            <tbody>
+                                <tr><td style={{ ...td, textAlign: 'left' }}>จำนวน (n)</td><td style={td} colSpan={2}>{ps.n} คน</td></tr>
+                                <tr><td style={{ ...td, textAlign: 'left' }}>ค่าเฉลี่ย (x̄) {sameScale ? `/ ${maxS}` : '(ร้อยละ)'}</td><td style={td}>{LO.fmt(ps.meanPre)}</td><td style={td}>{LO.fmt(ps.meanPost)}</td></tr>
+                                <tr><td style={{ ...td, textAlign: 'left' }}>ส่วนเบี่ยงเบนมาตรฐาน (SD)</td><td style={td}>{LO.fmt(ps.sdPre)}</td><td style={td}>{LO.fmt(ps.sdPost)}</td></tr>
+                                <tr><td style={{ ...td, textAlign: 'left' }}>ผ่านเกณฑ์ ≥ {ps.threshold}%</td><td style={td}>{ps.passPre} คน ({loPct(ps.pctPassPre)})</td><td style={td}>{ps.passPost} คน ({loPct(ps.pctPassPost)})</td></tr>
+                                <tr><td style={{ ...td, textAlign: 'left' }}>ผลต่างเฉลี่ย (d̄) ± SD</td><td style={td} colSpan={2}>{LO.fmt(ps.meanDiff)} ± {LO.fmt(ps.sdDiff)}</td></tr>
+                                <tr><td style={{ ...td, textAlign: 'left' }}>paired t-test</td><td style={td} colSpan={2}>t({ps.df}) = {LO.fmt(ps.t)}, p {LO.fmtP(ps.p).startsWith('<') ? LO.fmtP(ps.p) : '= ' + LO.fmtP(ps.p)} (สองทาง)</td></tr>
+                                <tr><td style={{ ...td, textAlign: 'left' }}>Cohen's d<sub>z</sub></td><td style={td} colSpan={2}>{LO.fmt(ps.dz)}</td></tr>
+                                <tr><td style={{ ...td, textAlign: 'left' }}>Normalized gain ⟨g⟩</td><td style={td} colSpan={2}>ระดับชั้น {LO.fmt(ps.gClass)} · เฉลี่ยรายคน {LO.fmt(ps.gMean)}</td></tr>
+                            </tbody>
+                        </table>
+                        <div className="text-xs text-gray-600 mt-2 p-2 rounded" style={{ background: '#f9fafb', lineHeight: 1.7 }}>
+                            <b>สูตรที่ใช้</b> (คำนวณในเบราว์เซอร์จากคะแนนที่นำเข้า): d<sub>i</sub> = หลัง<sub>i</sub> − ก่อน<sub>i</sub> ·
+                            SD = √[Σ(x − x̄)² / (n − 1)] · t = d̄ / (SD<sub>d</sub> / √n), df = n − 1, p จากการแจกแจง t สองทาง ·
+                            Cohen's d<sub>z</sub> = d̄ / SD<sub>d</sub> · ⟨g⟩ ระดับชั้น = (x̄<sub>หลัง</sub> − x̄<sub>ก่อน</sub>) / (คะแนนเต็ม − x̄<sub>ก่อน</sub>) (Hake, 1998),
+                            เฉลี่ยรายคน = ค่าเฉลี่ยของ (หลัง − ก่อน)/(เต็ม − ก่อน) ไม่รวมผู้ที่ได้เต็มก่อนเรียน
+                            {!sameScale && ' · คะแนนเต็มก่อน/หลังไม่เท่ากัน จึงแปลงเป็นร้อยละก่อนคำนวณ'}
+                        </div>
+                    </>
+                )}
+            </div>
+
+            <div style={sec} className="lo-avoid">
+                <H>QuickPoll ที่เกี่ยวข้อง (ร้อยละตอบถูก รอบ 1 เทียบรอบ 2)</H>
+                {!polls.length ? <div className="text-sm text-gray-400">ไม่มี QuickPoll แบบตัวเลือกในรายวิชานี้</div> : (
+                    <>
+                        <div className="lo-noprint mb-2" style={{ maxHeight: 140, overflowY: 'auto' }}>
+                            {polls.map((p, i) => (
+                                <label key={p.id} className="flex items-start gap-2 text-xs mb-1 cursor-pointer">
+                                    <input type="checkbox" checked={pollSel.includes(p.id)} onChange={() => setPollSel(s => s.includes(p.id) ? s.filter(x => x !== p.id) : [...s, p.id])} />
+                                    <span><b>ครั้งที่ {i + 1}</b> · {p.snapshot.prompt}{p.snapshot.unitId ? ` (หน่วย ${p.snapshot.unitId})` : ''}</span>
+                                </label>
+                            ))}
+                        </div>
+                        {pollSel.length > 0 && (
+                            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                                <thead><tr><th style={{ ...th, textAlign: 'left' }}>QuickPoll</th><th style={th}>รอบ 1 ถูก</th><th style={th}>รอบ 2 ถูก</th><th style={th}>ผิด → ถูก</th><th style={th}>ถูก → ผิด</th></tr></thead>
+                                <tbody>
+                                    {polls.map((p, i) => ({ p, i })).filter(x => pollSel.includes(x.p.id)).map(({ p, i }) => {
+                                        const r = pollResp[p.id];
+                                        if (!r) return <tr key={p.id}><td style={{ ...td, textAlign: 'left' }} colSpan={5}>กำลังโหลด…</td></tr>;
+                                        const s = LO.pollStats(p, r, uidSet);
+                                        return (
+                                            <tr key={p.id}>
+                                                <td style={{ ...td, textAlign: 'left', maxWidth: 360 }}>ครั้งที่ {i + 1} · {p.snapshot.prompt}</td>
+                                                <td style={td}>{s.r1n ? `${loPct(s.r1ok / s.r1n * 100)} (${s.r1ok}/${s.r1n})` : '–'}</td>
+                                                <td style={td}>{s.r2n ? `${loPct(s.r2ok / s.r2n * 100)} (${s.r2ok}/${s.r2n})` : 'ไม่มีรอบ 2'}</td>
+                                                <td style={td}>{s.bothN ? `${s.wrongToRight} คน` : '–'}</td>
+                                                <td style={td}>{s.bothN ? `${s.rightToWrong} คน` : '–'}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                        <div className="text-xs text-gray-500 mt-1">นับเฉพาะผู้เรียนที่ลงทะเบียนในรายวิชา · "ผิด → ถูก" นับจากผู้ที่ตอบทั้งสองรอบ</div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
+LO_VIEW_COMPONENTS.summary = LOSummary;
+
+// ════════════════════════════════════════════════════════════════════════════
+// มุมมอง 7: นำเข้าคะแนนนอกระบบ (CSV) — เก็บแยกใน outcome_scores ผูกกับ preset
+// ════════════════════════════════════════════════════════════════════════════
+const LOImport = ({ ctx }) => {
+    const { LO, codes, presetId, presetName, scoreDoc, setScoreDocs, me, selectedCourse, setErr, setMsg } = ctx;
+    const [text, setText] = React.useState('');
+    const [maxPre, setMaxPre] = React.useState(scoreDoc ? scoreDoc.maxPre || '' : '');
+    const [maxPost, setMaxPost] = React.useState(scoreDoc ? scoreDoc.maxPost || '' : '');
+    const [maxP19, setMaxP19] = React.useState(scoreDoc ? scoreDoc.maxP19 || '' : '');
+    const [saving, setSaving] = React.useState(false);
+    const parsed = React.useMemo(() => (text.trim() ? LO.matchImport(LO.parseCSV(text), codes) : null), [text, codes]);
+    if (!presetId) return <div className="text-center py-12 text-gray-500">บันทึกหรือเลือก <b>preset</b> ก่อน คะแนนที่นำเข้าจะผูกกับ preset นั้น</div>;
+
+    const onFile = (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        const rd = new FileReader();
+        rd.onload = () => setText(String(rd.result || ''));
+        rd.readAsText(f, 'utf-8');
+    };
+    const template = () => {
+        const head = ['รหัส', 'ก่อนเรียน', 'หลังเรียน', 'ภ.19-2', 'S3', 'A', 'C', 'Peer Review', 'Exit Ticket'];
+        loDownload(`template_${presetName || 'preset'}.csv`, new Blob([LO.toCSV([head, ...codes.list.map(c => [c.code])])], { type: 'text/csv;charset=utf-8' }));
+    };
+    const save = async () => {
+        if (!parsed || !parsed.matched.length) return;
+        setSaving(true);
+        try {
+            const id = `${me}_${presetId}`;
+            const data = {
+                ownerId: me, courseId: selectedCourse, presetId, presetName: presetName || '',
+                maxPre: maxPre === '' ? null : +maxPre, maxPost: maxPost === '' ? null : +maxPost, maxP19: maxP19 === '' ? null : +maxP19,
+                rows: parsed.matched.map(r => ({ uid: r.uid, pre: r.pre, post: r.post, p19_2: r.p19_2, s3: r.s3, a: r.a, c: r.c, peer: r.peer || '', exit: r.exit || '' })),
+                updatedAt: loTs(),
+            };
+            await db.collection('outcome_scores').doc(id).set(data);
+            setScoreDocs(ds => [...ds.filter(d => d.id !== id), { id, ...data }]);
+            setMsg(`บันทึกคะแนน ${data.rows.length} คน สำหรับ preset "${presetName}" แล้ว`);
+            setText('');
+        } catch (e) { setErr('บันทึกคะแนนไม่สำเร็จ: ' + (e.message || e)); }
+        finally { setSaving(false); }
+    };
+    const remove = async () => {
+        if (!scoreDoc || !window.confirm('ลบคะแนนที่นำเข้าของ preset นี้ทั้งหมด?')) return;
+        try { await db.collection('outcome_scores').doc(scoreDoc.id).delete(); setScoreDocs(ds => ds.filter(d => d.id !== scoreDoc.id)); }
+        catch (e) { setErr('ลบไม่สำเร็จ: ' + (e.message || e)); }
+    };
+    const th = { padding: '4px 6px', background: '#fdf2f8', color: '#9d174d', fontSize: 12 };
+    const td = { padding: '3px 6px', borderBottom: '1px solid #fce7f3', fontSize: 12 };
+    return (
+        <div>
+            <div className="mb-3 text-sm text-gray-600" style={{ lineHeight: 1.7 }}>
+                นำเข้าคะแนนนอกระบบสำหรับ preset <b>"{presetName}"</b> · คอลัมน์ที่รับ: {LO.IMPORT_FIELDS.map(f => f.label).join(', ')}
+                <br />ช่องรหัสใช้ได้ทั้งรหัส S (เช่น S01), เลขประจำตัว หรือเลขที่ · ข้อมูลเก็บแยกจากการส่งงาน เห็นเฉพาะครูผู้นำเข้า
+                {scoreDoc && <div className="mt-1 p-2 rounded" style={{ background: '#ecfdf5', color: '#047857' }}>มีคะแนนที่บันทึกไว้แล้ว {(scoreDoc.rows || []).length} คน — นำเข้าใหม่จะแทนที่ทั้งชุด <button className="ml-2 underline" style={{ color: '#b91c1c' }} onClick={remove}>ลบชุดนี้</button></div>}
+            </div>
+            <div className="flex flex-wrap items-end gap-3 mb-3">
+                <button onClick={template} className="text-sm px-3 py-2 rounded" style={{ background: '#fce7f3', color: '#be185d' }}>⬇️ แบบฟอร์ม CSV (รหัส S01…)</button>
+                <input type="file" accept=".csv,.txt,text/csv" onChange={onFile} className="text-sm" />
+                {[['เต็มก่อนเรียน', maxPre, setMaxPre], ['เต็มหลังเรียน', maxPost, setMaxPost], ['เต็ม ภ.19-2', maxP19, setMaxP19]].map(([l, v, f]) => (
+                    <div key={l}><label className="block text-xs text-gray-500">{l}</label>
+                        <input type="number" className="k-input" style={{ width: 90 }} value={v} onChange={e => f(e.target.value)} /></div>
+                ))}
+            </div>
+            <textarea className="k-input" rows={6} style={{ width: '100%', fontFamily: LO_MONO, fontSize: 12 }} value={text} onChange={e => setText(e.target.value)}
+                placeholder={'วาง CSV ที่นี่ หรือเลือกไฟล์ด้านบน\nรหัส,ก่อนเรียน,หลังเรียน,ภ.19-2,S3,A,C\nS01,12,18,9,3,3,3'} />
+            {parsed && (
+                <div className="mt-3">
+                    <div className="flex flex-wrap gap-3 text-sm mb-2">
+                        <span style={{ color: '#047857' }}>✓ ตรงกับผู้เรียน {parsed.matched.length} แถว</span>
+                        <span style={{ color: parsed.unmatched.length ? '#b91c1c' : '#6b7280' }}>✗ รหัสไม่ตรง {parsed.unmatched.length} แถว</span>
+                        <span style={{ color: parsed.duplicate.length ? '#b45309' : '#6b7280' }}>ซ้ำ {parsed.duplicate.length} แถว (ใช้แถวแรก)</span>
+                        <span style={{ color: parsed.missing.length ? '#b45309' : '#6b7280' }}>ผู้เรียนที่ไม่มีในไฟล์ {parsed.missing.length} คน</span>
+                        {parsed.idx.id == null && <span style={{ color: '#b91c1c' }}>ไม่พบคอลัมน์รหัส</span>}
+                    </div>
+                    {parsed.unmatched.length > 0 && <div className="text-xs mb-2" style={{ color: '#b91c1c' }}>แถวที่รหัสไม่ตรง: {parsed.unmatched.map(r => `บรรทัด ${r.line} (“${r.rawId}”)`).join(', ')}</div>}
+                    {parsed.missing.length > 0 && <div className="text-xs mb-2" style={{ color: '#b45309' }}>ไม่มีในไฟล์: {parsed.missing.map(u => ctx.labelOf(u)).join(', ')}</div>}
+                    <div style={{ maxHeight: 280, overflow: 'auto' }}>
+                        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                            <thead><tr>{['บรรทัด', 'รหัสในไฟล์', 'ผู้เรียน', 'ก่อน', 'หลัง', 'ภ.19-2', 'S3', 'A', 'C', 'Peer', 'Exit'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                            <tbody>
+                                {[...parsed.matched, ...parsed.unmatched].sort((a, b) => a.line - b.line).map(r => (
+                                    <tr key={r.line} style={{ background: r.uid ? '#fff' : '#fef2f2' }}>
+                                        <td style={td}>{r.line}</td><td style={td}>{r.rawId}</td><td style={{ ...td, fontWeight: 700 }}>{r.uid ? ctx.labelOf(r.uid) : 'ไม่พบ'}</td>
+                                        {['pre', 'post', 'p19_2', 's3', 'a', 'c'].map(k => <td key={k} style={{ ...td, textAlign: 'center' }}>{r[k] == null ? '' : r[k]}</td>)}
+                                        <td style={td}>{(r.peer || '').slice(0, 30)}</td><td style={td}>{(r.exit || '').slice(0, 30)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button onClick={save} disabled={saving || !parsed.matched.length} className="mt-3 px-4 py-2 rounded text-sm"
+                        style={{ background: parsed.matched.length ? '#ec4899' : '#f3f4f6', color: parsed.matched.length ? '#fff' : '#9ca3af' }}>
+                        {saving ? 'กำลังบันทึก…' : `💾 บันทึก ${parsed.matched.length} คน`}
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+LO_VIEW_COMPONENTS.import = LOImport;
 
 window.LearningOutcomesTab = LearningOutcomesTab;
