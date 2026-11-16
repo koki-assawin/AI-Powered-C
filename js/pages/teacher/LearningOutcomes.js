@@ -538,4 +538,142 @@ const LOMatrix = ({ ctx }) => {
 };
 LO_VIEW_COMPONENTS.matrix = LOMatrix;
 
+// ── ตัวเลือกผู้เรียน/โจทย์ที่ใช้ร่วมกันในมุมมองรายคน ──
+const LOPicker = ({ ctx, showProblem = true }) => {
+    const { uids, problems, focus, setFocus, labelOf, pCode } = ctx;
+    const uid = uids.includes(focus.uid) ? focus.uid : uids[0];
+    const aid = problems.some(p => p.id === focus.aid) ? focus.aid : (problems[0] && problems[0].id);
+    const idx = uids.indexOf(uid);
+    const go = (d) => { const n = uids[(idx + d + uids.length) % uids.length]; setFocus({ uid: n, aid }); };
+    return (
+        <div className="lo-noprint flex flex-wrap items-center gap-2 mb-3">
+            <button onClick={() => go(-1)} className="px-2 py-1 rounded text-sm" style={{ background: '#fce7f3' }}>◀</button>
+            <select className="k-input" value={uid || ''} onChange={e => setFocus({ uid: e.target.value, aid })}>
+                {uids.map(u => <option key={u} value={u}>{labelOf(u)}</option>)}
+            </select>
+            <button onClick={() => go(1)} className="px-2 py-1 rounded text-sm" style={{ background: '#fce7f3' }}>▶</button>
+            {showProblem && (
+                <select className="k-input" value={aid || ''} onChange={e => setFocus({ uid, aid: e.target.value })}>
+                    {problems.map(p => <option key={p.id} value={p.id}>{pCode(p)} {ctx.LO.shortTitle(p.title)}</option>)}
+                </select>
+            )}
+            <span className="text-xs text-gray-400">คนที่ {idx + 1}/{uids.length}</span>
+        </div>
+    );
+};
+const loFocus = (ctx) => ({
+    uid: ctx.uids.includes(ctx.focus.uid) ? ctx.focus.uid : ctx.uids[0],
+    aid: ctx.problems.some(p => p.id === ctx.focus.aid) ? ctx.focus.aid : (ctx.problems[0] && ctx.problems[0].id),
+});
+
+// แสดง diff รายบรรทัด
+const LODiff = ({ lines, fontSize = 12 }) => (
+    <pre style={{ fontFamily: LO_MONO, fontSize, background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+        {lines.map((l, i) => (
+            <div key={i} style={{
+                background: l.type === 'add' ? '#dcfce7' : l.type === 'del' ? '#fee2e2' : 'transparent',
+                color: l.type === 'del' ? '#991b1b' : '#111827', textDecoration: l.type === 'del' ? 'line-through' : 'none',
+            }}>
+                <span style={{ display: 'inline-block', width: 22, color: '#9ca3af', userSelect: 'none' }}>{l.type === 'add' ? '+' : l.type === 'del' ? '−' : ' '}</span>
+                {l.text || ' '}
+            </div>
+        ))}
+    </pre>
+);
+const LOCode = ({ code, fontSize = 12, maxHeight }) => (
+    <pre style={{ fontFamily: LO_MONO, fontSize, background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, margin: 0,
+        whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight, overflow: maxHeight ? 'hidden' : 'visible' }}>{code || '(ไม่มีโค้ด)'}</pre>
+);
+
+// ════════════════════════════════════════════════════════════════════════════
+// มุมมอง 3: เส้นทางการส่งงาน (รายคน × รายข้อ)
+// ════════════════════════════════════════════════════════════════════════════
+const LOPath = ({ ctx }) => {
+    const { LO, matrix, usage, coach, labelOf, pCode, aById, groups } = ctx;
+    const { uid, aid } = loFocus(ctx);
+    const k = uid && aid ? LO.pairKey(uid, aid) : '';
+    const attempts = (k && matrix.attempts[k]) || [];
+    const hints = (k && usage.hints[k]) || [];
+    const slots = LO.hintsBeforeAttempts(attempts, hints);
+    const texts = (k && coach[k]) || [];
+    const [a, setA] = React.useState(0);
+    const [b, setB] = React.useState(-1);
+    React.useEffect(() => { setA(0); setB(-1); }, [k]);
+    const ia = Math.min(a, attempts.length - 1), ib = b < 0 ? attempts.length - 1 : Math.min(b, attempts.length - 1);
+    const p = aById[aid];
+    const cell = matrix.rows[uid] && matrix.rows[uid].cells[aid];
+    if (!uid || !p) return <div className="text-gray-400 text-center py-10">ไม่มีผู้เรียนหรือโจทย์ที่เลือก</div>;
+    const lvBadges = (arr) => arr.length
+        ? arr.map((h, i) => <span key={i} className="mr-1 px-1 rounded" style={{ background: '#fef3c7', color: '#92400e', fontSize: 11 }}>L{h.level || '?'}</span>)
+        : <span className="text-gray-400" style={{ fontSize: 11 }}>ไม่ได้ขอคำใบ้</span>;
+    const diff = attempts.length ? LO.lineDiff(attempts[ia].code, attempts[ib].code) : [];
+    const changed = diff.filter(d => d.type !== 'same').length;
+    return (
+        <div>
+            <LOPicker ctx={ctx} />
+            <div className="flex flex-wrap items-baseline gap-3 mb-3">
+                <h3 className="font-bold" style={{ color: '#9d174d', fontSize: 18 }}>{labelOf(uid)} × {pCode(p)} {LO.shortTitle(p.title)}</h3>
+                {groups[uid] && <span className="text-xs px-2 rounded" style={{ background: '#f3f4f6', color: LO_GROUP_COLOR[groups[uid].group] }}>กลุ่ม{LO.GROUP3_LABEL[groups[uid].group]}</span>}
+                {cell && <span className="text-xs px-2 rounded" style={{ background: LO_STATUS[cell.status].bg, color: LO_STATUS[cell.status].color }}>{LO_STATUS[cell.status].label}</span>}
+            </div>
+            {!attempts.length ? <div className="text-gray-400 py-8 text-center">ไม่มีการส่งงานในโจทย์นี้</div> : (
+                <>
+                    {/* ไทม์ไลน์ */}
+                    <div className="lo-avoid" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', gap: 6, marginBottom: 14 }}>
+                        {attempts.map((s, i) => {
+                            const v = LO.verdictOf(s);
+                            return (
+                                <React.Fragment key={i}>
+                                    <div style={{ border: '1px solid ' + (LO_VERDICT_COLOR[v] || '#e5e7eb'), borderRadius: 8, padding: '6px 8px', minWidth: 112, background: '#fff' }}>
+                                        <div style={{ fontSize: 11, marginBottom: 2 }}>💡 ก่อนส่ง: {lvBadges(slots[i])}</div>
+                                        <div className="font-bold" style={{ fontSize: 13 }}>ครั้งที่ {i + 1}</div>
+                                        <div className="flex items-center gap-1"><LOVerdict v={v} /> <span style={{ fontSize: 12 }}>{s.score || 0}%</span></div>
+                                        {s.totalTests ? <div style={{ fontSize: 11, color: '#4b5563' }}>กรณีทดสอบ {s.passedTests || 0}/{s.totalTests}</div> : null}
+                                        {s.runCount != null && <div style={{ fontSize: 11, color: '#6b7280' }}>รันก่อนส่ง {s.runCount}</div>}
+                                    </div>
+                                    {i < attempts.length - 1 && <div style={{ alignSelf: 'center', color: '#d1d5db' }}>→</div>}
+                                </React.Fragment>
+                            );
+                        })}
+                        {slots[attempts.length].length > 0 && <div style={{ alignSelf: 'center', fontSize: 11, color: '#6b7280' }}>· หลังส่งครั้งสุดท้าย: {lvBadges(slots[attempts.length])}</div>}
+                    </div>
+
+                    {/* diff */}
+                    <div className="lo-avoid mb-4">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <b style={{ color: '#9d174d' }}>เทียบโค้ด</b>
+                            <select className="k-input lo-noprint" value={ia} onChange={e => setA(+e.target.value)}>
+                                {attempts.map((_, i) => <option key={i} value={i}>ครั้งที่ {i + 1}</option>)}
+                            </select>
+                            <span>→</span>
+                            <select className="k-input lo-noprint" value={ib} onChange={e => setB(+e.target.value)}>
+                                {attempts.map((_, i) => <option key={i} value={i}>ครั้งที่ {i + 1}{i === attempts.length - 1 ? ' (สุดท้าย)' : ''}</option>)}
+                            </select>
+                            <span className="text-xs text-gray-500">ครั้งที่ {ia + 1} → ครั้งที่ {ib + 1} · เปลี่ยน {changed} บรรทัด (<span style={{ background: '#dcfce7' }}>+ เพิ่ม</span> / <span style={{ background: '#fee2e2' }}>− ลบ</span>)</span>
+                        </div>
+                        <LODiff lines={diff} />
+                    </div>
+                </>
+            )}
+
+            {/* ข้อความคำใบ้ */}
+            <div className="lo-avoid">
+                <b style={{ color: '#9d174d' }}>ข้อความคำใบ้ AI ที่ได้รับในโจทย์นี้ (ตามลำดับ)</b>
+                {!texts.length ? <div className="text-sm text-gray-400 mt-1">ไม่พบข้อความคำใบ้ในบันทึกโค้ช (coachInteractions)</div> : (
+                    <ol className="mt-2" style={{ paddingLeft: 0, listStyle: 'none' }}>
+                        {texts.map((h, i) => (
+                            <li key={i} className="mb-2 p-2 rounded" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+                                <div style={{ fontSize: 11, color: '#92400e', marginBottom: 2 }}>คำใบ้ลำดับที่ {i + 1} · ระดับ {h.level}{h.local ? ' · คำใบ้สำรองของระบบ (ไม่ได้ใช้ AI)' : ''}</div>
+                                <div style={{ whiteSpace: 'pre-wrap', fontSize: 13 }}>{h.text}</div>
+                            </li>
+                        ))}
+                    </ol>
+                )}
+                <div className="text-xs text-gray-400 mt-1">ระดับคำใบ้ในไทม์ไลน์มาจาก usageEvents · ข้อความมาจาก coachInteractions (จับคู่ด้วยชื่อโจทย์) จำนวนสองแหล่งอาจต่างกันเล็กน้อย</div>
+            </div>
+        </div>
+    );
+};
+LO_VIEW_COMPONENTS.path = LOPath;
+
 window.LearningOutcomesTab = LearningOutcomesTab;
