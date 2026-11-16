@@ -502,5 +502,39 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
     }
+
+    // ══ รายงานผลลัพธ์ผู้เรียน (แท็บ "ผลลัพธ์ผู้เรียน") — บล็อกใหม่ทั้งหมด (ไม่แก้กฎเดิมด้านบน) ══
+    // ข้อมูลส่วนตัวของครูแต่ละคน แยกจากข้อมูลการส่งงาน: ชุดโจทย์ (preset), บันทึกของครู, คะแนนนอกระบบที่นำเข้า
+    // สร้างได้เฉพาะครู/แอดมินในชื่อตนเอง (ownerId) · อ่าน/แก้/ลบได้เฉพาะเจ้าของ หรือแอดมิน · เปลี่ยน ownerId ไม่ได้
+    match /outcome_presets/{docId} {
+      allow read, delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['teacher', 'admin'];
+      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == request.auth.uid;
+    }
+    match /outcome_notes/{docId} {
+      allow read, delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['teacher', 'admin'];
+      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == request.auth.uid;
+    }
+    match /outcome_scores/{docId} {
+      allow read, delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['teacher', 'admin'];
+      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == request.auth.uid;
+    }
   }
 }
