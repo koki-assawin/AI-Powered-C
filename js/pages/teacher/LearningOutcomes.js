@@ -286,7 +286,7 @@ const LearningOutcomesTab = ({ selectedCourse, course, userDoc, assignments = []
   body.lo-printing { background: #fff !important; }
   #lo-evidence-root { position: static; overflow: visible; }
   #lo-evidence-root .lo-noprint, #lo-evidence-root .lo-bar { display: none !important; }
-  #lo-evidence-root .lo-sheet { width: auto; margin: 0; padding: 0; }
+  #lo-evidence-root .lo-sheet { width: auto; margin: 0; padding: 0; zoom: 1 !important; }
   .lo-break { break-after: page; page-break-after: always; }
   .lo-avoid { break-inside: avoid; page-break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -480,7 +480,7 @@ const LOLegend = () => (
                 {LO_STATUS[k].label}
             </span>
         ))}
-        <span className="text-gray-500">· ผลตรวจ: AC ผ่านทุกกรณี · WA คำตอบผิด · CE คอมไพล์ไม่ผ่าน · RE รันไม่สำเร็จ · TLE ใช้เวลาเกิน · L1–L4 = ระดับคำใบ้</span>
+        <span className="text-gray-500">· ผลตรวจ: AC ผ่านทุกกรณี · WA คำตอบผิด · CE คอมไพล์ไม่ผ่าน · RE รันไม่สำเร็จ · TLE ใช้เวลาเกิน · 💡n (a/b/c/d) = ขอคำใบ้ n ครั้ง แยกระดับ 1/2/3/4 · (x%) = คะแนนที่นับเมื่อยังไม่เต็ม</span>
     </div>
 );
 
@@ -584,22 +584,19 @@ const LOMatrix = ({ ctx }) => {
                                         return (
                                             <td key={p.id} style={td}>
                                                 <div onClick={() => c.n > 0 && openPath(u, p.id)} title={st.label + (c.n ? ' — คลิกดูเส้นทางการส่งงาน' : '')}
-                                                    style={{ background: st.bg, borderLeft: '4px solid ' + st.color, borderRadius: 6, padding: '4px 6px', minWidth: 120, cursor: c.n ? 'pointer' : 'default', lineHeight: 1.45 }}>
+                                                    style={{ background: st.bg, borderLeft: '4px solid ' + st.color, borderRadius: 6, padding: '3px 5px', cursor: c.n ? 'pointer' : 'default', lineHeight: 1.4, fontSize: 11, whiteSpace: 'nowrap' }}>
                                                     {c.n === 0 && c.status === 'none' ? <div style={{ color: st.color }}>ไม่ได้ส่ง</div> : (
                                                         <>
-                                                            <div className="flex items-center gap-1">
-                                                                <span>ส่ง <b>{c.n}</b> ครั้ง</span>
-                                                                <span className="text-gray-500">· ครั้งแรก</span><LOVerdict v={c.firstVerdict} small />
-                                                            </div>
+                                                            <div>ส่ง <b>{c.n}</b> · แรก <LOVerdict v={c.firstVerdict} small /></div>
                                                             <div>
-                                                                <b>{raw}/{p.rawScore || 0}</b> คะแนน
+                                                                <b>{raw}/{p.rawScore || 0}</b>{c.counted != null && c.counted < 100 && <span className="text-gray-600"> ({c.counted}%)</span>}
                                                                 {t && <span className="text-gray-600"> · เคส {t[0]}/{t[1]}</span>}
-                                                                {c.bestScore != null && c.bestScore !== c.counted && (
-                                                                    <span className="text-gray-500"> (ดีสุด {LO.rawEarned(c.bestScore, p.rawScore)}/{p.rawScore || 0}{c.bestTests ? ` · ${c.bestTests[0]}/${c.bestTests[1]}` : ''})</span>
-                                                                )}
                                                             </div>
-                                                            <div style={{ fontSize: 11 }}>
-                                                                {c.hints > 0 ? <>💡 {c.hints} <LOHintLv lv={c.hintLv} /></> : <span className="text-gray-400">ไม่ขอคำใบ้</span>}
+                                                            {c.bestScore != null && c.bestScore !== c.counted && (
+                                                                <div className="text-gray-500">ดีสุด {c.bestScore}%{c.bestTests ? ` · ${c.bestTests[0]}/${c.bestTests[1]}` : ''}</div>
+                                                            )}
+                                                            <div>
+                                                                {c.hints > 0 ? <>💡{c.hints} <span style={{ fontFamily: LO_MONO, color: '#b45309' }}>({c.hintLv.join('/')})</span></> : <span className="text-gray-400">ไม่ขอคำใบ้</span>}
                                                             </div>
                                                         </>
                                                     )}
@@ -786,7 +783,8 @@ const LONote = ({ ctx, uid, readOnly }) => {
     const saved = (notes[uid] && notes[uid].text) || '';
     const [text, setText] = React.useState(saved);
     const [state, setState] = React.useState('');
-    React.useEffect(() => { setText(saved); setState(''); }, [uid, saved]);
+    React.useEffect(() => { setText(saved); setState(''); }, [uid]);
+    React.useEffect(() => { setText(saved); }, [saved]);
     if (readOnly) return saved ? <div style={{ whiteSpace: 'pre-wrap', fontSize: 13 }}>{saved}</div> : <div className="text-gray-400 text-sm">—</div>;
     const save = async () => {
         setState('saving');
@@ -813,7 +811,6 @@ const LONote = ({ ctx, uid, readOnly }) => {
 
 const LOCardBody = ({ ctx, uid, evidence }) => {
     const { LO, problems, matrix, labelOf, pCode, groups, scoreDoc, scoreByUid, studio, submissions, submissionsV2, assignments, gradingPolicy } = ctx;
-    const allSubs = React.useMemo(() => [...submissions.filter(s => s.studentId === uid), ...submissionsV2.filter(s => s.studentId === uid)], [uid, submissions, submissionsV2]);
     const row = matrix.rows[uid];
     if (!row) return null;
     const g = groups[uid];
@@ -862,9 +859,23 @@ const LOCardBody = ({ ctx, uid, evidence }) => {
                 </div>
                 <div style={box} className="lo-avoid">
                     <H>Radar 5 มิติ (ทุกโจทย์ในรายวิชา)</H>
-                    {typeof _StudentRadarChart === 'function'
-                        ? <_StudentRadarChart subs={allSubs} totalAssignments={assignments.length} />
-                        : <div className="text-sm text-gray-400">ไม่พบกราฟ Radar</div>}
+                    {g && g.metrics ? (() => {
+                        const m = g.metrics;
+                        const vals = [m.avgScore, m.passRate, m.coverage, m.effort, m.progress];
+                        const labs = ['คะแนนเฉลี่ย', 'อัตราผ่าน', 'ครอบคลุม', 'ความพยายาม', 'พัฒนาการ'];
+                        return (
+                            <>
+                                <LOChart height={200} config={{
+                                    type: 'radar',
+                                    data: { labels: labs, datasets: [{ data: vals, backgroundColor: 'rgba(236,72,153,0.18)', borderColor: '#ec4899', pointBackgroundColor: '#be185d', borderWidth: 2 }] },
+                                    options: { plugins: { legend: { display: false } },
+                                        scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 9 }, backdropColor: 'transparent' }, pointLabels: { font: { family: 'Prompt', size: 11 } } } } },
+                                }} />
+                                <div style={{ fontSize: 11, color: '#4b5563', textAlign: 'center' }}>{labs.map((l, i) => `${l} ${vals[i]}`).join(' · ')}</div>
+                            </>
+                        );
+                    })() : <div className="text-sm text-gray-400">ยังไม่มีการส่งงาน</div>}
+                    <div style={{ fontSize: 10, color: '#9ca3af' }}>คำนวณแบบเดียวกับแท็บกลุ่มผู้เรียน (คะแนนสูงสุดต่อโจทย์)</div>
                 </div>
             </div>
 
@@ -964,7 +975,7 @@ const LOGallery = ({ ctx }) => {
     if (!cur) return null;
     const rows = Math.ceil(uids.length / cols);
     // ความสูงต่อช่องให้ทั้งตารางพอดี A4 (≈ 245 mm หลังหักหัวรายงาน) — บนจอใช้ค่าเดียวกันเป็น px โดยประมาณ
-    const cellH = ctx.evidence ? `calc((245mm - ${rows * 2}mm) / ${rows})` : 190;
+    const cellH = ctx.evidence ? `calc((222mm - ${rows * 2}mm) / ${rows})` : 190;
     const codeFont = cols >= 6 ? 6 : cols === 5 ? 6.5 : 7.5;
     return (
         <div>
@@ -1191,7 +1202,8 @@ const LOSummary = ({ ctx }) => {
                             {polls.map((p, i) => (
                                 <label key={p.id} className="flex items-start gap-2 text-xs mb-1 cursor-pointer">
                                     <input type="checkbox" checked={pollSel.includes(p.id)} onChange={() => setPollSel(s => s.includes(p.id) ? s.filter(x => x !== p.id) : [...s, p.id])} />
-                                    <span><b>ครั้งที่ {i + 1}</b> · {p.snapshot.prompt}{p.snapshot.unitId ? ` (หน่วย ${p.snapshot.unitId})` : ''}</span>
+                                    <span><b>ครั้งที่ {i + 1}</b> · {p.snapshot.prompt}{p.snapshot.unitId ? ` (หน่วย ${p.snapshot.unitId})` : ''}
+                                        <span className="text-gray-400"> · {p.status === 'draft' ? 'ร่าง (ยังไม่เปิด)' : /round2/.test(p.status || '') ? 'มี 2 รอบ' : '1 รอบ'}</span></span>
                                 </label>
                             ))}
                         </div>
@@ -1206,7 +1218,7 @@ const LOSummary = ({ ctx }) => {
                                         return (
                                             <tr key={p.id}>
                                                 <td style={{ ...td, textAlign: 'left', maxWidth: 360 }}>ครั้งที่ {i + 1} · {p.snapshot.prompt}</td>
-                                                <td style={td}>{s.r1n ? `${loPct(s.r1ok / s.r1n * 100)} (${s.r1ok}/${s.r1n})` : '–'}</td>
+                                                <td style={td}>{s.r1n ? `${loPct(s.r1ok / s.r1n * 100)} (${s.r1ok}/${s.r1n})` : 'ไม่มีผู้เรียนในรายวิชาตอบ'}</td>
                                                 <td style={td}>{s.r2n ? `${loPct(s.r2ok / s.r2n * 100)} (${s.r2ok}/${s.r2n})` : 'ไม่มีรอบ 2'}</td>
                                                 <td style={td}>{s.bothN ? `${s.wrongToRight} คน` : '–'}</td>
                                                 <td style={td}>{s.bothN ? `${s.rightToWrong} คน` : '–'}</td>
