@@ -363,8 +363,179 @@ const LearningOutcomesTab = ({ selectedCourse, course, userDoc, assignments = []
     );
 };
 
+const LO_VIEW_COMPONENTS = {};
 const LOViewSwitch = ({ view, ctx }) => {
-    return <div className="text-center py-10 text-gray-400">มุมมองนี้กำลังพัฒนา</div>;
+    const C = LO_VIEW_COMPONENTS[view];
+    return C ? <C ctx={ctx} /> : <div className="text-center py-10 text-gray-400">มุมมองนี้กำลังพัฒนา</div>;
 };
+
+// คำอธิบายสีของช่อง
+const LOLegend = () => (
+    <div className="flex flex-wrap gap-3 text-xs mt-2 lo-avoid">
+        {['first', 'revised', 'notyet', 'none'].map(k => (
+            <span key={k} className="flex items-center gap-1">
+                <span style={{ width: 14, height: 14, borderRadius: 3, background: LO_STATUS[k].bg, border: '1px solid ' + LO_STATUS[k].color, display: 'inline-block' }} />
+                {LO_STATUS[k].label}
+            </span>
+        ))}
+        <span className="text-gray-500">· ผลตรวจ: AC ผ่านทุกกรณี · WA คำตอบผิด · CE คอมไพล์ไม่ผ่าน · RE รันไม่สำเร็จ · TLE ใช้เวลาเกิน · L1–L4 = ระดับคำใบ้</span>
+    </div>
+);
+
+// ════════════════════════════════════════════════════════════════════════════
+// มุมมอง 2: ตารางผลการส่งรายข้อ (Matrix)
+// ════════════════════════════════════════════════════════════════════════════
+const LOMatrix = ({ ctx }) => {
+    const { LO, uids, problems, matrix, reconcile, labelOf, pCode, openPath, gradingPolicy, gradesLocked, presetName } = ctx;
+    const [showRec, setShowRec] = React.useState(false);
+    const testsOf = (c) => (gradingPolicy === 'latest' ? c.lastTests : c.bestTests);
+    const cols = problems.map(p => ({ p, s: LO.columnSummary(matrix, uids, p.id) }));
+    const k = problems.length;
+    const tot = uids.reduce((a, u) => {
+        const s = matrix.rows[u].sum;
+        a.passed += s.passed; a.subs += s.subs; a.runs += s.runs; a.hints += s.hints; a.raw += s.raw;
+        return a;
+    }, { passed: 0, subs: 0, runs: 0, hints: 0, raw: 0 });
+    const allFirst = cols.reduce((a, c) => a + c.s.firstPassed, 0);
+    const submittedPairs = cols.reduce((a, c) => a + c.s.submitted, 0);
+
+    const exportCSV = () => {
+        const head = ['รหัส'];
+        if (!ctx.mask) head.push('ผู้เรียน');
+        problems.forEach(p => {
+            const c = pCode(p);
+            head.push(`${c} ส่ง(ครั้ง)`, `${c} ผลครั้งแรก`, `${c} คะแนนที่นับ(%)`, `${c} คะแนนดิบ(/${p.rawScore || 0})`, `${c} ดีที่สุด(%)`,
+                `${c} กรณีทดสอบ`, `${c} สถานะ`, `${c} คำใบ้ L1`, `${c} L2`, `${c} L3`, `${c} L4`, `${c} รัน`);
+        });
+        head.push(`ผ่าน (/${k})`, 'ส่งรวม', 'รันรวม', 'คำใบ้รวม', `คะแนนดิบรวม (/${matrix.rawMax})`);
+        const rows = uids.map(u => {
+            const r = matrix.rows[u];
+            const out = [ctx.codes.byUid[u].code];
+            if (!ctx.mask) out.push(labelOf(u));
+            problems.forEach(p => {
+                const c = r.cells[p.id];
+                const t = testsOf(c);
+                out.push(c.n, c.firstVerdict, c.counted == null ? '' : c.counted, LO.rawEarned(c.counted, p.rawScore), c.bestScore == null ? '' : c.bestScore,
+                    t ? `${t[0]}/${t[1]}` : '', LO_STATUS[c.status].label, ...c.hintLv, c.runs);
+            });
+            out.push(r.sum.passed, r.sum.subs, r.sum.runs, r.sum.hints, r.sum.raw);
+            return out;
+        });
+        const foot = [['% ผ่าน', ...(ctx.mask ? [] : [''])], ['% ผ่านครั้งแรก', ...(ctx.mask ? [] : [''])], ['ส่งเฉลี่ย/ข้อ', ...(ctx.mask ? [] : [''])]];
+        cols.forEach(({ s }) => {
+            foot[0].push('', '', LO.fmt(s.pctPassed, 1), '', '', '', '', '', '', '', '', '');
+            foot[1].push('', '', LO.fmt(s.pctFirst, 1), '', '', '', '', '', '', '', '', '');
+            foot[2].push(LO.fmt(s.avgAttempts, 2), '', '', '', '', '', '', '', '', '', '', '');
+        });
+        loDownload(`matrix_${(presetName || 'selected').replace(/[^\wก-๙.-]+/g, '_')}.csv`, new Blob([LO.toCSV([head, ...rows, ...foot])], { type: 'text/csv;charset=utf-8' }));
+    };
+
+    const th = { padding: '6px 8px', fontSize: 12, borderBottom: '2px solid #f9a8d4', background: '#fdf2f8', color: '#9d174d', textAlign: 'center', whiteSpace: 'nowrap' };
+    const td = { padding: 4, borderBottom: '1px solid #fce7f3', verticalAlign: 'top' };
+    return (
+        <div>
+            <div className="lo-noprint flex flex-wrap items-center gap-2 mb-2">
+                <span className="text-xs px-2 py-1 rounded" style={{ background: reconcile.ok ? '#ecfdf5' : '#fef2f2', color: reconcile.ok ? '#047857' : '#b91c1c' }}>
+                    {reconcile.ok ? '✅' : '⚠️'} ตรวจกับตาราง "สรุปคะแนนทุกคน (E1)": ตรง {reconcile.checked - reconcile.mismatched}/{reconcile.checked} ช่อง
+                    {reconcile.issues.filter(i => i.kind === 'notInE1').length > 0 && ` · ${reconcile.issues.filter(i => i.kind === 'notInE1').length} ข้อไม่อยู่ในตาราง E1`}
+                </span>
+                {reconcile.issues.length > 0 && <button className="text-xs underline" style={{ color: '#be185d' }} onClick={() => setShowRec(x => !x)}>{showRec ? 'ซ่อน' : 'ดู'}รายละเอียด</button>}
+                <span className="text-xs text-gray-500">คะแนนที่นับ = เกณฑ์ของรายวิชา ({gradingPolicy === 'latest' ? 'คะแนนครั้งล่าสุด' : 'คะแนนสูงสุด'}{gradesLocked ? ' · ปิดรับคะแนนแล้ว' : ''})</span>
+                <button onClick={exportCSV} className="ml-auto text-xs px-3 py-1 rounded" style={{ background: '#be185d', color: '#fff' }}>⬇️ CSV ของตาราง</button>
+            </div>
+            {showRec && (
+                <ul className="lo-noprint text-xs mb-2 p-2 rounded" style={{ background: '#fff7ed' }}>
+                    {reconcile.issues.slice(0, 50).map((i, n) => (
+                        <li key={n}>{i.kind === 'notInE1' ? `${pCode(ctx.aById[i.aid])}: ${i.reason}` : `${labelOf(i.uid)} × ${pCode(ctx.aById[i.aid])}: ${i.reason} (ตารางนี้ ${i.mine} / E1 ${i.e1})`}</li>
+                    ))}
+                </ul>
+            )}
+            <div style={{ overflowX: 'auto' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
+                    <thead>
+                        <tr>
+                            <th style={{ ...th, textAlign: 'left' }}>ผู้เรียน</th>
+                            {problems.map(p => (
+                                <th key={p.id} style={th} title={p.title}>
+                                    <div style={{ fontFamily: LO_MONO }}>{pCode(p)}</div>
+                                    <div style={{ fontWeight: 400, fontSize: 10, color: '#6b7280', maxWidth: 140, whiteSpace: 'normal' }}>{LO.shortTitle(p.title)} · {p.rawScore || 0} คะแนน</div>
+                                </th>
+                            ))}
+                            <th style={th}>ผ่าน<br />(/{k})</th>
+                            <th style={th}>ส่ง<br />รวม</th>
+                            <th style={th}>รัน<br />รวม</th>
+                            <th style={th}>คำใบ้<br />รวม</th>
+                            <th style={th}>คะแนน<br />(/{matrix.rawMax})</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {uids.map(u => {
+                            const r = matrix.rows[u];
+                            return (
+                                <tr key={u} className="lo-avoid">
+                                    <td style={{ ...td, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: LO_MONO, verticalAlign: 'middle' }}>{labelOf(u)}</td>
+                                    {problems.map(p => {
+                                        const c = r.cells[p.id];
+                                        const st = LO_STATUS[c.status];
+                                        const t = testsOf(c);
+                                        const raw = LO.rawEarned(c.counted, p.rawScore);
+                                        return (
+                                            <td key={p.id} style={td}>
+                                                <div onClick={() => c.n > 0 && openPath(u, p.id)} title={st.label + (c.n ? ' — คลิกดูเส้นทางการส่งงาน' : '')}
+                                                    style={{ background: st.bg, borderLeft: '4px solid ' + st.color, borderRadius: 6, padding: '4px 6px', minWidth: 120, cursor: c.n ? 'pointer' : 'default', lineHeight: 1.45 }}>
+                                                    {c.n === 0 && c.status === 'none' ? <div style={{ color: st.color }}>ไม่ได้ส่ง</div> : (
+                                                        <>
+                                                            <div className="flex items-center gap-1">
+                                                                <span>ส่ง <b>{c.n}</b> ครั้ง</span>
+                                                                <span className="text-gray-500">· ครั้งแรก</span><LOVerdict v={c.firstVerdict} small />
+                                                            </div>
+                                                            <div>
+                                                                <b>{raw}/{p.rawScore || 0}</b> คะแนน
+                                                                {t && <span className="text-gray-600"> · เคส {t[0]}/{t[1]}</span>}
+                                                                {c.bestScore != null && c.bestScore !== c.counted && (
+                                                                    <span className="text-gray-500"> (ดีสุด {LO.rawEarned(c.bestScore, p.rawScore)}/{p.rawScore || 0}{c.bestTests ? ` · ${c.bestTests[0]}/${c.bestTests[1]}` : ''})</span>
+                                                                )}
+                                                            </div>
+                                                            <div style={{ fontSize: 11 }}>
+                                                                {c.hints > 0 ? <>💡 {c.hints} <LOHintLv lv={c.hintLv} /></> : <span className="text-gray-400">ไม่ขอคำใบ้</span>}
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        );
+                                    })}
+                                    <td style={{ ...td, textAlign: 'center', verticalAlign: 'middle', fontWeight: 700 }}>{r.sum.passed}/{k}</td>
+                                    <td style={{ ...td, textAlign: 'center', verticalAlign: 'middle' }}>{r.sum.subs}</td>
+                                    <td style={{ ...td, textAlign: 'center', verticalAlign: 'middle' }}>{r.sum.runs}</td>
+                                    <td style={{ ...td, textAlign: 'center', verticalAlign: 'middle' }}>{r.sum.hints}</td>
+                                    <td style={{ ...td, textAlign: 'center', verticalAlign: 'middle', fontWeight: 700 }}>{r.sum.raw}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                    <tfoot>
+                        {[
+                            ['% ผ่าน', s => loPct(s.pctPassed) + ` (${s.passed}/${s.n})`, loPct(uids.length && k ? tot.passed / (uids.length * k) * 100 : NaN)],
+                            ['% ผ่านครั้งแรก', s => loPct(s.pctFirst) + ` (${s.firstPassed}/${s.n})`, loPct(uids.length && k ? allFirst / (uids.length * k) * 100 : NaN)],
+                            ['ส่งเฉลี่ย/ข้อ (ผู้ที่ส่ง)', s => LO.fmt(s.avgAttempts, 2) + ` (${s.submitted} คน)`, LO.fmt(submittedPairs ? tot.subs / submittedPairs : NaN, 2)],
+                        ].map(([label, f, all]) => (
+                            <tr key={label} style={{ background: '#fdf2f8', fontWeight: 600 }}>
+                                <td style={{ ...td, whiteSpace: 'nowrap' }}>{label}</td>
+                                {cols.map(({ p, s }) => <td key={p.id} style={{ ...td, textAlign: 'center' }}>{f(s)}</td>)}
+                                <td style={{ ...td, textAlign: 'center' }} colSpan={5}>รวมทุกข้อ: {all}</td>
+                            </tr>
+                        ))}
+                    </tfoot>
+                </table>
+            </div>
+            <LOLegend />
+            <div className="text-xs text-gray-400 mt-1">
+                n = {uids.length} คน · ตัวหาร % คือจำนวนผู้เรียนที่เลือก · "ผ่าน" = คะแนนที่นับเต็ม 100% · คำใบ้นับจากบันทึกการขอคำใบ้ (usageEvents) · รัน = ทดสอบตัวอย่าง + รันโค้ด
+            </div>
+        </div>
+    );
+};
+LO_VIEW_COMPONENTS.matrix = LOMatrix;
 
 window.LearningOutcomesTab = LearningOutcomesTab;
