@@ -253,9 +253,107 @@ const LearningOutcomesTab = ({ selectedCourse, course, userDoc, assignments = []
         presets, selectedCourse, course, me, setErr, setMsg, mask,
     };
 
+    // ── โหมดหลักฐาน ──
+    const [evidence, setEvidence] = React.useState(false);
+    const [allCards, setAllCards] = React.useState(false);
+    const [zoom, setZoom] = React.useState(1.1);
+    const [school, setSchool] = React.useState(() => { try { return localStorage.getItem('lo_school') || ''; } catch (_) { return ''; } });
+    React.useEffect(() => { try { localStorage.setItem('lo_school', school); } catch (_) { /* ไม่เป็นไร */ } }, [school]);
+    const viewLabel = (LO_VIEWS.find(v => v.key === view) || {}).label || '';
+    const roomLabel = course ? [course.grade, course.room].filter(Boolean).join('/') : '';
+    const EvidenceHeader = () => (
+        <div className="lo-avoid" style={{ borderBottom: '2px solid #be185d', paddingBottom: 6, marginBottom: 10, fontFamily: LO_FONT }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#111827' }}>{viewLabel.replace(/^\S+\s/, '')}</div>
+            <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+                {school && <>{school} · </>}รายวิชา {course ? course.title : ''}{roomLabel && ` · ห้อง ${roomLabel}`}
+                {course && course.semester ? ` · ภาคเรียนที่ ${course.semester}/${course.academicYear || ''}` : ''}
+                <br />ชุดโจทย์: <b>{presetName || '(ไม่ได้ตั้งชื่อ)'}</b> ({problems.map(pCode).join(', ')}) · n = {uids.length} คน
+                {stuMode === 'group' && ` · กลุ่ม${LO.GROUP3_LABEL[stuGroup]}`}
+            </div>
+        </div>
+    );
+    React.useEffect(() => {
+        if (!document.getElementById('lo-evidence-style')) {
+            const st = document.createElement('style');
+            st.id = 'lo-evidence-style';
+            st.textContent = `
+#lo-evidence-root { position: fixed; inset: 0; z-index: 9999; background: #fff; overflow: auto; color: #111827; }
+#lo-evidence-root .lo-sheet { width: 210mm; max-width: 100%; margin: 0 auto 24px; padding: 10mm; background: #fff; box-sizing: border-box; }
+#lo-evidence-root .lo-bar { position: sticky; top: 0; z-index: 2; background: #fdf2f8; border-bottom: 1px solid #fbcfe8; padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-family: 'Prompt', sans-serif; font-size: 13px; }
+@media print {
+  @page { size: A4 portrait; margin: 8mm; }
+  body.lo-printing > *:not(#lo-evidence-root) { display: none !important; }
+  body.lo-printing { background: #fff !important; }
+  #lo-evidence-root { position: static; overflow: visible; }
+  #lo-evidence-root .lo-noprint, #lo-evidence-root .lo-bar { display: none !important; }
+  #lo-evidence-root .lo-sheet { width: auto; margin: 0; padding: 0; }
+  .lo-break { break-after: page; page-break-after: always; }
+  .lo-avoid { break-inside: avoid; page-break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}`;
+            document.head.appendChild(st);
+        }
+    }, []);
+    React.useEffect(() => {
+        if (!evidence) return undefined;
+        document.body.classList.add('lo-printing');
+        const onKey = (e) => { if (e.key === 'Escape') setEvidence(false); };
+        window.addEventListener('keydown', onKey);
+        return () => { document.body.classList.remove('lo-printing'); window.removeEventListener('keydown', onKey); };
+    }, [evidence]);
+    const sheetRef = React.useRef(null);
+    const [pngBusy, setPngBusy] = React.useState(false);
+    const savePNG = async () => {
+        setPngBusy(true);
+        try {
+            if (!window.html2canvas) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                    s.onload = res; s.onerror = () => rej(new Error('โหลด html2canvas ไม่สำเร็จ'));
+                    document.head.appendChild(s);
+                });
+            }
+            // html2canvas ไม่รองรับ CSS zoom: ถ่ายที่ 100% แล้วขยายด้วย scale แทน
+            const el = sheetRef.current;
+            el.style.zoom = 1;
+            let canvas;
+            try {
+                canvas = await window.html2canvas(el, { scale: 2 * zoom, backgroundColor: '#ffffff', useCORS: true,
+                    ignoreElements: (n) => n.classList && n.classList.contains('lo-noprint') });
+            } finally { el.style.zoom = zoom; }
+            canvas.toBlob(b => loDownload(`${view}_${(presetName || 'selected').replace(/[^\wก-๙.-]+/g, '_')}.png`, b), 'image/png');
+        } catch (e) { setErr('บันทึก PNG ไม่สำเร็จ: ' + (e.message || e)); }
+        finally { setPngBusy(false); }
+    };
+
     const S = { fontFamily: LO_FONT };
+    const evCtx = { ...ctx, evidence: true, allCards, EvidenceHeader };
+    const btn = { padding: '5px 12px', borderRadius: 8, background: '#fff', border: '1px solid #f9a8d4', color: '#be185d' };
+    const evidenceLayer = evidence && ReactDOM.createPortal(
+        <div id="lo-evidence-root">
+            <div className="lo-bar">
+                <b style={{ color: '#be185d' }}>🧾 โหมดหลักฐาน</b>
+                <input className="k-input" style={{ width: 260, padding: '4px 8px' }} placeholder="ชื่อโรงเรียน (แสดงบนหัวรายงาน)" value={school} onChange={e => setSchool(e.target.value)} />
+                <label>ขนาดตัวอักษร</label>
+                <select className="k-input" style={{ padding: '4px 8px' }} value={zoom} onChange={e => setZoom(+e.target.value)}>
+                    {[[1, '100%'], [1.1, '110%'], [1.25, '125%'], [1.4, '140%']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+                {view === 'card' && <label className="flex items-center gap-1"><input type="checkbox" checked={allCards} onChange={e => setAllCards(e.target.checked)} /> การ์ดทุกคน (1 คน/หน้า)</label>}
+                <span style={{ flex: 1 }} />
+                <button style={btn} onClick={() => window.print()}>🖨️ พิมพ์ / PDF (A4)</button>
+                <button style={btn} onClick={savePNG} disabled={pngBusy}>{pngBusy ? 'กำลังสร้าง…' : '🖼️ บันทึก PNG'}</button>
+                <button style={{ ...btn, background: '#be185d', color: '#fff' }} onClick={() => setEvidence(false)}>✕ ปิด (Esc)</button>
+            </div>
+            <div className="lo-sheet" ref={sheetRef} style={{ zoom }}>
+                <EvidenceHeader />
+                {problems.length ? <LOViewSwitch view={view} ctx={evCtx} /> : <div>ยังไม่ได้เลือกโจทย์</div>}
+            </div>
+        </div>, document.body);
+
     return (
         <div style={S}>
+            {evidenceLayer}
             {/* ── แผงตัวกรอง ── */}
             <div className="lo-noprint" style={{ border: '1px solid #fbcfe8', borderRadius: 12, padding: 14, marginBottom: 14, background: '#fff' }}>
                 <div className="flex flex-wrap items-end gap-3 mb-3">
@@ -351,6 +449,10 @@ const LearningOutcomesTab = ({ selectedCourse, course, userDoc, assignments = []
                         background: view === v.key ? '#ec4899' : '#fce7f3', color: view === v.key ? '#fff' : '#be185d', fontWeight: view === v.key ? 700 : 400,
                     }}>{v.label}</button>
                 ))}
+                <button onClick={() => setEvidence(true)} disabled={!problems.length || view === 'import'}
+                    title="ซ่อนเมนู ใช้พื้นขาว ตัวอักษรใหญ่ กว้างพอดี A4 สำหรับแคปหน้าจอหรือพิมพ์"
+                    style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 999, fontSize: 13, fontFamily: LO_FONT,
+                        background: problems.length && view !== 'import' ? '#111827' : '#e5e7eb', color: '#fff', fontWeight: 700 }}>🧾 โหมดหลักฐาน</button>
             </div>
 
             {!problems.length && view !== 'import' ? (
