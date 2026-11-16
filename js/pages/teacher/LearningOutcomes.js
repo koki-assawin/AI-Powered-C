@@ -851,4 +851,59 @@ const LOCards = ({ ctx }) => {
 const LOEvidenceHeaderSlot = ({ ctx }) => (ctx.EvidenceHeader ? <ctx.EvidenceHeader /> : null);
 LO_VIEW_COMPONENTS.card = LOCards;
 
+// ════════════════════════════════════════════════════════════════════════════
+// มุมมอง 5: แกลเลอรีผลงานรายบุคคล (โค้ดชิ้นสุดท้ายของทุกคน ในโจทย์ 1 ข้อ · A4 แนวตั้ง 1 หน้า)
+// ════════════════════════════════════════════════════════════════════════════
+const LOGallery = ({ ctx }) => {
+    const { LO, uids, problems, matrix, labelOf, pCode, openPath } = ctx;
+    const [aid, setAid] = React.useState(problems[0] && problems[0].id);
+    const [cols, setCols] = React.useState(5);
+    const cur = problems.find(p => p.id === aid) || problems[0];
+    if (!cur) return null;
+    const rows = Math.ceil(uids.length / cols);
+    // ความสูงต่อช่องให้ทั้งตารางพอดี A4 (≈ 245 mm หลังหักหัวรายงาน) — บนจอใช้ค่าเดียวกันเป็น px โดยประมาณ
+    const cellH = ctx.evidence ? `calc((245mm - ${rows * 2}mm) / ${rows})` : 190;
+    const codeFont = cols >= 6 ? 6 : cols === 5 ? 6.5 : 7.5;
+    return (
+        <div>
+            <div className="lo-noprint flex flex-wrap items-center gap-2 mb-3">
+                <select className="k-input" value={cur.id} onChange={e => setAid(e.target.value)}>
+                    {problems.map(p => <option key={p.id} value={p.id}>{pCode(p)} {LO.shortTitle(p.title)}</option>)}
+                </select>
+                <label className="text-sm">คอลัมน์</label>
+                <select className="k-input" value={cols} onChange={e => setCols(+e.target.value)}>
+                    {[4, 5, 6].map(n => <option key={n} value={n}>{n} × {Math.ceil(uids.length / n)}</option>)}
+                </select>
+                <span className="text-xs text-gray-500">ใช้โหมดหลักฐานเพื่อจัดให้พอดี A4 แนวตั้ง 1 หน้า</span>
+            </div>
+            <div className="font-bold mb-2" style={{ color: '#9d174d' }}>{pCode(cur)} {LO.shortTitle(cur.title)} — โค้ดที่ส่งครั้งสุดท้ายของผู้เรียนแต่ละคน</div>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: '2mm' }}>
+                {uids.map(u => {
+                    const c = matrix.rows[u].cells[cur.id];
+                    const at = matrix.attempts[LO.pairKey(u, cur.id)] || [];
+                    const last = at[at.length - 1];
+                    const st = LO_STATUS[c.status];
+                    return (
+                        <div key={u} onClick={() => at.length && openPath(u, cur.id)} className="lo-avoid"
+                            style={{ border: '1.5px solid ' + st.color, borderRadius: 6, overflow: 'hidden', height: cellH, display: 'flex', flexDirection: 'column', background: '#fff', cursor: at.length ? 'pointer' : 'default' }}>
+                            <div style={{ background: st.bg, padding: '1px 4px', fontSize: 10, display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap' }}>
+                                <b style={{ fontFamily: LO_MONO }}>{labelOf(u)}</b>
+                                <span>ส่ง {c.n}</span>
+                                {last && <LOVerdict v={c.lastVerdict} small />}
+                                {last && last.totalTests ? <span>{last.passedTests || 0}/{last.totalTests}</span> : null}
+                            </div>
+                            <pre style={{ flex: 1, margin: 0, padding: '2px 3px', fontFamily: LO_MONO, fontSize: codeFont, lineHeight: 1.15, overflow: 'hidden', whiteSpace: 'pre', color: '#111827' }}>
+                                {last ? (last.code || '').replace(/\t/g, '  ') : ''}
+                            </pre>
+                            {!last && <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 11, paddingBottom: 6 }}>ไม่ได้ส่ง</div>}
+                        </div>
+                    );
+                })}
+            </div>
+            <LOLegend />
+        </div>
+    );
+};
+LO_VIEW_COMPONENTS.gallery = LOGallery;
+
 window.LearningOutcomesTab = LearningOutcomesTab;
