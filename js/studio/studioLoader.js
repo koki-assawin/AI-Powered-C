@@ -9,7 +9,7 @@
  * ไฟล์ที่โหลดแบบ lazy ต้องประกาศของที่ใช้ข้ามไฟล์ไว้บน window (เช่น window.TemplateManager = TemplateManager)
  */
 
-const STUDIO_ASSET_VERSION = '6.0.10';
+const STUDIO_ASSET_VERSION = '6.0.11';
 
 // หน้า Studio → ไฟล์ที่ต้องโหลด (ตามลำดับ)
 const STUDIO_PAGES = {

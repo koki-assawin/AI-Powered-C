@@ -174,7 +174,7 @@ const TemplateManager = () => {
                         <option value="">— เลือกรายวิชา —</option>
                         {courses.map(c => (
                             <option key={c.id} value={c.id}>
-                                {isStudio(c) ? '🎨 ' : isProtectedCourse(c) ? '🔒 ' : ''}{c.title} ({c.language})
+                                {isStudio(c) ? '🎨 ' : isProtectedCourse(c) ? '🔒 ' : ''}{courseLabel(c)} ({c.language})
                             </option>
                         ))}
                     </select>

@@ -553,7 +553,7 @@ const StudentAnalytics = () => {
                         }}
                         className="k-input" style={{ maxWidth: '360px' }}>
                         <option value="">-- เลือกรายวิชา --</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}{c.grade ? ` · ${c.grade}` : ''}{c.room ? ` ห้อง ${c.room}` : ''}{c.semester ? ` เทอม ${c.semester}/${c.academicYear || ''}` : ''}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{courseLabel(c)}</option>)}
                     </select>
                 </div>
 

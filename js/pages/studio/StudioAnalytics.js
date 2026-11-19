@@ -82,7 +82,7 @@ const StudioAnalytics = () => {
                 </div>
                 <select value={courseId} onChange={e => setCourseId(e.target.value)} className="k-input mb-4" style={{ paddingLeft: 8 }}>
                     {courses.length === 0 && <option value="">— ยังไม่มีรายวิชาที่เปิด APCC Studio —</option>}
-                    {courses.map(c => <option key={c.id} value={c.id}>🎨 {c.title}</option>)}
+                    {courses.map(c => <option key={c.id} value={c.id}>🎨 {courseLabel(c)}</option>)}
                 </select>
                 {error && <div className="p-3 rounded-xl mb-4 text-sm bg-red-50 text-red-700">{error}</div>}
                 {course && !agg && !error && <Spinner text="กำลังรวบรวมข้อมูล..." />}

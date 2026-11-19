@@ -67,7 +67,7 @@ const _DemoSetupTab = ({ demoConfig, courses, demoSelectedCourse, demoAssignment
                     <select value={demoSelectedCourse} onChange={e => { onCourseChange(e.target.value); setSelected([]); }}
                         style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1.5px solid #fce7f3', fontFamily: "'Prompt',sans-serif", fontSize: 13 }}>
                         <option value="">— เลือกรายวิชา —</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title} {c.grade ? `(${c.grade})` : ''}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{courseLabel(c)}</option>)}
                     </select>
                 </div>
 
@@ -406,7 +406,7 @@ const GamificationAdmin = () => {
                                 style={{ ...inputStyle, marginBottom: 10 }}>
                                 <option value="">— ทุกรายวิชา (ไม่แยก) —</option>
                                 {courses.map(c => (
-                                    <option key={c.id} value={c.id}>{c.title}</option>
+                                    <option key={c.id} value={c.id}>{courseLabel(c)}</option>
                                 ))}
                             </select>
                             <button onClick={handleRefreshLeaderboard} disabled={refreshing} style={{

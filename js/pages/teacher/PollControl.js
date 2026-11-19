@@ -305,7 +305,7 @@ const PollControl = () => {
                     <select value={courseId} onChange={e => setCourseId(e.target.value)} disabled={!!sessionId}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                         {courses.map(c => (
-                            <option key={c.id} value={c.id}>{c.title} ({c.grade}/{c.room} เทอม {c.semester}/{c.academicYear})</option>
+                            <option key={c.id} value={c.id}>{courseLabel(c)}</option>
                         ))}
                     </select>
                     <p className="text-xs text-gray-500 mt-1">นักเรียนในวิชานี้ {expectedN} คน</p>

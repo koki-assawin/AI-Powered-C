@@ -180,7 +180,7 @@ const RealtimeDashboard = () => {
                     <label className="block text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">📚 รายวิชา</label>
                     <select value={courseId} onChange={e => setCourseId(e.target.value)}
                         className="w-full bg-gray-950 border border-purple-700/50 text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500">
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{courseLabel(c)}</option>)}
                     </select>
                 </div>
 

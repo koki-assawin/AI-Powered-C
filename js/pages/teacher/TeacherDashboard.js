@@ -132,7 +132,7 @@ const _ResearchMetricsPanel = ({ courses = [] }) => {
                     <label style={{ fontSize: 11, color: '#9ca3af', display: 'block', marginBottom: 4 }}>รายวิชา</label>
                     <select value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)} className="k-input" style={{ fontSize: 13 }}>
                         <option value="">-- เลือกรายวิชา --</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}{c.grade ? ` · ${c.grade}` : ''}{c.room ? ` ห้อง ${c.room}` : ''}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{courseLabel(c)}</option>)}
                     </select>
                 </div>
                 <div>

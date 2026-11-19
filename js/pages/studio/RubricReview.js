@@ -86,7 +86,7 @@ const RubricReview = () => {
                 <h1 className="text-xl font-bold mb-4" style={{ color: '#4527A0' }}>🏅 ประเมินโปรเจกต์ตามรูบริก</h1>
                 <select value={courseId} onChange={e => setCourseId(e.target.value)} className="k-input mb-4" style={{ paddingLeft: 8 }}>
                     {courses.length === 0 && <option value="">— ยังไม่มีรายวิชาที่เปิด Project Studio —</option>}
-                    {courses.map(c => <option key={c.id} value={c.id}>🎨 {c.title}</option>)}
+                    {courses.map(c => <option key={c.id} value={c.id}>🎨 {courseLabel(c)}</option>)}
                 </select>
                 {msg && <div className="p-3 rounded-xl mb-4 text-sm bg-white border">{msg}</div>}
                 {course && !projects && <Spinner text="กำลังโหลดโปรเจกต์..." />}

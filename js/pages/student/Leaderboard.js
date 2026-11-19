@@ -288,7 +288,7 @@ const Leaderboard = () => {
                         <select value={selectedCourseId}
                             onChange={e => { setSelectedCourseId(e.target.value); loadEntries(e.target.value); }}
                             style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '9px 12px', color: '#f1f5f9', fontFamily: "'Prompt',sans-serif", fontSize: 13, outline: 'none' }}>
-                            {myCourses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                            {myCourses.map(c => <option key={c.id} value={c.id}>{courseLabel(c)}</option>)}
                         </select>
                     </div>
                 )}

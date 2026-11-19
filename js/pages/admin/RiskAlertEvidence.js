@@ -185,7 +185,7 @@ const RiskAlertEvidence = () => {
                     <label className="text-sm text-gray-600">รายวิชา<br />
                         <select value={cid} onChange={e => setCid(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }}>
                             {!courses.some(c => c.id === cid) && <option value={cid}>{cid}</option>}
-                            {courses.map(c => <option key={c.id} value={c.id}>{c.title || c.name || c.id}</option>)}
+                            {courses.map(c => <option key={c.id} value={c.id}>{courseLabel(c)}</option>)}
                         </select>
                     </label>
                     <label className="text-sm text-gray-600">ข้อมูลถึงวันที่ (รวมวันนั้น)<br />

@@ -164,7 +164,7 @@ const Gradebook = () => {
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
                         <label className="block text-sm font-medium text-gray-600 mb-2">📚 เลือกรายวิชา</label>
                         <select value={selectedCourseId} onChange={e => handleCourseChange(e.target.value)} className="k-input">
-                            {enrolledCourses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                            {enrolledCourses.map(c => <option key={c.id} value={c.id}>{courseLabel(c)}</option>)}
                         </select>
                     </div>
                 )}

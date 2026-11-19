@@ -126,3 +126,14 @@ const serverTimestamp = () => firebase.firestore.FieldValue.serverTimestamp();
 const arrayUnion  = (...items) => firebase.firestore.FieldValue.arrayUnion(...items);
 const arrayRemove = (...items) => firebase.firestore.FieldValue.arrayRemove(...items);
 const increment   = (n) => firebase.firestore.FieldValue.increment(n);
+
+// ── ป้ายรายวิชาสำหรับ dropdown: ชื่อ · ระดับชั้น ห้อง เทอม/ปีการศึกษา (แยกห้องที่ชื่อวิชาซ้ำกันได้) ──
+const courseLabel = (c) => {
+    if (!c) return '';
+    let s = c.title || c.name || c.id || '';
+    if (c.grade) s += ` · ${c.grade}`;
+    if (c.room) s += ` ห้อง ${c.room}`;
+    if (c.semester) s += ` เทอม ${c.semester}/${c.academicYear || ''}`;
+    return s;
+};
+window.courseLabel = courseLabel;

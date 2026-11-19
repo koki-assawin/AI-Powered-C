@@ -561,7 +561,7 @@ const ResearchDataSeeder = () => {
                     <select value={selectedCourseId} onChange={e => setSelectedCourseId(e.target.value)}
                         style={{ border:'1.5px solid #e2e8f0', borderRadius:8, padding:'9px 12px', fontFamily:"'Prompt',sans-serif", fontSize:13, outline:'none', cursor:'pointer' }}>
                         <option value="">— Seed ตาม studentCode (ไม่แยก รายวิชา) —</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{courseLabel(c)}</option>)}
                     </select>
                     <button
                         onClick={runSeed}
@@ -753,7 +753,7 @@ const ResearchDataSeeder = () => {
                         style={{ border:'1.5px solid #e2e8f0', borderRadius:8, padding:'9px 12px', fontFamily:"'Prompt',sans-serif", fontSize:13, outline:'none', cursor:'pointer', minWidth:280 }}
                     >
                         <option value="">— เลือกรายวิชา —</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{courseLabel(c)}</option>)}
                     </select>
 
                     <button

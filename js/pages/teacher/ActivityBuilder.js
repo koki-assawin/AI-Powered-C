@@ -352,7 +352,7 @@ const ActivityBuilder = () => {
                     <label className={_abL}>📚 รายวิชา</label>
                     <select value={courseId} onChange={e => setCourseId(e.target.value)} className={_abI}>
                         {courses.length === 0 && <option value="">กำลังโหลด...</option>}
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{courseLabel(c)}</option>)}
                     </select>
                 </div>
 
