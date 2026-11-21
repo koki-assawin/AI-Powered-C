@@ -593,6 +593,7 @@ const StudentAnalytics = () => {
                                     { key: 'gamification', label: '🎮 Gamification' },
                                     { key: 'profiles',     label: '🧩 กลุ่มผู้เรียน' },
                                     { key: 'outcomes',     label: '🎓 ผลลัพธ์ผู้เรียน' },
+                                    { key: 'debugtime',    label: '⏱️ เวลาแก้ไขข้อผิดพลาด' },
                                 ].map(t => (
                                     <button key={t.key} style={TAB_STYLE(t.key)} onClick={() => setActiveTab(t.key)}>
                                         {t.label}
@@ -1591,6 +1592,14 @@ const StudentAnalytics = () => {
                                         userDoc={userDoc} assignments={assignments} submissions={submissions} submissionsV2={submissionsV2}
                                         grades={grades} enrollments={enrollments} students={students}
                                         gradingPolicy={gradingPolicy} gradesLocked={gradesLocked} />
+                                )}
+
+                                {/* ─── TAB 9: DEBUG TIME (โหลดแบบ lazy · อ่านอย่างเดียว) ─── */}
+                                {activeTab === 'debugtime' && (
+                                    <DebugTimeLoader key={selectedCourse}
+                                        selectedCourse={selectedCourse} course={courses.find(c => c.id === selectedCourse) || null}
+                                        userDoc={userDoc} assignments={assignments} submissions={submissions}
+                                        enrollments={enrollments} students={students} />
                                 )}
 
                             </div>
