@@ -957,6 +957,7 @@ const CodingWorkspace = () => {
                                                     {!groupCollapsed && groupAssigns.map(a => (
                                                         <button
                                                             key={a.id}
+                                                            title={a.topicName ? `${a.title}\n${a.topicName}` : a.title}
                                                             onClick={() => selectAssignment(a)}
                                                             className={`w-full text-left pl-10 pr-3 py-2 text-sm transition-colors
                                                                 ${currentAssignment?.id === a.id
@@ -971,7 +972,16 @@ const CodingWorkspace = () => {
                                                                     {a.assignmentType === 'exam' ? '🏆' : '📝'}
                                                                 </span>
                                                                 <div className="min-w-0">
-                                                                    <div className="truncate text-xs leading-snug">{a.topicName ? `${a.topicName} — ` : ''}{a.title}</div>
+                                                                    {/* ชื่อโจทย์มาก่อน (สูงสุด 2 บรรทัด) เพื่อให้แยกแยะโจทย์ได้ง่าย */}
+                                                                    <div className="text-xs leading-snug font-medium break-words"
+                                                                        style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                                        {a.title}
+                                                                    </div>
+                                                                    {a.topicName && (
+                                                                        <div className="truncate mt-0.5" style={{ color: '#9CA3AF', fontSize: '10px' }}>
+                                                                            {a.topicName}
+                                                                        </div>
+                                                                    )}
                                                                     <div className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>
                                                                         {a.difficulty}{a.timeLimit ? ` • ${a.timeLimit/1000}s` : ''}
                                                                     </div>
