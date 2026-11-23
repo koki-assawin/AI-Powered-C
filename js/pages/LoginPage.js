@@ -5,6 +5,7 @@ const SCHOOL_LOGO = 'https://www.triamudomsouth.ac.th/images/theme/150x150.png';
 const LoginPage = () => {
     const [email, setEmail]       = React.useState('');
     const [password, setPassword] = React.useState('');
+    const [showPassword, setShowPassword] = React.useState(false);
     const [loading, setLoading]   = React.useState(false);
     const [error, setError]       = React.useState('');
 
@@ -118,8 +119,21 @@ const LoginPage = () => {
                                     {showForgot ? '✕ ปิด' : 'ลืมรหัสผ่าน?'}
                                 </button>
                             </div>
-                            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                                required placeholder="••••••••" className="k-input" />
+                            <div style={{ position:'relative' }}>
+                                <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                                    required placeholder="••••••••" className="k-input" autoComplete="current-password"
+                                    style={{ paddingRight:'48px' }} />
+                                <button type="button" onClick={() => setShowPassword(v => !v)}
+                                    aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                                    title={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                                    style={{
+                                        position:'absolute', right:'8px', top:'50%', transform:'translateY(-50%)',
+                                        background:'none', border:'none', cursor:'pointer', padding:'6px 8px',
+                                        fontSize:'18px', lineHeight:1, color:'#9ca3af',
+                                    }}>
+                                    {showPassword ? '🙈' : '👁️'}
+                                </button>
+                            </div>
                         </div>
 
                         {/* ── Forgot Password Panel ── */}
